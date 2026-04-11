@@ -78,7 +78,12 @@ export const api = {
   }) =>
     request<SignedCoinResponse>("/mine/submit", {
       method: "POST",
-      body: JSON.stringify(miningResult),
+      body: JSON.stringify({
+        coinGene: miningResult.coinGene,
+        nonce: miningResult.nonce,
+        hash: miningResult.hash,
+        difficulty: miningResult.difficulty,
+      }),
     }),
 
   createWallet: () =>
@@ -115,4 +120,34 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ mrna }),
     }),
+
+  createPayment: (data: {
+    amount: number;
+    recipientPublicKeyHash: string;
+    description: string;
+    metadata?: Record<string, string>;
+  }) =>
+    request<{
+      paymentId: string;
+      status: string;
+      amount: number;
+      paymentUrl: string;
+      expiresAt: number;
+    }>("/gateway/payments", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getPayment: (id: string) =>
+    request<{
+      paymentId: string;
+      status: string;
+      amount: number;
+      description: string;
+      recipientPublicKeyHash: string;
+      metadata: Record<string, string>;
+      mrnasReceived: number;
+      fulfilledAt: number | null;
+      expiresAt: number;
+    }>(`/gateway/payments/${id}`),
 };

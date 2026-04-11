@@ -8,6 +8,8 @@ import { BettingModule } from "./betting/betting.module";
 import { GossipModule } from "./gossip/gossip.module";
 import { NetworkModule } from "./network/network.module";
 import { RegistryModule } from "./registry/registry.module";
+import { GatewayModule } from "./gateway/gateway.module";
+import { MarketplaceModule } from "./marketplace/marketplace.module";
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { RegistryModule } from "./registry/registry.module";
     TransferModule,
     BettingModule,
     GossipModule,
+    GatewayModule,
+    MarketplaceModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

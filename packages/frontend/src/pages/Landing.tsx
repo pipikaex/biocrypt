@@ -14,7 +14,7 @@ export function Landing() {
       <WhySection />
       <HowItWorks />
       <ForEveryone />
-      <Tokenomics />
+      <Tokenomics stats={stats} />
       <BuildYourOwn />
       <Roadmap />
       <Community />
@@ -203,7 +203,7 @@ function ForEveryone() {
           <div className="persona-card">
             <h3>Developers</h3>
             <p>Fork our open-source engine. Create custom tokens, build payment integrations, launch your own biological network in minutes.</p>
-            <a href="https://github.com" className="btn btn-secondary btn-sm">View Source</a>
+            <a href="https://github.com/pipikaex/biocoin" target="_blank" rel="noopener" className="btn btn-secondary btn-sm">View Source</a>
           </div>
           <div className="persona-card">
             <h3>Businesses</h3>
@@ -218,8 +218,9 @@ function ForEveryone() {
 
 /* ─── Tokenomics ────────────────────────────────────────────────────────── */
 
-function Tokenomics() {
+function Tokenomics({ stats }: { stats: NetworkStats | null }) {
   const r = useReveal();
+  const liveDifficulty = stats?.difficulty ?? "00000";
   return (
     <section className="section section-alt" id="tokenomics">
       <div className="container" ref={r.ref} data-reveal={r.visible}>
@@ -234,8 +235,8 @@ function Tokenomics() {
             <div className="tok-lbl">Proof-of-Work Algorithm</div>
           </div>
           <div className="tok-card">
-            <div className="tok-val">0000</div>
-            <div className="tok-lbl">Current Difficulty</div>
+            <div className="tok-val mono">{liveDifficulty}</div>
+            <div className="tok-lbl">Current Difficulty ({liveDifficulty.length} leading zeros)</div>
           </div>
           <div className="tok-card">
             <div className="tok-val">10%</div>
@@ -303,7 +304,7 @@ console.log(signed.networkId);       // "mytoken-a1b2c3d4e5f6"
 console.log(signed.networkSignature); // unique to YOUR network`}</pre>
         </div>
         <div style={{ textAlign: "center", marginTop: "2rem" }}>
-          <a href="https://github.com" className="btn btn-secondary btn-lg">
+          <a href="https://github.com/pipikaex/biocoin" target="_blank" rel="noopener" className="btn btn-secondary btn-lg">
             Star on GitHub
           </a>
         </div>
@@ -368,17 +369,17 @@ function Community() {
           </p>
         </div>
         <div className="community-grid">
-          <a href="https://discord.gg" className="social-card" target="_blank" rel="noopener">
-            <div className="social-icon">Discord</div>
+          <a href="https://github.com/pipikaex/biocoin" className="social-card" target="_blank" rel="noopener">
+            <div className="social-icon">GitHub</div>
+            <p>Star the repo, contribute code, report bugs, or fork the project to build your own network.</p>
+          </a>
+          <a href="https://github.com/pipikaex/biocoin/discussions" className="social-card" target="_blank" rel="noopener">
+            <div className="social-icon">Discussions</div>
             <p>Chat with miners and developers. Get help, share ideas, and build together.</p>
           </a>
-          <a href="https://twitter.com" className="social-card" target="_blank" rel="noopener">
-            <div className="social-icon">X / Twitter</div>
-            <p>Follow for updates, mining tips, and network announcements.</p>
-          </a>
-          <a href="https://github.com" className="social-card" target="_blank" rel="noopener">
-            <div className="social-icon">GitHub</div>
-            <p>Contribute code, report bugs, or fork the project to build your own network.</p>
+          <a href="https://github.com/pipikaex/biocoin/issues" className="social-card" target="_blank" rel="noopener">
+            <div className="social-icon">Issues &amp; Roadmap</div>
+            <p>Follow development progress, request features, and track network announcements.</p>
           </a>
         </div>
       </div>
@@ -469,9 +470,9 @@ function Footer() {
           </div>
           <div>
             <h4>Community</h4>
-            <a href="https://discord.gg" target="_blank" rel="noopener">Discord</a>
-            <a href="https://twitter.com" target="_blank" rel="noopener">X / Twitter</a>
-            <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+            <a href="https://github.com/pipikaex/biocoin" target="_blank" rel="noopener">GitHub</a>
+            <a href="https://github.com/pipikaex/biocoin/discussions" target="_blank" rel="noopener">Discussions</a>
+            <a href="https://github.com/pipikaex/biocoin/issues" target="_blank" rel="noopener">Issues</a>
           </div>
         </div>
         <div className="footer-bottom">

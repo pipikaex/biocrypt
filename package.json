@@ -5,6 +5,8 @@
   "workspaces": [
     "packages/core",
     "packages/server",
-    "packages/frontend"
+    "packages/frontend",
+    "packages/gateway",
+    "packages/demo"
   ]
 }

@@ -1,7 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, BadRequestException } from "@nestjs/common";
 import {
   mineCoin, signCoinWithNetwork, integrateCoinIntoWallet,
-  verifyMiningProofWithTarget, type MiningResult, type SignedCoin,
+  verifyMiningProofWithTarget, ribosome, sha256,
+  type MiningResult, type SignedCoin,
 } from "@zcoin/core";
 import { NetworkService } from "../network/network.service";
 import { WalletService } from "../wallet/wallet.service";
@@ -34,8 +35,6 @@ export class MiningService {
 
   submitBrowserMinedCoin(submission: {
     coinGene: string;
-    serial: string;
-    serialHash: string;
     nonce: number;
     hash: string;
     difficulty: string;
@@ -49,16 +48,24 @@ export class MiningService {
     const target = this.network.getDifficultyTarget();
 
     if (!verifyMiningProofWithTarget(submission.coinGene, submission.nonce, target)) {
-      throw new Error(
+      throw new BadRequestException(
         `Invalid proof-of-work. Network target: ${target.slice(0, 12)}... (prefix "${this.network.getDifficultyPrefix()}"), your hash: ${submission.hash}`,
       );
     }
 
+    const result = ribosome(submission.coinGene);
+    const protein = result.proteins[0];
+    if (!protein) {
+      throw new BadRequestException("Invalid coin gene: no protein could be translated");
+    }
+    const serial = protein.aminoAcids.slice(4).join("-");
+    const serialHash = sha256(serial);
+
     const miningResult: MiningResult = {
       coinGene: submission.coinGene,
-      protein: null as any,
-      serial: submission.serial,
-      serialHash: submission.serialHash,
+      protein,
+      serial,
+      serialHash,
       nonce: submission.nonce,
       hash: submission.hash,
       difficulty: submission.difficulty,

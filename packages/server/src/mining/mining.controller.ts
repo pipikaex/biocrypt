@@ -1,6 +1,7 @@
 import { Controller, Post, Body, Get } from "@nestjs/common";
 import { MiningService } from "./mining.service";
 import { NetworkService } from "../network/network.service";
+import { SubmitCoinDto } from "./submit-coin.dto";
 
 @Controller("mine")
 export class MiningController {
@@ -43,17 +44,7 @@ export class MiningController {
   }
 
   @Post("submit")
-  submit(
-    @Body()
-    body: {
-      coinGene: string;
-      serial: string;
-      serialHash: string;
-      nonce: number;
-      hash: string;
-      difficulty: string;
-    },
-  ) {
+  submit(@Body() body: SubmitCoinDto) {
     const result = this.miningService.submitBrowserMinedCoin(body);
     return result;
   }

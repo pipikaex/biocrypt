@@ -5,10 +5,12 @@ import { Wallet } from "./pages/Wallet";
 import { Mine } from "./pages/Mine";
 import { Transfer } from "./pages/Transfer";
 import { Network } from "./pages/Network";
+import { Pay } from "./pages/Pay";
 
 export function App() {
   return (
     <Routes>
+      <Route path="/pay/:paymentId" element={<Pay />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Landing />} />
         <Route path="/wallet" element={<Wallet />} />

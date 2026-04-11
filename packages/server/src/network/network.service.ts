@@ -63,7 +63,7 @@ export class NetworkService implements OnModuleInit {
   }
 
   private persist() {
-    fs.writeFileSync(NETWORK_FILE, JSON.stringify({
+    const data = JSON.stringify({
       networkDNA: this.networkDNA,
       networkId: this.networkId,
       networkWalletDNA: this.networkWalletDNA,
@@ -74,7 +74,10 @@ export class NetworkService implements OnModuleInit {
       epochSubmissions: this.epochSubmissions,
       totalSubmissions: this.totalSubmissions,
       createdAt: Date.now(),
-    }));
+    });
+    const tmpFile = NETWORK_FILE + ".tmp";
+    fs.writeFileSync(tmpFile, data);
+    fs.renameSync(tmpFile, NETWORK_FILE);
   }
 
   /**
