@@ -15,6 +15,7 @@ export function Landing() {
       <HowItWorks />
       <ForEveryone />
       <Tokenomics stats={stats} />
+      <PaymentGateway />
       <BuildYourOwn />
       <Roadmap />
       <Community />
@@ -207,8 +208,8 @@ function ForEveryone() {
           </div>
           <div className="persona-card">
             <h3>Businesses</h3>
-            <p>Accept zcoin as payment. Integrate our TypeScript SDK. Coins are verified cryptographically \u2014 no third-party settlement.</p>
-            <Link to="/network" className="btn btn-secondary btn-sm">Learn More</Link>
+            <p>Accept zcoin as payment with our drop-in gateway SDK. One script tag, popup checkout &mdash; like PayPal, but decentralized.</p>
+            <a href="https://demo.zcoin.bio" target="_blank" rel="noopener" className="btn btn-primary btn-sm">See Demo Marketplace</a>
           </div>
         </div>
       </div>
@@ -268,6 +269,64 @@ function Tokenomics({ stats }: { stats: NetworkStats | null }) {
   );
 }
 
+/* ─── Payment Gateway ──────────────────────────────────────────────────── */
+
+function PaymentGateway() {
+  const r = useReveal();
+  return (
+    <section className="section" id="gateway">
+      <div className="container" ref={r.ref} data-reveal={r.visible}>
+        <div className="section-header">
+          <span className="section-tag">Payment Gateway</span>
+          <h2 className="section-title">Accept zcoin <span className="grad-text">anywhere</span></h2>
+          <p className="section-sub">
+            Add zcoin payments to any website with a single script tag. Popup checkout,
+            cryptographic verification, zero fees. Like PayPal &mdash; but decentralized.
+          </p>
+        </div>
+        <div className="gw-grid">
+          <div className="gw-card">
+            <div className="gw-step">1</div>
+            <h3>Add the SDK</h3>
+            <div className="code-block" style={{ margin: 0 }}>
+              <pre className="code-body" style={{ fontSize: "0.75rem", padding: "0.75rem" }}>{`<script src="https://zcoin.bio/gateway/zcoin-pay.js"></script>`}</pre>
+            </div>
+          </div>
+          <div className="gw-card">
+            <div className="gw-step">2</div>
+            <h3>Request payment</h3>
+            <div className="code-block" style={{ margin: 0 }}>
+              <pre className="code-body" style={{ fontSize: "0.75rem", padding: "0.75rem" }}>{`const pay = new ZcoinPay();
+const result = await pay.requestPayment({
+  amount: 2,
+  to: "your-public-key",
+  description: "Premium Widget",
+});`}</pre>
+            </div>
+          </div>
+          <div className="gw-card">
+            <div className="gw-step">3</div>
+            <h3>User approves in popup</h3>
+            <p className="text-muted text-sm">
+              A secure popup opens on zcoin.bio where the buyer selects coins from their wallet
+              and approves the transfer. mRNA is created client-side &mdash; private keys never leave
+              the browser.
+            </p>
+          </div>
+        </div>
+        <div style={{ textAlign: "center", marginTop: "2.5rem", display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap" }}>
+          <a href="https://demo.zcoin.bio" target="_blank" rel="noopener" className="btn btn-primary btn-lg btn-glow">
+            Try Demo Marketplace
+          </a>
+          <a href="https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway" target="_blank" rel="noopener" className="btn btn-secondary btn-lg">
+            View Source
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Build your own ────────────────────────────────────────────────────── */
 
 function BuildYourOwn() {
@@ -318,8 +377,8 @@ console.log(signed.networkSignature); // unique to YOUR network`}</pre>
 function Roadmap() {
   const r = useReveal();
   const items = [
-    { q: "Now", title: "Genesis", items: ["Browser mining", "Wallet management", "Peer-to-peer transfers", "Network signing"], done: true },
-    { q: "Q3 2026", title: "Growth", items: ["Mobile wallet app", "Multi-network support", "Marketplace for coin trading", "Developer SDK + docs"], done: false },
+    { q: "Now", title: "Genesis", items: ["Browser mining", "Wallet management", "Peer-to-peer transfers", "Network signing", "Payment gateway SDK", "Demo marketplace"], done: true },
+    { q: "Q3 2026", title: "Growth", items: ["Mobile wallet app", "Multi-network support", "WordPress / WooCommerce plugin", "Developer SDK + docs"], done: false },
     { q: "Q4 2026", title: "Ecosystem", items: ["Payment gateway plugin", "Smart protein contracts", "Decentralized app store", "Governance via DNA voting"], done: false },
     { q: "2027", title: "Evolution", items: ["Cross-network transfers", "Hardware wallet support", "Enterprise API", "Organism-based DeFi"], done: false },
   ];
@@ -370,16 +429,16 @@ function Community() {
         </div>
         <div className="community-grid">
           <a href="https://github.com/pipikaex/biocoin" className="social-card" target="_blank" rel="noopener">
-            <div className="social-icon">GitHub</div>
+            <div className="social-icon">Core Engine</div>
             <p>Star the repo, contribute code, report bugs, or fork the project to build your own network.</p>
           </a>
-          <a href="https://github.com/pipikaex/biocoin/discussions" className="social-card" target="_blank" rel="noopener">
-            <div className="social-icon">Discussions</div>
-            <p>Chat with miners and developers. Get help, share ideas, and build together.</p>
+          <a href="https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway" className="social-card" target="_blank" rel="noopener">
+            <div className="social-icon">Payment Gateway</div>
+            <p>Demo marketplace, embeddable SDK, and integration examples for accepting zcoin payments.</p>
           </a>
-          <a href="https://github.com/pipikaex/biocoin/issues" className="social-card" target="_blank" rel="noopener">
-            <div className="social-icon">Issues &amp; Roadmap</div>
-            <p>Follow development progress, request features, and track network announcements.</p>
+          <a href="https://demo.zcoin.bio" className="social-card" target="_blank" rel="noopener">
+            <div className="social-icon">Live Demo</div>
+            <p>Try the marketplace demo &mdash; list items, buy with zcoin, see the payment gateway in action.</p>
           </a>
         </div>
       </div>
@@ -471,8 +530,8 @@ function Footer() {
           <div>
             <h4>Community</h4>
             <a href="https://github.com/pipikaex/biocoin" target="_blank" rel="noopener">GitHub</a>
-            <a href="https://github.com/pipikaex/biocoin/discussions" target="_blank" rel="noopener">Discussions</a>
-            <a href="https://github.com/pipikaex/biocoin/issues" target="_blank" rel="noopener">Issues</a>
+            <a href="https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway" target="_blank" rel="noopener">Gateway SDK</a>
+            <a href="https://demo.zcoin.bio" target="_blank" rel="noopener">Demo Marketplace</a>
           </div>
         </div>
         <div className="footer-bottom">
@@ -641,6 +700,21 @@ const styles = `
   max-width: 680px; margin: 0 auto; text-align: center;
   font-size: 0.9rem; color: var(--text-muted); line-height: 1.8;
 }
+
+/* ── Gateway ───────────────────────────── */
+.gw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+.gw-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.75rem;
+}
+.gw-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }
+.gw-step {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--primary-glow); color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 0.88rem; margin-bottom: 0.75rem;
+}
+@media (max-width: 900px) { .gw-grid { grid-template-columns: 1fr; } }
 
 /* ── Code block ─────────────────────────── */
 .code-block {
