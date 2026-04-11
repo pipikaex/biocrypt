@@ -11,9 +11,17 @@ interface StopMsg {
   type: "stop";
 }
 
-type InMsg = StartMsg | StopMsg;
+interface UpdateTargetMsg {
+  type: "updateTarget";
+  target: string;
+  difficulty: string;
+}
+
+type InMsg = StartMsg | StopMsg | UpdateTargetMsg;
 
 let running = false;
+let currentTarget = "";
+let currentDifficulty = "";
 
 function encodeNonceAsCodons(nonce: number): string {
   let codons = "";
@@ -34,9 +42,7 @@ function encodeNonceAsCodons(nonce: number): string {
   return codons;
 }
 
-function mine(target: string, difficulty: string, bodyLength: number) {
-  running = true;
-
+function generateCoinBody(bodyLength: number): string {
   const COIN_GENE_HEADER = "ATGGGGTGGTGC";
   let coinBody = "";
   while (coinBody.length < bodyLength) {
@@ -48,49 +54,60 @@ function mine(target: string, difficulty: string, bodyLength: number) {
       coinBody += codon;
     }
   }
+  return COIN_GENE_HEADER + coinBody;
+}
 
-  const basePayload = COIN_GENE_HEADER + coinBody;
-  let nonce = 0;
+function mineLoop(target: string, difficulty: string, bodyLength: number) {
+  running = true;
+  currentTarget = target;
+  currentDifficulty = difficulty;
+
   let lastReport = performance.now();
   let hashCount = 0;
+  let totalNonce = 0;
 
   while (running) {
-    const nonceCodons = encodeNonceAsCodons(nonce);
-    const fullGene = basePayload + nonceCodons + "TAA";
-    const payload = fullGene + "|" + nonce;
-    const hash = sha256(payload);
-    hashCount++;
+    const basePayload = generateCoinBody(bodyLength);
+    let nonce = 0;
 
-    if (hash <= target) {
-      const serial = extractSerial(fullGene);
-      if (serial) {
-        self.postMessage({
-          type: "result",
-          coinGene: fullGene,
-          serial,
-          serialHash: sha256(serial),
-          nonce,
-          hash,
-          difficulty,
-          minedAt: Date.now(),
-        });
-        running = false;
-        return;
+    while (running) {
+      const nonceCodons = encodeNonceAsCodons(nonce);
+      const fullGene = basePayload + nonceCodons + "TAA";
+      const payload = fullGene + "|" + nonce;
+      const hash = sha256(payload);
+      hashCount++;
+      totalNonce++;
+
+      if (hash <= currentTarget) {
+        const serial = extractSerial(fullGene);
+        if (serial) {
+          self.postMessage({
+            type: "result",
+            coinGene: fullGene,
+            serial,
+            serialHash: sha256(serial),
+            nonce,
+            hash,
+            difficulty: currentDifficulty,
+            minedAt: Date.now(),
+          });
+          break;
+        }
       }
-    }
 
-    nonce++;
+      nonce++;
 
-    const now = performance.now();
-    if (now - lastReport >= 500) {
-      const elapsed = (now - lastReport) / 1000;
-      self.postMessage({
-        type: "progress",
-        hashrate: Math.round(hashCount / elapsed),
-        nonce,
-      });
-      hashCount = 0;
-      lastReport = now;
+      const now = performance.now();
+      if (now - lastReport >= 500) {
+        const elapsed = (now - lastReport) / 1000;
+        self.postMessage({
+          type: "progress",
+          hashrate: Math.round(hashCount / elapsed),
+          nonce: totalNonce,
+        });
+        hashCount = 0;
+        lastReport = now;
+      }
     }
   }
 }
@@ -137,8 +154,11 @@ function extractSerial(coinGene: string): string | null {
 self.onmessage = (e: MessageEvent<InMsg>) => {
   const msg = e.data;
   if (msg.type === "start") {
-    mine(msg.target, msg.difficulty, msg.bodyLength);
+    mineLoop(msg.target, msg.difficulty, msg.bodyLength);
   } else if (msg.type === "stop") {
     running = false;
+  } else if (msg.type === "updateTarget") {
+    currentTarget = msg.target;
+    currentDifficulty = msg.difficulty;
   }
 };

@@ -82,8 +82,6 @@ export function Mine() {
         };
         addCoin(coin);
         addToast("success", `Coin mined! Serial: ${msg.serialHash.slice(0, 12)}...`);
-        setMining({ active: false, hashrate: 0 });
-        workerRef.current = null;
 
         if (autoSubmit) {
           submitCoin(coin);
@@ -125,7 +123,23 @@ export function Mine() {
         setTarget(result.currentTarget);
         addToast("info", `Difficulty adjusted to ${result.currentDifficulty.length} leading zeros`);
       }
-      refreshDifficulty();
+
+      const d = await api.getDifficulty().catch(() => null);
+      if (d) {
+        setDifficulty(d.difficulty);
+        setTarget(d.target);
+        setNetworkInfo({
+          totalSubmissions: d.totalSubmissions,
+          epochProgress: d.epochProgress,
+          nextAdjustmentIn: d.nextAdjustmentIn,
+          networkId: d.networkId,
+        });
+        workerRef.current?.postMessage({
+          type: "updateTarget",
+          target: d.target,
+          difficulty: d.difficulty,
+        });
+      }
     } catch (err: any) {
       addToast("error", `Signing failed: ${err.message}`);
     } finally {
