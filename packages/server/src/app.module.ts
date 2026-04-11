@@ -1,8 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
-import { ServeStaticModule } from "@nestjs/serve-static";
-import { join } from "path";
 import { WalletModule } from "./wallet/wallet.module";
 import { MiningModule } from "./mining/mining.module";
 import { TransferModule } from "./transfer/transfer.module";
@@ -14,10 +12,6 @@ import { RegistryModule } from "./registry/registry.module";
 @Module({
   imports: [
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, "..", "..", "frontend", "dist"),
-      exclude: ["/api/(.*)"],
-    }),
     NetworkModule,
     RegistryModule,
     WalletModule,

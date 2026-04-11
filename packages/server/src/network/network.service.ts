@@ -20,6 +20,7 @@ export class NetworkService implements OnModuleInit {
   private networkId: string;
   private networkWalletDNA: string;
   private feeCoinCount = 0;
+  private signedCoinCount = 0;
 
   private difficultyTarget: string;
   private epochStartTime: number;
@@ -41,6 +42,7 @@ export class NetworkService implements OnModuleInit {
       this.networkId = data.networkId;
       this.networkWalletDNA = data.networkWalletDNA || data.networkDNA;
       this.feeCoinCount = data.feeCoinCount || 0;
+      this.signedCoinCount = data.signedCoinCount || 0;
       this.difficultyTarget = data.difficultyTarget || leadingZerosToTarget(INITIAL_LEADING_ZEROS);
       this.epochStartTime = data.epochStartTime || Date.now();
       this.epochSubmissions = data.epochSubmissions || 0;
@@ -50,6 +52,7 @@ export class NetworkService implements OnModuleInit {
       this.networkDNA = generateDNA(6000);
       this.networkId = "zcoin-" + sha256(this.networkDNA).slice(0, 12);
       this.networkWalletDNA = generateDNA(6000);
+      this.signedCoinCount = 0;
       this.difficultyTarget = leadingZerosToTarget(INITIAL_LEADING_ZEROS);
       this.epochStartTime = Date.now();
       this.epochSubmissions = 0;
@@ -65,6 +68,7 @@ export class NetworkService implements OnModuleInit {
       networkId: this.networkId,
       networkWalletDNA: this.networkWalletDNA,
       feeCoinCount: this.feeCoinCount,
+      signedCoinCount: this.signedCoinCount,
       difficultyTarget: this.difficultyTarget,
       epochStartTime: this.epochStartTime,
       epochSubmissions: this.epochSubmissions,
@@ -130,6 +134,14 @@ export class NetworkService implements OnModuleInit {
     return this.totalSubmissions;
   }
 
+  incrementSignedCoins(): void {
+    this.signedCoinCount++;
+  }
+
+  getSignedCoinCount(): number {
+    return this.signedCoinCount;
+  }
+
   getEpochProgress(): { current: number; interval: number } {
     return { current: this.epochSubmissions, interval: ADJUSTMENT_INTERVAL };
   }
@@ -181,7 +193,7 @@ export class NetworkService implements OnModuleInit {
       }
     }
 
-    totalCoins += this.feeCoinCount;
+    totalCoins += this.feeCoinCount + this.signedCoinCount;
 
     let peers = 0;
     let nullifiers = 0;

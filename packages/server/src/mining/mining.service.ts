@@ -66,6 +66,7 @@ export class MiningService {
     };
 
     const signed = this.signCoin(miningResult);
+    this.network.incrementSignedCoins();
 
     const adjustment = this.network.recordSubmission();
 
