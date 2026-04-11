@@ -1,0 +1,10 @@
+{
+  "name": "zcoin",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/core",
+    "packages/server",
+    "packages/frontend"
+  ]
+}

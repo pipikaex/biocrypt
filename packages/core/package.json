@@ -1,0 +1,17 @@
+{
+  "name": "@zcoin/core",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "js-sha256": "^0.11.1"
+  }
+}

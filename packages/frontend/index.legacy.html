@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kronixcoin</title>
+<style>
+:root{--bg:#070b14;--s1:#0f1729;--s2:#1a2540;--bd:#2a3a5c;--tx:#d4daf0;--dm:#8892b0;--ac:#00d4aa;--ac2:#7c5cfc;--red:#ff4d6a;--org:#ffaa2c;--grn:#00d4aa;--pk:#d946ef}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:'SF Mono','Fira Code','Consolas',monospace;overflow-x:hidden}
+header{padding:16px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:16px;background:var(--s1)}
+header h1{font-size:18px;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header .tag{font-size:10px;color:var(--dm);border:1px solid var(--bd);padding:2px 8px;border-radius:10px}
+.tabs{display:flex;border-bottom:1px solid var(--bd);background:var(--s1)}
+.tab{padding:10px 20px;font-size:12px;color:var(--dm);cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:var(--ac);border-bottom-color:var(--ac)}
+.panel{display:none;padding:24px;max-width:1100px;margin:0 auto}
+.panel.active{display:block}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:12px}
+.card h3{font-size:13px;color:var(--ac);margin-bottom:8px}
+h2{font-size:13px;color:var(--dm);text-transform:uppercase;letter-spacing:2px;margin:20px 0 12px}
+.btn{padding:10px 20px;border:1px solid var(--ac);background:transparent;color:var(--ac);font-family:inherit;font-size:12px;cursor:pointer;border-radius:6px;transition:all .2s}
+.btn:hover{background:var(--ac);color:var(--bg)}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-red{border-color:var(--red);color:var(--red)}.btn-red:hover{background:var(--red);color:#fff}
+.btn-purple{border-color:var(--ac2);color:var(--ac2)}.btn-purple:hover{background:var(--ac2);color:#fff}
+.btn-sm{padding:6px 12px;font-size:10px}
+input,textarea{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--bd);color:var(--tx);font-family:inherit;font-size:11px;border-radius:6px;margin:4px 0 8px}
+textarea{height:80px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.stat{text-align:center;padding:12px;background:var(--s1);border-radius:8px;border:1px solid var(--bd)}
+.stat .v{font-size:22px;font-weight:bold}.stat .l{font-size:9px;color:var(--dm);margin-top:4px;text-transform:uppercase;letter-spacing:1px}
+.mono{font-size:10px;word-break:break-all;color:var(--ac);line-height:1.6}
+.dna-vis{font-size:10px;letter-spacing:2px;line-height:1.6;max-height:60px;overflow:hidden;word-break:break-all;position:relative;padding:8px;background:var(--bg);border-radius:6px}
+.dna-vis::after{content:'';position:absolute;bottom:0;left:0;right:0;height:20px;background:linear-gradient(transparent,var(--bg))}
+.T{color:#ff4d6a}.A{color:#00d4aa}.C{color:#5b8cff}.G{color:#ffaa2c}
+.rarity{display:inline-block;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:bold;letter-spacing:1px;text-transform:uppercase}
+.rarity-common{background:#1f2937;color:#9ca3af}
+.rarity-uncommon{background:#064e3b;color:#10b981}
+.rarity-rare{background:#1e3a5f;color:#3b82f6}
+.rarity-epic{background:#3b0764;color:#a855f7}
+.rarity-legendary{background:#78350f;color:#f59e0b}
+.ability{padding:8px 12px;background:var(--s2);border-radius:6px;margin-bottom:4px;font-size:11px;border-left:3px solid var(--bd)}
+.ability.unlocked{border-left-color:var(--ac)}
+.ability.locked{opacity:.25}
+.ability .name{font-weight:bold}.ability .desc{color:var(--dm);font-size:10px;margin-top:2px}
+canvas{border-radius:8px;background:var(--s1);width:100%;margin:8px 0}
+.nonce-line{font-size:11px;color:var(--dm);min-height:16px;margin:6px 0}
+.log{background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:8px;font-size:10px;color:var(--dm);max-height:150px;overflow-y:auto;line-height:1.8}
+.log .ok{color:var(--grn)}.log .err{color:var(--red)}.log .info{color:var(--ac)}
+.chain-entry{padding:6px 8px;font-size:10px;border-left:2px solid var(--ac2);margin-bottom:4px;color:var(--dm)}
+.chain-entry.burned{border-color:var(--red);opacity:.5}
+.file-drop{border:2px dashed var(--bd);border-radius:8px;padding:24px;text-align:center;color:var(--dm);font-size:11px;cursor:pointer;transition:border-color .2s}
+.file-drop:hover{border-color:var(--ac)}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}.grid3{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>KRONIXCOIN</h1>
+  <span class="tag">DNA Cryptocurrency</span>
+  <span class="tag" id="connStatus" style="color:var(--red)">offline</span>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('wallet')">Wallet</button>
+  <button class="tab" onclick="showTab('mine')">Mine</button>
+  <button class="tab" onclick="showTab('transfer')">Transfer</button>
+  <button class="tab" onclick="showTab('betting')">Betting</button>
+  <button class="tab" onclick="showTab('organism')">Organism</button>
+</div>
+
+<!-- ═══ WALLET TAB ═══ -->
+<div class="panel active" id="panel-wallet">
+  <div class="grid2">
+    <div>
+      <button class="btn" onclick="createNewWallet()" id="createWalletBtn">CREATE WALLET</button>
+      <div id="walletInfo" style="display:none;margin-top:12px">
+        <div class="card">
+          <h3>Wallet ID</h3>
+          <div class="mono" id="walletId"></div>
+        </div>
+        <div class="grid3">
+          <div class="stat"><div class="v" id="wProteins">-</div><div class="l">Proteins</div></div>
+          <div class="stat"><div class="v" id="wCoins">-</div><div class="l">Coins</div></div>
+          <div class="stat"><div class="v" id="wScore">-</div><div class="l">Score</div></div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <h3>Public Key Hash</h3>
+          <div class="mono" id="wPubKey"></div>
+        </div>
+        <div class="card">
+          <h3>DNA Preview</h3>
+          <div class="dna-vis" id="wDnaVis"></div>
+        </div>
+        <button class="btn btn-sm" onclick="exportWallet()" style="margin-top:8px">EXPORT WALLET (JSON)</button>
+        <button class="btn btn-sm btn-purple" onclick="exportPNG()" style="margin-top:8px;margin-left:8px">EXPORT PNG</button>
+      </div>
+    </div>
+    <div>
+      <h2>Import Wallet</h2>
+      <textarea id="importData" placeholder="Paste wallet JSON or mRNA here..."></textarea>
+      <button class="btn btn-sm" onclick="importWallet()">IMPORT</button>
+      <div class="file-drop" id="pngDrop" style="margin-top:12px">
+        Drop PNG wallet image here or click to load
+        <input type="file" accept="image/png" style="display:none" id="pngInput" onchange="loadPNG(event)">
+      </div>
+
+      <h2 style="margin-top:20px">Private Key</h2>
+      <div class="card">
+        <p style="font-size:10px;color:var(--red);margin-bottom:8px">Store this securely. Cannot be recovered.</p>
+        <div class="mono" id="wPrivKey" style="color:var(--red);max-height:60px;overflow:hidden"></div>
+        <button class="btn btn-sm btn-red" onclick="togglePrivKey()" style="margin-top:8px">SHOW / HIDE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MINE TAB ═══ -->
+<div class="panel" id="panel-mine">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3>Mining Settings</h3>
+        <label style="font-size:10px;color:var(--dm)">Difficulty Prefix</label>
+        <input id="mineDifficulty" value="00" style="width:80px">
+        <label style="font-size:10px;color:var(--dm)">Body Length (codons)</label>
+        <input id="mineBodyLen" value="60" type="number" style="width:80px">
+      </div>
+      <button class="btn" onclick="startMining()" id="mineBtn">MINE COIN</button>
+      <div class="nonce-line" id="mineNonce"></div>
+      <div class="log" id="mineLog"></div>
+    </div>
+    <div>
+      <h2>Mined Coins</h2>
+      <div id="minedCoins"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TRANSFER TAB ═══ -->
+<div class="panel" id="panel-transfer">
+  <div class="grid2">
+    <div>
+      <h2>Send</h2>
+      <div class="card">
+        <label style="font-size:10px;color:var(--dm)">Coin Serial Hash</label>
+        <input id="sendCoinHash" placeholder="Hash of the coin to send">
+        <label style="font-size:10px;color:var(--dm)">Recipient Public Key Hash (optional for offline)</label>
+        <input id="sendRecipient" placeholder="Leave empty for bearer transfer">
+        <button class="btn" onclick="sendCoin()">CREATE mRNA</button>
+      </div>
+      <div id="mrnaOutput" style="display:none">
+        <div class="card">
+          <h3>mRNA Payload (send this to recipient)</h3>
+          <textarea id="mrnaText" style="height:120px" readonly></textarea>
+          <button class="btn btn-sm" onclick="copyMRNA()">COPY</button>
+          <button class="btn btn-sm btn-purple" onclick="downloadMRNA()">DOWNLOAD .mrna FILE</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h2>Receive</h2>
+      <div class="card">
+        <label style="font-size:10px;color:var(--dm)">Paste mRNA or drop .mrna file</label>
+        <textarea id="receiveMRNA" placeholder="Paste mRNA JSON here..."></textarea>
+        <button class="btn" onclick="receiveCoin()">APPLY mRNA</button>
+      </div>
+      <div class="file-drop" id="mrnaDrop" style="margin-top:12px">
+        Drop .mrna file here
+        <input type="file" accept=".mrna,.json" style="display:none" id="mrnaFileInput" onchange="loadMRNAFile(event)">
+      </div>
+      <div class="log" id="transferLog" style="margin-top:12px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BETTING TAB ═══ -->
+<div class="panel" id="panel-betting">
+  <div class="card">
+    <h3>Betting System</h3>
+    <p style="font-size:11px;color:var(--dm)">Connect to a Kronixcoin server to participate in betting. Coins are transferred via mRNA mutation into the system's DNA.</p>
+    <div style="margin-top:12px">
+      <label style="font-size:10px;color:var(--dm)">Server URL</label>
+      <input id="serverUrl" value="http://localhost:3000" style="width:300px">
+      <button class="btn btn-sm" onclick="connectServer()">CONNECT</button>
+    </div>
+  </div>
+  <div id="bettingContent" style="display:none">
+    <div class="grid2">
+      <div>
+        <h2>Create Bet</h2>
+        <div class="card">
+          <input id="betTitle" placeholder="Bet title">
+          <input id="betOptions" placeholder="Options (comma separated)">
+          <button class="btn btn-sm" onclick="createBet()">CREATE</button>
+        </div>
+      </div>
+      <div>
+        <h2>Active Bets</h2>
+        <div id="betList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ORGANISM TAB ═══ -->
+<div class="panel" id="panel-organism">
+  <div id="orgEmpty" style="text-align:center;padding:40px;color:var(--dm);font-size:12px">Create a wallet first to see your organism</div>
+  <div id="orgContent" style="display:none">
+    <div class="grid2">
+      <div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <span class="rarity" id="orgRarity">-</span>
+          <span style="font-size:11px;color:var(--dm)" id="orgAbilityCount"></span>
+        </div>
+        <div class="grid3">
+          <div class="stat"><div class="v" id="orgProteins">-</div><div class="l">Proteins</div></div>
+          <div class="stat"><div class="v" id="orgBonds">-</div><div class="l">Bonds</div></div>
+          <div class="stat"><div class="v" id="orgClusters">-</div><div class="l">Clusters</div></div>
+        </div>
+        <canvas id="orgCanvas" width="700" height="450"></canvas>
+        <button class="btn btn-sm" onclick="exportOrgPNG()">EXPORT VISUALIZATION</button>
+      </div>
+      <div>
+        <h2>Abilities</h2>
+        <div id="orgAbilities"></div>
+        <h2>Coin Inventory</h2>
+        <div id="coinInventory"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════════
+// CORE ENGINE (browser port — no dependencies)
+// ════════════════════════════════════════════════════════════════════════════════
+
+const BASES=['T','A','C','G'];
+const CODON_TABLE={TTT:'Phe',TTC:'Phe',TTA:'Leu',TTG:'Leu',CTT:'Leu',CTC:'Leu',CTA:'Leu',CTG:'Leu',ATT:'Ile',ATC:'Ile',ATA:'Ile',ATG:'Met',GTT:'Val',GTC:'Val',GTA:'Val',GTG:'Val',TCT:'Ser',TCC:'Ser',TCA:'Ser',TCG:'Ser',AGT:'Ser',AGC:'Ser',CCT:'Pro',CCC:'Pro',CCA:'Pro',CCG:'Pro',ACT:'Thr',ACC:'Thr',ACA:'Thr',ACG:'Thr',GCT:'Ala',GCC:'Ala',GCA:'Ala',GCG:'Ala',TAT:'Tyr',TAC:'Tyr',TAA:'STOP',TAG:'STOP',TGA:'STOP',CAT:'His',CAC:'His',CAA:'Gln',CAG:'Gln',AAT:'Asn',AAC:'Asn',AAA:'Lys',AAG:'Lys',GAT:'Asp',GAC:'Asp',GAA:'Glu',GAG:'Glu',TGT:'Cys',TGC:'Cys',TGG:'Trp',CGT:'Arg',CGC:'Arg',CGA:'Arg',CGG:'Arg',AGA:'Arg',AGG:'Arg',GGT:'Gly',GGC:'Gly',GGA:'Gly',GGG:'Gly'};
+const STOP_CODONS=new Set(['TAA','TAG','TGA']);
+const AMINO_PROPS={Ala:{charge:0,polar:false,hydrophobic:true,role:'structural'},Arg:{charge:1,polar:true,hydrophobic:false,role:'binding'},Asn:{charge:0,polar:true,hydrophobic:false,role:'signaling'},Asp:{charge:-1,polar:true,hydrophobic:false,role:'catalytic'},Cys:{charge:0,polar:true,hydrophobic:false,role:'bonding'},Gln:{charge:0,polar:true,hydrophobic:false,role:'signaling'},Glu:{charge:-1,polar:true,hydrophobic:false,role:'catalytic'},Gly:{charge:0,polar:false,hydrophobic:false,role:'flexible'},His:{charge:.5,polar:true,hydrophobic:false,role:'catalytic'},Ile:{charge:0,polar:false,hydrophobic:true,role:'structural'},Leu:{charge:0,polar:false,hydrophobic:true,role:'structural'},Lys:{charge:1,polar:true,hydrophobic:false,role:'binding'},Met:{charge:0,polar:false,hydrophobic:true,role:'initiator'},Phe:{charge:0,polar:false,hydrophobic:true,role:'structural'},Pro:{charge:0,polar:false,hydrophobic:false,role:'structural'},Ser:{charge:0,polar:true,hydrophobic:false,role:'phosphorylation'},Thr:{charge:0,polar:true,hydrophobic:false,role:'phosphorylation'},Trp:{charge:0,polar:false,hydrophobic:true,role:'anchoring'},Tyr:{charge:0,polar:true,hydrophobic:false,role:'phosphorylation'},Val:{charge:0,polar:false,hydrophobic:true,role:'structural'}};
+const COIN_HEADER='ATGGGGTGGTGC';
+const COIN_ACIDS=['Met','Gly','Trp','Cys'];
+const PROOF_MARKER='TTTAAACCCGGG';
+const ABILITIES={encrypt:{name:'Encryption Engine',desc:'Encrypt data using protein structure',req:{minP:5,role:'catalytic',minCharge:2},cat:'security'},sign:{name:'Digital Signature',desc:'Sign documents with organism identity',req:{minP:3,role:'binding',minBonds:10},cat:'security'},vault:{name:'Secret Vault',desc:'Lock secrets only this organism can open',req:{minP:8,role:'structural',minH:.3},cat:'security'},hash_power:{name:'Hash Power',desc:'Burn organism for mining fuel',req:{minP:10,minBonds:20,minCl:2},cat:'compute'},rng:{name:'Verifiable RNG',desc:'Provably fair random numbers',req:{minP:4,role:'signaling',minPol:.4},cat:'compute'},compress:{name:'Compressor',desc:'Protein dictionary compression',req:{minP:6,fn:'membrane_transporter'},cat:'compute'},identity:{name:'Decentralized ID',desc:'Biological passport',req:{minP:3,minBonds:5,uniqR:3},cat:'identity'},timestamp:{name:'Timestamp',desc:'Anchor data to time (burns)',req:{minP:2,role:'initiator'},cat:'identity'},certify:{name:'Certificate Authority',desc:'Issue verifiable certificates',req:{minP:10,minBonds:30,role:'binding',fn:'catalyst'},cat:'identity'},steganography:{name:'Steganography',desc:'Hide data in images',req:{minP:5,role:'structural',minH:.25},cat:'data'},otp:{name:'One-Time Pad',desc:'Unbreakable single-use encryption',req:{minP:7,role:'catalytic',fn:'signal_processor'},cat:'data'},watermark:{name:'Watermark',desc:'Prove file ownership',req:{minP:4,role:'phosphorylation',minBonds:8},cat:'data'},relay:{name:'Encrypted Relay',desc:'Relay messages through organism',req:{minP:8,minBonds:15,fn:'membrane_transporter',minCl:2},cat:'network'},handshake:{name:'Secure Handshake',desc:'Two organisms create encrypted channel',req:{minP:5,role:'binding',role2:'signaling'},cat:'network'},mesh:{name:'Mesh Node',desc:'Decentralized routing',req:{minP:12,minBonds:40,minCl:3},cat:'network'}};
+
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
+function genDNA(n){const a=new Uint8Array(n);crypto.getRandomValues(a);return Array.from(a,b=>BASES[b%4]).join('')}
+
+function ribosomeRead(dna){
+  const proteins=[],igs=[];let i=0,lastStop=0,idx=0;
+  while(i<dna.length-2){
+    if(dna.slice(i,i+3)==='ATG'){
+      if(i>lastStop){const s=dna.slice(lastStop,i);if(s.length)igs.push({start:lastStop,end:i,seq:s})}
+      const p={idx:idx,start:i,codons:[],aa:[]};let j=i;
+      while(j<dna.length-2){const c=dna.slice(j,j+3),aa=CODON_TABLE[c];if(!aa){j+=3;continue}p.codons.push(c);if(STOP_CODONS.has(c)){p.stop=j+2;p.stopCodon=c;lastStop=j+3;break}p.aa.push(aa);j+=3}
+      if(p.aa.length>=3){p.seq=p.aa.join('-');p.len=p.aa.length;proteins.push(p);idx++}
+      i=(p.stop||j)+1;
+    }else i++;
+  }
+  if(lastStop<dna.length){const s=dna.slice(lastStop);if(s.length)igs.push({start:lastStop,end:dna.length,seq:s})}
+  return{proteins,igs};
+}
+
+function analyzeP(p){let ch=0,po=0,hy=0;const ro={};for(const a of p.aa){const pr=AMINO_PROPS[a];if(!pr)continue;ch+=pr.charge;if(pr.polar)po++;if(pr.hydrophobic)hy++;ro[pr.role]=(ro[pr.role]||0)+1}const l=p.aa.length||1;return{charge:ch,polarity:po/l,hydrophobicity:hy/l,dominantRole:Object.entries(ro).sort((a,b)=>b[1]-a[1])[0]?.[0]||'unknown',roles:ro}}
+
+function remapP(proteins){
+  const AM={positive_dock:'negative_dock',negative_dock:'positive_dock',membrane_anchor:'surface_receptor',surface_receptor:'membrane_anchor',enzyme_site:'lock_domain',lock_domain:'enzyme_site',signal_port:'signal_port'};
+  const units=proteins.map((p,i)=>{const a=analyzeP(p),s=[];if(a.charge>0)s.push('positive_dock');if(a.charge<0)s.push('negative_dock');if(a.hydrophobicity>.4)s.push('membrane_anchor');if(a.polarity>.5)s.push('surface_receptor');if(a.dominantRole==='catalytic')s.push('enzyme_site');if(a.dominantRole==='binding')s.push('lock_domain');if(a.dominantRole==='signaling')s.push('signal_port');return{id:'P'+i,len:p.len,seq:p.seq,aa:p.aa,analysis:a,sites:s,accepts:s.map(x=>AM[x]).filter(Boolean)}});
+  const conns=[];for(let i=0;i<units.length;i++)for(let j=i+1;j<units.length;j++)for(const s of units[i].sites)if(units[j].accepts.includes(s)){conns.push({from:units[i].id,to:units[j].id,type:s,str:Math.abs(units[i].analysis.charge-units[j].analysis.charge)+Math.abs(units[i].analysis.polarity-units[j].analysis.polarity)});break}
+  return{units,conns};
+}
+
+function buildAssembly(units,conns){
+  const adj={};units.forEach(u=>adj[u.id]=[]);conns.forEach(c=>{adj[c.from].push(c.to);adj[c.to].push(c.from)});
+  const vis=new Set,cl=[];
+  for(const u of units){if(vis.has(u.id))continue;const g=[],st=[u.id];while(st.length){const c=st.pop();if(vis.has(c))continue;vis.add(c);g.push(c);for(const n of adj[c])if(!vis.has(n))st.push(n)}
+  const cu=g.map(id=>units.find(u=>u.id===id));const hE=cu.some(u=>u.sites.includes('enzyme_site')),hS=cu.some(u=>u.sites.includes('signal_port')),hM=cu.some(u=>u.sites.includes('membrane_anchor'));
+  let fn=hE&&hS?'signal_processor':hE&&hM?'membrane_transporter':hS&&hM?'receptor':hE?'catalyst':hS?'messenger':hM?'structural_scaffold':'framework';
+  cl.push({members:g,size:g.length,fn})}
+  return{clusters:cl};
+}
+
+function evalAbilities(org){
+  const ab=[],roles=new Set,fns=new Set;let tP=0,tH=0;
+  for(const p of org.units){if(p.analysis?.dominantRole)roles.add(p.analysis.dominantRole);for(const s of p.sites||[])roles.add(s);tP+=p.analysis?.polarity||0;tH+=p.analysis?.hydrophobicity||0}
+  const aP=tP/org.units.length,aH=tH/org.units.length,cc=org.assembly?.clusters?.length||0;
+  for(const c of org.assembly?.clusters||[])if(c.fn)fns.add(c.fn);
+  for(const[k,a]of Object.entries(ABILITIES)){const r=a.req;let m=true;if(r.minP&&org.units.length<r.minP)m=false;if(r.minBonds&&org.conns.length<r.minBonds)m=false;if(r.minCl&&cc<r.minCl)m=false;if(r.role&&!roles.has(r.role))m=false;if(r.role2&&!roles.has(r.role2))m=false;if(r.fn&&!fns.has(r.fn))m=false;if(r.uniqR&&roles.size<r.uniqR)m=false;if(r.minPol&&aP<r.minPol)m=false;if(r.minH&&aH<r.minH)m=false;if(r.minCharge){const tc=org.units.reduce((s,p)=>s+Math.abs(p.analysis?.charge||0),0);if(tc<r.minCharge)m=false}if(m)ab.push({key:k,...a})}
+  return ab;
+}
+
+function evalValue(org,ab){
+  let sc=org.units.length*2+org.conns.length*.5+(org.assembly?.clusters?.length||0)*10;
+  const w={security:15,compute:12,identity:10,data:8,network:20};for(const a of ab)sc+=w[a.cat]||5;
+  const t=ab.length>=12?'legendary':ab.length>=9?'epic':ab.length>=6?'rare':ab.length>=3?'uncommon':'common';
+  const m={legendary:5,epic:3,rare:2,uncommon:1.5,common:1};return{score:Math.round(sc*m[t]),tier:t,count:ab.length};
+}
+
+function isCoinP(p){return p.aa.length>=4&&p.aa[0]===COIN_ACIDS[0]&&p.aa[1]===COIN_ACIDS[1]&&p.aa[2]===COIN_ACIDS[2]&&p.aa[3]===COIN_ACIDS[3]}
+
+function hybridize(s1,s2){const bi={T:0,A:1,C:2,G:3};const l=Math.min(s1.length,s2.length);let r='';for(let i=0;i<l;i++)r+=BASES[(bi[s1[i]]||0+bi[s2[i]]||0)%4];return r}
+
+function embedProof(dna,hash){let bases='';for(const ch of hash){const v=parseInt(ch,16);bases+=BASES[(v>>2)&3]+BASES[v&3]}const region=PROOF_MARKER+bases+PROOF_MARKER;return dna.slice(0,300)+region+dna.slice(300+region.length)}
+
+function extractProof(dna){const si=dna.indexOf(PROOF_MARKER);if(si===-1)return null;const ps=si+PROOF_MARKER.length;const ei=dna.indexOf(PROOF_MARKER,ps);if(ei===-1)return null;const pb=dna.slice(ps,ei);const bi={T:0,A:1,C:2,G:3};let hex='';for(let i=0;i<pb.length;i+=2){const hi=bi[pb[i]]||0,lo=bi[pb[i+1]]||0;hex+=(hi<<2|lo).toString(16)}return hex}
+
+async function createWalletLocal(len=6000){
+  const base=genDNA(len),priv=genDNA(Math.floor(len/2));
+  const id=hybridize(base.slice(0,300),priv);
+  const hybR=ribosomeRead(id);
+  const chain=hybR.proteins.map(p=>p.seq).join('-');
+  const proofHash=await sha256(chain);
+  const dna=embedProof(base,proofHash);
+  const r=ribosomeRead(dna);
+  const pubChain=r.proteins.map(p=>p.seq).join('-');
+  const pubHash=await sha256(pubChain);
+  return{dna,privateKeyDNA:priv,publicKeyHash:pubHash,ownershipProofHash:proofHash,createdAt:Date.now()};
+}
+
+async function mineCoinLocal(difficulty='00',bodyLen=60){
+  let body='';while(body.length<bodyLen){const c=BASES[Math.floor(Math.random()*4)]+BASES[Math.floor(Math.random()*4)]+BASES[Math.floor(Math.random()*4)];if(!STOP_CODONS.has(c)&&c!=='ATG')body+=c}
+  let nonce=0;const base=COIN_HEADER+body;
+  while(true){
+    const nc=BASES[(nonce>>4)&3]+BASES[(nonce>>2)&3]+BASES[nonce&3]+(STOP_CODONS.has(BASES[((nonce>>6)&3)]+BASES[((nonce>>4)&3)]+BASES[((nonce>>2)&3)])?'GCT':BASES[((nonce>>6)&3)]+BASES[((nonce>>4)&3)]+BASES[((nonce>>2)&3)]);
+    const gene=base+nc+'TAA';const hash=await sha256(gene+'|'+nonce);
+    if(hash.startsWith(difficulty)){const r=ribosomeRead(gene);if(r.proteins.length>0){const p=r.proteins[0];const serial=p.aa.slice(4).join('-');return{gene,protein:p,serial,serialHash:await sha256(serial),nonce,hash,difficulty}}}
+    nonce++;if(nonce%500===0)await new Promise(r=>setTimeout(r,0));
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════════════════════
+
+let wallet=null, privKeyVisible=false, minedCoins=[], serverUrl=null;
+
+// ════════════════════════════════════════════════════════════════════════════════
+// UI
+// ════════════════════════════════════════════════════════════════════════════════
+
+function showTab(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  document.querySelector(`.tab[onclick="showTab('${name}')"]`).classList.add('active');
+  if(name==='organism'&&wallet)renderOrganism();
+}
+
+async function createNewWallet(){
+  const btn=document.getElementById('createWalletBtn');btn.disabled=true;btn.textContent='CREATING...';
+  wallet=await createWalletLocal();
+  btn.disabled=false;btn.textContent='CREATE NEW WALLET';
+  renderWallet();
+}
+
+function renderWallet(){
+  if(!wallet)return;
+  document.getElementById('walletInfo').style.display='block';
+  document.getElementById('walletId').textContent=wallet.publicKeyHash;
+  document.getElementById('wPubKey').textContent=wallet.publicKeyHash;
+  const r=ribosomeRead(wallet.dna);
+  const coins=r.proteins.filter(isCoinP).length;
+  document.getElementById('wProteins').textContent=r.proteins.length;
+  document.getElementById('wCoins').textContent=coins;
+  const{units,conns}=remapP(r.proteins);const asm=buildAssembly(units,conns);
+  const ab=evalAbilities({units,conns,assembly:asm});const val=evalValue({units,conns,assembly:asm},ab);
+  document.getElementById('wScore').textContent=val.score;
+  const dnaHtml=wallet.dna.slice(0,200).split('').map(b=>`<span class="${b}">${b}</span>`).join('');
+  document.getElementById('wDnaVis').innerHTML=dnaHtml;
+  document.getElementById('wPrivKey').textContent=privKeyVisible?wallet.privateKeyDNA:'••••••••••••••••••••';
+}
+
+function togglePrivKey(){privKeyVisible=!privKeyVisible;renderWallet()}
+
+function exportWallet(){
+  if(!wallet)return;
+  const data=JSON.stringify({dna:wallet.dna,publicKeyHash:wallet.publicKeyHash,ownershipProofHash:wallet.ownershipProofHash,createdAt:wallet.createdAt});
+  download('kronix-wallet.json',data);
+}
+
+function exportPNG(){
+  if(!wallet)return;
+  const r=ribosomeRead(wallet.dna);const coins=r.proteins.filter(isCoinP).length;
+  const dnaBytes=new TextEncoder().encode(wallet.dna);
+  const side=Math.ceil(Math.sqrt(dnaBytes.length*2+100));
+  const c=document.createElement('canvas');c.width=side;c.height=side;
+  const ctx=c.getContext('2d');const img=ctx.createImageData(side,side);
+  for(let i=0;i<img.data.length;i+=4){img.data[i]=128+Math.floor(Math.random()*128);img.data[i+1]=128+Math.floor(Math.random()*128);img.data[i+2]=128+Math.floor(Math.random()*128);img.data[i+3]=255}
+  for(let i=0;i<dnaBytes.length;i++){const hi=(dnaBytes[i]>>4)&0xf,lo=dnaBytes[i]&0xf;img.data[i*8]=128+hi;img.data[i*8+4]=128+lo}
+  ctx.putImageData(img,0,0);c.toBlob(b=>{const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='kronix-wallet.png';a.click();URL.revokeObjectURL(u)},'image/png');
+}
+
+function importWallet(){
+  const text=document.getElementById('importData').value.trim();if(!text)return;
+  try{
+    const data=JSON.parse(text);
+    if(data.dna){wallet={dna:data.dna,privateKeyDNA:data.privateKeyDNA||'',publicKeyHash:data.publicKeyHash||'',ownershipProofHash:data.ownershipProofHash||'',createdAt:data.createdAt||Date.now()};renderWallet()}
+    else if(data.type==='transfer'){document.getElementById('receiveMRNA').value=text;showTab('transfer')}
+  }catch{alert('Invalid data')}
+}
+
+document.getElementById('pngDrop').onclick=()=>document.getElementById('pngInput').click();
+document.getElementById('mrnaDrop').onclick=()=>document.getElementById('mrnaFileInput').click();
+
+function loadPNG(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();reader.onload=()=>{
+    const img=new Image();img.onload=()=>{
+      const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+      const ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+      const d=ctx.getImageData(0,0,img.width,img.height).data;
+      const bytes=[];for(let i=0;i<d.length;i+=8){if(i+4>=d.length)break;const hi=(d[i]-128)&0xf,lo=(d[i+4]-128)&0xf;bytes.push((hi<<4)|lo)}
+      const dnaStr=new TextDecoder().decode(new Uint8Array(bytes));
+      const validDNA=dnaStr.replace(/[^TACG]/g,'');
+      if(validDNA.length>100){wallet={dna:validDNA,privateKeyDNA:'',publicKeyHash:'',ownershipProofHash:'',createdAt:Date.now()};renderWallet();alert('Wallet imported from PNG ('+validDNA.length+' bases). Note: private key not included in PNG.')}
+      else alert('Could not decode wallet from PNG');
+    };img.src=reader.result};reader.readAsDataURL(file);
+}
+
+function loadMRNAFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{document.getElementById('receiveMRNA').value=r.result};r.readAsText(f)}
+
+async function startMining(){
+  if(!wallet){alert('Create a wallet first');return}
+  const btn=document.getElementById('mineBtn');btn.disabled=true;btn.classList.add('mining');btn.textContent='MINING...';
+  const diff=document.getElementById('mineDifficulty').value||'00';
+  const bodyLen=parseInt(document.getElementById('mineBodyLen').value)||60;
+  const log=document.getElementById('mineLog');log.innerHTML='<div class="info">Mining started (difficulty: '+diff+')...</div>';
+
+  try{
+    const t0=Date.now();const result=await mineCoinLocal(diff,bodyLen);const elapsed=Date.now()-t0;
+    log.innerHTML+=`<div class="ok">Mined in ${elapsed}ms | Nonce: ${result.nonce} | Hash: ${result.hash.slice(0,24)}...</div>`;
+    log.innerHTML+=`<div class="info">Serial: ${result.serial.slice(0,40)}...</div>`;
+
+    // Integrate into wallet
+    const insertPts=[];for(let i=0;i<=wallet.dna.length-3;i++){if(STOP_CODONS.has(wallet.dna.slice(i,i+3)))insertPts.push(i+3)}
+    const geneHash=await sha256(result.gene);const idx=parseInt(geneHash.slice(0,8),16)%(insertPts.length||1);
+    const pos=insertPts[idx]||wallet.dna.length;
+    wallet.dna=wallet.dna.slice(0,pos)+result.gene+wallet.dna.slice(pos);
+
+    minedCoins.push(result);
+    renderWallet();renderMinedCoins();
+    log.innerHTML+=`<div class="ok">Coin integrated into wallet!</div>`;
+  }catch(e){log.innerHTML+=`<div class="err">Mining error: ${e.message}</div>`}
+
+  btn.disabled=false;btn.textContent='MINE COIN';
+}
+
+function renderMinedCoins(){
+  const el=document.getElementById('minedCoins');
+  el.innerHTML=minedCoins.map((c,i)=>`<div class="card"><h3>Coin #${i+1}</h3><div class="mono">${c.serialHash}</div><div style="font-size:10px;color:var(--dm);margin-top:4px">Nonce: ${c.nonce} | Difficulty: ${c.difficulty}</div></div>`).join('');
+}
+
+async function sendCoin(){
+  if(!wallet||!wallet.privateKeyDNA){alert('Need wallet with private key');return}
+  const coinHash=document.getElementById('sendCoinHash').value.trim();if(!coinHash){alert('Enter coin serial hash');return}
+  const log=document.getElementById('transferLog');
+
+  const r=ribosomeRead(wallet.dna);
+  let found=null;
+  for(const p of r.proteins){
+    if(!isCoinP(p))continue;
+    const serial=p.aa.slice(4).join('-');
+    const sh=await sha256(serial);
+    if(sh===coinHash){found={protein:p,serial,serialHash:sh};break}
+  }
+  if(!found){alert('Coin not found in wallet');return}
+
+  // Remove from wallet
+  const end=found.protein.stop+1;
+  wallet.dna=wallet.dna.slice(0,found.protein.start)+wallet.dna.slice(end);
+
+  const nullifier=await sha256(found.serialHash+'|nullifier|'+await sha256(wallet.privateKeyDNA));
+  const mrna={type:'transfer',coinGene:wallet.dna.slice(found.protein.start,end)||genDNA(90),coinSerialHash:found.serialHash,senderPublicKeyHash:wallet.publicKeyHash,recipientPublicKeyHash:document.getElementById('sendRecipient').value.trim()||null,nullifierCommitment:await sha256(nullifier),networkId:'offline',lineage:[{from:wallet.publicKeyHash,to:document.getElementById('sendRecipient').value.trim()||'bearer',nullifier,timestamp:Date.now()}],createdAt:Date.now()};
+
+  // Reconstruct the coin gene properly
+  const coinGene=COIN_HEADER;
+  let body='';for(let i=4;i<found.protein.aa.length;i++){for(const[c,a]of Object.entries(CODON_TABLE)){if(a===found.protein.aa[i]&&!STOP_CODONS.has(c)&&c!=='ATG'){body+=c;break}}}
+  mrna.coinGene=COIN_HEADER+body+'TAA';
+
+  const mrnaStr=JSON.stringify(mrna,null,2);
+  document.getElementById('mrnaText').value=mrnaStr;
+  document.getElementById('mrnaOutput').style.display='block';
+  renderWallet();
+  log.innerHTML=`<div class="ok">mRNA created. Coin removed from wallet.</div>`;
+}
+
+function copyMRNA(){navigator.clipboard.writeText(document.getElementById('mrnaText').value)}
+function downloadMRNA(){download('transfer.mrna',document.getElementById('mrnaText').value)}
+
+async function receiveCoin(){
+  if(!wallet){alert('Create a wallet first');return}
+  const log=document.getElementById('transferLog');
+  const text=document.getElementById('receiveMRNA').value.trim();if(!text){alert('Paste mRNA data');return}
+
+  try{
+    const mrna=JSON.parse(text);if(mrna.type!=='transfer'){log.innerHTML=`<div class="err">Invalid mRNA type</div>`;return}
+
+    // Validate coin gene
+    const r=ribosomeRead(mrna.coinGene);
+    if(r.proteins.length===0){log.innerHTML=`<div class="err">Invalid coin gene</div>`;return}
+    if(!isCoinP(r.proteins[0])){log.innerHTML=`<div class="err">Not a valid coin</div>`;return}
+
+    // Integrate into wallet
+    const insertPts=[];for(let i=0;i<=wallet.dna.length-3;i++){if(STOP_CODONS.has(wallet.dna.slice(i,i+3)))insertPts.push(i+3)}
+    const gh=await sha256(mrna.coinGene);const idx=parseInt(gh.slice(0,8),16)%(insertPts.length||1);
+    const pos=insertPts[idx]||wallet.dna.length;
+    wallet.dna=wallet.dna.slice(0,pos)+mrna.coinGene+wallet.dna.slice(pos);
+
+    renderWallet();
+    log.innerHTML=`<div class="ok">Coin received and integrated into wallet DNA!</div><div class="info">Serial: ${mrna.coinSerialHash.slice(0,32)}...</div>`;
+    document.getElementById('receiveMRNA').value='';
+  }catch(e){log.innerHTML=`<div class="err">Error: ${e.message}</div>`}
+}
+
+async function connectServer(){
+  serverUrl=document.getElementById('serverUrl').value.trim();
+  try{
+    const res=await fetch(serverUrl+'/mine/network');const data=await res.json();
+    document.getElementById('connStatus').textContent=data.networkId;document.getElementById('connStatus').style.color='var(--grn)';
+    document.getElementById('bettingContent').style.display='block';
+    loadBets();
+  }catch{document.getElementById('connStatus').textContent='connection failed';document.getElementById('connStatus').style.color='var(--red)'}
+}
+
+async function createBet(){
+  if(!serverUrl)return;
+  const title=document.getElementById('betTitle').value;const opts=document.getElementById('betOptions').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const res=await fetch(serverUrl+'/betting/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,options:opts})});
+  const data=await res.json();loadBets();
+}
+
+async function loadBets(){
+  if(!serverUrl)return;
+  try{const res=await fetch(serverUrl+'/betting');const bets=await res.json();
+  document.getElementById('betList').innerHTML=bets.map(b=>`<div class="card"><h3>${b.title}</h3><div style="font-size:10px;color:var(--dm)">${b.options.join(' | ')} &mdash; ${b.entries.length} entries &mdash; ${b.status}</div></div>`).join('')||'<div style="color:var(--dm);font-size:11px">No bets yet</div>'}catch{}
+}
+
+function renderOrganism(){
+  if(!wallet)return;
+  document.getElementById('orgEmpty').style.display='none';document.getElementById('orgContent').style.display='block';
+  const r=ribosomeRead(wallet.dna);const{units,conns}=remapP(r.proteins);const asm=buildAssembly(units,conns);
+  const ab=evalAbilities({units,conns,assembly:asm});const val=evalValue({units,conns,assembly:asm},ab);
+
+  document.getElementById('orgProteins').textContent=units.length;
+  document.getElementById('orgBonds').textContent=conns.length;
+  document.getElementById('orgClusters').textContent=asm.clusters.length;
+  const rb=document.getElementById('orgRarity');rb.textContent=val.tier.toUpperCase();rb.className='rarity rarity-'+val.tier;
+  document.getElementById('orgAbilityCount').textContent=val.count+' / 15 abilities | Score: '+val.score;
+
+  const unlocked=new Set(ab.map(a=>a.key));
+  document.getElementById('orgAbilities').innerHTML=Object.entries(ABILITIES).map(([k,a])=>`<div class="ability ${unlocked.has(k)?'unlocked':'locked'}"><div class="name">${unlocked.has(k)?'&#9830; ':'&#128274; '}${a.name}</div><div class="desc">${a.desc}</div></div>`).join('');
+
+  // Coin inventory
+  const coins=r.proteins.filter(isCoinP);
+  document.getElementById('coinInventory').innerHTML=coins.length?coins.map((c,i)=>`<div class="card" style="padding:8px 12px"><div style="font-size:10px;font-weight:bold">Coin #${i+1}</div><div class="mono" style="font-size:9px">${c.aa.slice(4,10).join('-')}...</div></div>`).join(''):'<div style="color:var(--dm);font-size:11px">No coins — mine some!</div>';
+
+  drawOrgGraph(units,conns,asm);
+}
+
+function drawOrgGraph(units,conns,asm){
+  const canvas=document.getElementById('orgCanvas');const ctx=canvas.getContext('2d');const W=canvas.width,H=canvas.height;ctx.clearRect(0,0,W,H);
+  if(units.length===0)return;
+
+  // Force-directed layout
+  const nodes=units.map((p,i)=>{const a=(i/units.length)*Math.PI*2;const r=Math.min(W,H)*.35;return{id:p.id,x:W/2+Math.cos(a)*r,y:H/2+Math.sin(a)*r,vx:0,vy:0,r:5+Math.min(p.len,40)*.35,p}});
+  const nm={};nodes.forEach(n=>nm[n.id]=n);
+
+  for(let iter=0;iter<120;iter++){
+    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){let dx=nodes[j].x-nodes[i].x,dy=nodes[j].y-nodes[i].y,d=Math.sqrt(dx*dx+dy*dy)||1,f=600/(d*d);nodes[i].vx-=dx/d*f;nodes[i].vy-=dy/d*f;nodes[j].vx+=dx/d*f;nodes[j].vy+=dy/d*f}
+    for(const b of conns){const a=nm[b.from],c=nm[b.to];if(!a||!c)continue;let dx=c.x-a.x,dy=c.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||1,f=(d-70)*.02;a.vx+=dx/d*f;a.vy+=dy/d*f;c.vx-=dx/d*f;c.vy-=dy/d*f}
+    for(const n of nodes){n.vx-=(n.x-W/2)*.001;n.vy-=(n.y-H/2)*.001;n.vx*=.85;n.vy*=.85;n.x+=n.vx;n.y+=n.vy;n.x=Math.max(20,Math.min(W-20,n.x));n.y=Math.max(20,Math.min(H-20,n.y))}
+  }
+
+  // Draw bonds
+  const bondColors={positive_dock:'rgba(255,77,106,.4)',negative_dock:'rgba(91,140,255,.4)',membrane_anchor:'rgba(255,170,44,.4)',surface_receptor:'rgba(0,212,170,.4)',enzyme_site:'rgba(217,70,239,.4)',lock_domain:'rgba(124,92,252,.4)',signal_port:'rgba(0,212,170,.4)'};
+  for(const b of conns){const a=nm[b.from],c=nm[b.to];if(!a||!c)continue;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(c.x,c.y);ctx.strokeStyle=bondColors[b.type]||'rgba(255,255,255,.15)';ctx.lineWidth=.5+b.str*.25;ctx.stroke()}
+
+  // Draw nodes
+  const roleColors={structural:'#6366f1',binding:'#ec4899',catalytic:'#ef4444',signaling:'#06b6d4',phosphorylation:'#10b981',initiator:'#f59e0b',flexible:'#8b5cf6',anchoring:'#f97316',bonding:'#14b8a6',unknown:'#6b7280'};
+  for(const n of nodes){
+    const isCoin=isCoinP(n.p);const color=isCoin?'#ffaa2c':roleColors[n.p.analysis?.dominantRole]||'#6b7280';
+    ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=color;ctx.globalAlpha=isCoin?1:.75;ctx.fill();ctx.globalAlpha=1;
+    if(isCoin){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke()}else{ctx.strokeStyle='rgba(255,255,255,.2)';ctx.lineWidth=1;ctx.stroke()}
+    ctx.fillStyle='#fff';ctx.font=(isCoin?'bold ':'')+`${Math.max(8,Math.min(10,n.r))}px monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(isCoin?'$':n.id,n.x,n.y);
+  }
+}
+
+function exportOrgPNG(){
+  const canvas=document.getElementById('orgCanvas');canvas.toBlob(b=>{const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='kronix-organism.png';a.click();URL.revokeObjectURL(u)},'image/png');
+}
+
+function download(name,content){const b=new Blob([content],{type:'text/plain'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u)}
+</script>
+</body>
+</html>
