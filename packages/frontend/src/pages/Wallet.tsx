@@ -158,17 +158,38 @@ export function Wallet() {
               {showPrivate ? (
                 <>
                   <DNAVisualization dna={wallet.privateKeyDNA} maxLength={300} />
-                  <button className="btn btn-sm btn-secondary mt-1"
-                    onClick={() => setShowPrivate(false)}>Hide</button>
+                  <div className="text-xs text-muted mt-1 mb-2">
+                    {wallet.privateKeyDNA.length} bases
+                  </div>
+                  <div className="flex gap-1" style={{ flexWrap: "wrap" }}>
+                    <button className="btn btn-sm btn-secondary"
+                      onClick={() => setShowPrivate(false)}>Hide</button>
+                    <button className="btn btn-sm btn-secondary"
+                      onClick={() => {
+                        navigator.clipboard.writeText(wallet.privateKeyDNA);
+                        addToast("info", "Private key copied to clipboard.");
+                      }}>Copy Key</button>
+                    <button className="btn btn-sm btn-secondary"
+                      onClick={() => {
+                        const blob = new Blob([wallet.privateKeyDNA], { type: "text/plain" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `zcoin-private-key-${wallet.id}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        addToast("info", "Private key downloaded.");
+                      }}>Download .txt</button>
+                  </div>
                 </>
               ) : (
                 <>
                   <p className="text-muted text-sm mb-2">
                     Your private key DNA is stored locally in your browser.
-                    Never share it with anyone.
+                    Never share it with anyone. Export it to keep a backup.
                   </p>
                   <button className="btn btn-sm btn-secondary"
-                    onClick={() => setShowPrivate(true)}>Reveal Private Key</button>
+                    onClick={() => setShowPrivate(true)}>Reveal &amp; Export Private Key</button>
                 </>
               )}
             </div>
