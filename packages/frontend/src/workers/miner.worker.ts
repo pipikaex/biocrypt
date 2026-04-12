@@ -1,10 +1,10 @@
-import { sha256, BASES, STOP_CODONS } from "@zcoin/core";
+import { sha256, BASES, STOP_CODONS, DEFAULT_BODY_LENGTH } from "@zcoin/core";
 
 interface StartMsg {
   type: "start";
   target: string;
   difficulty: string;
-  bodyLength: number;
+  bodyLength?: number;
 }
 
 interface StopMsg {
@@ -79,13 +79,14 @@ function mineLoop(target: string, difficulty: string, bodyLength: number) {
       totalNonce++;
 
       if (hash <= currentTarget) {
-        const serial = extractSerial(fullGene);
-        if (serial) {
+        const extracted = extractSerial(fullGene);
+        if (extracted) {
           self.postMessage({
             type: "result",
             coinGene: fullGene,
-            serial,
-            serialHash: sha256(serial),
+            serial: extracted.serial,
+            serialHash: sha256(extracted.serial),
+            aminoAcids: extracted.aminoAcids,
             nonce,
             hash,
             difficulty: currentDifficulty,
@@ -112,7 +113,7 @@ function mineLoop(target: string, difficulty: string, bodyLength: number) {
   }
 }
 
-function extractSerial(coinGene: string): string | null {
+function extractSerial(coinGene: string): { serial: string; aminoAcids: string[] } | null {
   const CODON_TABLE: Record<string, string> = {
     TTT: "Phe", TTC: "Phe", TTA: "Leu", TTG: "Leu",
     CTT: "Leu", CTC: "Leu", CTA: "Leu", CTG: "Leu",
@@ -148,13 +149,13 @@ function extractSerial(coinGene: string): string | null {
   }
 
   if (acids.length <= 4) return null;
-  return acids.slice(4).join("-");
+  return { serial: acids.slice(4).join("-"), aminoAcids: acids };
 }
 
 self.onmessage = (e: MessageEvent<InMsg>) => {
   const msg = e.data;
   if (msg.type === "start") {
-    mineLoop(msg.target, msg.difficulty, msg.bodyLength);
+    mineLoop(msg.target, msg.difficulty, msg.bodyLength ?? DEFAULT_BODY_LENGTH);
   } else if (msg.type === "stop") {
     running = false;
   } else if (msg.type === "updateTarget") {

@@ -55,7 +55,7 @@ export class GatewayService implements OnModuleInit {
       mrnas: [],
       createdAt: now,
       fulfilledAt: null,
-      expiresAt: now + 30 * 60 * 1000, // 30 minutes
+      expiresAt: now + 30 * 60 * 1000,
     };
     this.persist(payment);
     return payment;
@@ -82,6 +82,7 @@ export class GatewayService implements OnModuleInit {
     }
 
     const validatedMrnas: mRNAPayload[] = [];
+    const networkGenome = this.network.getNetworkGenome();
 
     for (const raw of serializedMrnas) {
       let mrna: mRNAPayload;
@@ -92,7 +93,7 @@ export class GatewayService implements OnModuleInit {
       }
 
       try {
-        validateMRNA(mrna, this.network.getNetworkDNA());
+        validateMRNA(mrna, networkGenome);
       } catch (e: any) {
         throw new BadRequestException(`mRNA validation failed: ${e.message}`);
       }
@@ -113,15 +114,7 @@ export class GatewayService implements OnModuleInit {
     }
 
     for (const mrna of validatedMrnas) {
-      this.registry.registerNullifier(
-        {
-          nullifier: mrna.nullifierCommitment,
-          coinSerialHash: mrna.coinSerialHash,
-          commitment: mrna.nullifierCommitment,
-          timestamp: Date.now(),
-        },
-        "gateway",
-      );
+      this.registry.markCoinSpent(mrna.coinSerialHash, "gateway");
     }
 
     payment.mrnas = serializedMrnas.slice(0, payment.amount);

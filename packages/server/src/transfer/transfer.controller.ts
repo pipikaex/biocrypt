@@ -33,4 +33,9 @@ export class TransferController {
   validate(@Body() body: { mrna: string }) {
     return this.transferService.validateOffline(body.mrna);
   }
+
+  @Post("validate-bundle")
+  validateBundle(@Body() body: { data: string }) {
+    return this.transferService.validateBundle(body.data);
+  }
 }

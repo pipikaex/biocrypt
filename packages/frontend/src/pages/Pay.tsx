@@ -26,6 +26,7 @@ export function Pay() {
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
   const [selectedCoins, setSelectedCoins] = useState<string[]>([]);
+  const [privateKey, setPrivateKey] = useState(wallet?.privateKeyDNA || "");
 
   const signedCoins = coins.filter((c) => c.signed);
   const isPopup = !!window.opener;
@@ -73,12 +74,15 @@ export function Pay() {
 
         const result = createMRNA(
           currentDna,
-          wallet.privateKeyDNA,
+          privateKey,
           coin.serialHash,
           payment.recipientPublicKeyHash,
           coin.networkSignature!,
           coin.networkId!,
+          coin.networkGenome || wallet.networkGenome || "",
           { nonce: coin.nonce, hash: coin.hash, difficulty: coin.difficulty },
+          [],
+          coin.rflpFingerprint,
         );
 
         currentDna = result.modifiedSenderDNA;
@@ -182,14 +186,14 @@ export function Pay() {
       <div className="pay-page">
         <div className="pay-card">
           <div className="pay-header">
-            <div className="pay-brand">&#x29D6; zcoin<span className="brand-dim">.bio</span></div>
+            <div className="pay-brand">&#x29D6; zBioCoin</div>
             <div className="pay-label">Payment Request</div>
           </div>
           <div className="pay-amount">{payment.amount} coin{payment.amount > 1 ? "s" : ""}</div>
           <p className="pay-desc">{payment.description}</p>
           <hr className="pay-divider" />
           <p className="text-muted" style={{ textAlign: "center" }}>
-            You need a zcoin wallet to make this payment.
+            You need a zBioCoin wallet to make this payment.
           </p>
           <div className="pay-actions">
             <Link to="/wallet" className="btn btn-primary">Create Wallet</Link>
@@ -201,7 +205,13 @@ export function Pay() {
     );
   }
 
-  const timeLeft = Math.max(0, Math.floor((payment.expiresAt - Date.now()) / 1000));
+  const [timeLeft, setTimeLeft] = useState(Math.max(0, Math.floor((payment.expiresAt - Date.now()) / 1000)));
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(Math.max(0, Math.floor((payment.expiresAt - Date.now()) / 1000)));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [payment.expiresAt]);
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
@@ -209,7 +219,7 @@ export function Pay() {
     <div className="pay-page">
       <div className="pay-card">
         <div className="pay-header">
-          <div className="pay-brand">&#x29D6; zcoin<span className="brand-dim">.bio</span></div>
+          <div className="pay-brand">&#x29D6; zBioCoin</div>
           <div className="pay-label">Payment Request</div>
         </div>
 
@@ -258,12 +268,24 @@ export function Pay() {
           </>
         )}
 
+        {!wallet.privateKeyDNA && (
+          <div className="field mt-2">
+            <label className="label">{"\u{1F511}"} Private Key DNA</label>
+            <input className="input input-mono" value={privateKey}
+              onChange={(e) => setPrivateKey(e.target.value)}
+              placeholder="Paste your private key DNA" />
+            <span className="text-xs text-muted" style={{ display: "block", marginTop: "0.25rem" }}>
+              Required to sign the payment. Never sent to any server.
+            </span>
+          </div>
+        )}
+
         {error && <div className="pay-error">{error}</div>}
 
         <div className="pay-actions">
           <button
             className="btn btn-primary btn-lg"
-            disabled={selectedCoins.length < payment.amount || processing}
+            disabled={selectedCoins.length < payment.amount || processing || !privateKey}
             onClick={handlePay}
           >
             {processing ? "Processing..." : `Pay ${payment.amount} Coin${payment.amount > 1 ? "s" : ""}`}

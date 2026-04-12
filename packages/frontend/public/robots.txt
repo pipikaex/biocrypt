@@ -1,4 +1,18 @@
+# zcoin.bio — DNA-Based Cryptocurrency
+# https://zcoin.bio
+
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /video.html
 
-Sitemap: https://zcoin.bio/sitemap.xml
+# Sitemap
+Sitemap: https://www.zcoin.bio/sitemap.xml
+
+# Crawl-delay for respectful indexing
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1

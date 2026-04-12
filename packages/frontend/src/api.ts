@@ -25,6 +25,23 @@ export interface NetworkStats {
   nextAdjustmentIn: number;
   peers: number;
   nullifiers: number;
+  feeCoinCount: number;
+  maxSupply: number;
+  currentReward: number;
+  halvingEra: number;
+  halvingEraName: string;
+  coinsUntilHalving: number;
+  telomereLength: number;
+  telomerePercent: number;
+  circulatingSupply: number;
+  burnedCoins: number;
+}
+
+export interface RFLPFingerprint {
+  fragments: number[];
+  enzymesUsed: string[];
+  markerCount: number;
+  markerDNA: string;
 }
 
 export interface SignedCoinResponse {
@@ -33,12 +50,60 @@ export interface SignedCoinResponse {
     serialHash: string;
     networkId: string;
     networkSignature: string;
+    networkGenome: string;
+    rflpFingerprint?: RFLPFingerprint;
     miningProof: { nonce: number; hash: string; difficulty: string };
   };
+  blockReward: number;
+  bonusCoins: Array<{
+    coinGene: string;
+    serial: string;
+    serialHash: string;
+    aminoAcids: string[];
+    nonce: number;
+    hash: string;
+    difficulty: string;
+    networkId: string;
+    networkSignature: string;
+    networkGenome: string;
+    rflpFingerprint?: RFLPFingerprint;
+  }>;
   feeCoinMinted: boolean;
   difficultyAdjusted: boolean;
   currentDifficulty: string;
   currentTarget: string;
+  halvingEra: number;
+  halvingEraName: string;
+  telomerePercent: number;
+}
+
+export interface NetworkDnaAnalysis {
+  dna: string;
+  dnaLength: number;
+  dnaHash: string;
+  totalProteins: number;
+  totalCoins: number;
+  totalStructural: number;
+  intergenicRegions: number;
+  publicKeyHash: string;
+  coins: {
+    index: number;
+    serial: string;
+    serialHash: string;
+    aminoAcids: string[];
+    length: number;
+    rflpFragments?: number[];
+    rflpMarkerCount?: number;
+  }[];
+  structuralProteins: {
+    index: number;
+    aminoAcids: string[];
+    length: number;
+    role: string;
+    charge: number;
+    polarity: number;
+    hydrophobicity: number;
+  }[];
 }
 
 export interface WalletResponse {
@@ -58,11 +123,16 @@ export interface WalletViewResponse {
 export const api = {
   getNetworkStats: () => request<NetworkStats>("/network/stats"),
 
+  getNetworkDna: () => request<NetworkDnaAnalysis>("/network/dna"),
+
+  getNetworkRFLP: () => request<RFLPFingerprint>("/network/rflp"),
+
   getDifficulty: () =>
     request<{
       difficulty: string;
       target: string;
       networkId: string;
+      networkGenome: string;
       totalSubmissions: number;
       epochProgress: string;
       nextAdjustmentIn: number;

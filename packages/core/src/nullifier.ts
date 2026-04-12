@@ -81,6 +81,20 @@ export class NullifierRegistry {
   private conflicts: ConflictReport[] = [];
 
   /**
+   * Register a nullifier without proof verification (for gateway/direct marking).
+   */
+  registerDirect(proof: NullifierProof, sourceNode: string): boolean {
+    const existing = this.nullifiers.get(proof.nullifier);
+    if (existing) return false;
+    this.nullifiers.set(proof.nullifier, {
+      coinSerialHash: proof.coinSerialHash,
+      firstSeen: proof.timestamp,
+      sourceNode,
+    });
+    return true;
+  }
+
+  /**
    * Register a nullifier. Returns true if new, false if already seen.
    * If already seen for a DIFFERENT coin, records a conflict.
    */

@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920,height=1080">
+<title>zBioCoin — The Living Cryptocurrency</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+:root{--bg:#06090f;--primary:#00e599;--secondary:#0ea5e9;--text:#e2e8f0;--muted:#64748b;--danger:#ef4444;--amber:#f59e0b;--purple:#8b5cf6;--mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans)}
+
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 1.2s ease}
+.scene.active{opacity:1;pointer-events:auto}
+.scene.fade-out{opacity:0}
+
+.narrator{font-size:38px;font-weight:300;line-height:1.6;max-width:1200px;text-align:center;color:var(--text);opacity:0;transform:translateY(30px);animation:fadeUp 1s ease forwards}
+.narrator strong{font-weight:700;color:var(--primary)}
+.narrator em{font-style:normal;color:var(--secondary)}
+.title{font-size:90px;font-weight:900;letter-spacing:-2px;opacity:0;animation:scaleIn 0.8s ease forwards}
+.subtitle{font-size:32px;color:var(--muted);font-weight:400;margin-top:16px;opacity:0;animation:fadeUp 0.8s 0.4s ease forwards}
+.section-label{font-size:16px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--primary);margin-bottom:24px;opacity:0;animation:fadeUp 0.6s ease forwards}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:0.6}50%{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideRight{from{width:0}to{width:100%}}
+@keyframes gelMigrate{from{transform:translateY(-40px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes shieldStack{from{opacity:0;transform:translateY(50px) scale(0.8)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(0,229,153,0.3)}50%{box-shadow:0 0 60px rgba(0,229,153,0.6)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes popIn{from{opacity:0;transform:scale(0) rotate(-10deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes typeChar{from{width:0}to{width:100%}}
+@keyframes stampSlam{0%{opacity:0;transform:scale(3) rotate(-15deg)}60%{opacity:1;transform:scale(0.9) rotate(2deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-80px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(80px)}to{opacity:1;transform:translateX(0)}}
+@keyframes countUp{from{opacity:0}to{opacity:1}}
+@keyframes ripple{0%{box-shadow:0 0 0 0 rgba(0,229,153,0.4)}100%{box-shadow:0 0 0 40px rgba(0,229,153,0)}}
+@keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* DNA Helix */
+.helix-container{position:relative;width:300px;height:600px;margin:0 auto}
+.helix-base{position:absolute;width:14px;height:14px;border-radius:50%;animation:pulse 2s ease-in-out infinite}
+.helix-bond{position:absolute;height:2px;background:rgba(255,255,255,0.1)}
+
+/* Logo */
+.logo{display:flex;align-items:center;gap:16px;font-size:60px;font-weight:900;opacity:0;animation:scaleIn 0.6s 0.2s ease forwards}
+.logo-icon{font-size:72px;color:var(--primary)}
+.logo .dim{color:var(--muted);font-weight:500}
+
+/* Stats row */
+.stats-row{display:flex;gap:48px;margin-top:48px;flex-wrap:wrap;justify-content:center}
+.stat{text-align:center;opacity:0;animation:fadeUp 0.6s ease forwards}
+.stat-val{font-family:var(--mono);font-size:52px;font-weight:900;color:var(--primary)}
+.stat-lbl{font-size:18px;color:var(--muted);margin-top:4px}
+
+/* Blockchain visual */
+.blockchain-vis{display:flex;gap:12px;margin-bottom:40px}
+.block{width:80px;height:80px;border:2px solid var(--muted);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;color:var(--muted);opacity:0;animation:fadeUp 0.3s ease forwards}
+.block.heavy{border-color:var(--danger);color:var(--danger)}
+
+/* Codon table */
+.codon-vis{display:flex;gap:8px;margin:32px 0}
+.codon{display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;animation:fadeUp 0.4s ease forwards}
+.codon-bases{font-family:var(--mono);font-size:28px;font-weight:700;letter-spacing:4px}
+.codon-arrow{color:var(--muted);font-size:24px}
+.codon-amino{width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;font-weight:700;color:white}
+
+/* Chromosome / Telomere */
+.chromosome-vis{display:flex;align-items:center;height:80px;width:900px;border-radius:40px;overflow:hidden;border:3px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.03);margin:32px auto}
+.telomere{height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--bg);transition:width 3s ease}
+.telomere-left{background:linear-gradient(90deg,var(--primary),rgba(0,229,153,0.4));border-radius:40px 0 0 40px;animation:glow 2s ease-in-out infinite}
+.telomere-right{background:linear-gradient(270deg,var(--primary),rgba(0,229,153,0.4));border-radius:0 40px 40px 0;animation:glow 2s ease-in-out infinite}
+.chromosome-body{flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:24px;font-weight:700}
+.telo-counter{font-family:var(--mono);font-size:60px;font-weight:900;color:var(--primary);margin:24px 0}
+
+/* Gel electrophoresis */
+.gel-container{display:flex;gap:32px;justify-content:center;margin:32px 0}
+.gel-lane{display:flex;flex-direction:column;align-items:center;gap:8px}
+.gel-label{font-size:16px;font-weight:700;margin-bottom:8px}
+.gel-track{width:60px;height:300px;background:linear-gradient(180deg,rgba(139,92,246,0.1),rgba(139,92,246,0.03));border:1px solid rgba(139,92,246,0.3);border-radius:4px;position:relative;overflow:hidden}
+.gel-band{position:absolute;left:4px;right:4px;height:6px;border-radius:3px;opacity:0;animation:gelMigrate 0.8s ease forwards}
+.gel-match{color:var(--primary);font-size:32px;margin-top:8px;opacity:0;animation:fadeUp 0.5s 1.5s ease forwards}
+.gel-fail{color:var(--danger);font-size:32px;margin-top:8px;opacity:0;animation:fadeUp 0.5s 1.5s ease forwards}
+
+/* Shields */
+.shields{display:flex;flex-direction:column;gap:20px;width:700px}
+.shield{display:flex;align-items:center;gap:24px;padding:20px 32px;border-radius:12px;border:2px solid;opacity:0;animation:shieldStack 0.6s ease forwards}
+.shield-num{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;color:white;flex-shrink:0}
+.shield-body h3{font-size:22px;font-weight:700;margin-bottom:4px}
+.shield-body p{font-size:16px;color:var(--muted)}
+
+/* mRNA */
+.mrna-vis{display:flex;align-items:center;gap:24px;margin:32px 0}
+.mrna-envelope{width:180px;height:120px;border:3px solid var(--primary);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,229,153,0.05);animation:glow 2s ease-in-out infinite}
+.mrna-stamp{font-size:12px;font-weight:700;color:var(--primary);margin-top:4px}
+.mrna-arrow{font-size:40px;color:var(--muted);animation:pulse 1.5s ease-in-out infinite}
+
+/* Equation */
+.equation{font-family:var(--mono);font-size:28px;color:var(--primary);margin:24px 0;padding:16px 32px;border:1px solid rgba(0,229,153,0.2);border-radius:8px;background:rgba(0,229,153,0.03);opacity:0;animation:fadeUp 0.8s ease forwards}
+
+/* Badge */
+.badge{display:inline-block;padding:10px 28px;border-radius:999px;font-size:20px;font-weight:800;letter-spacing:2px;text-transform:uppercase;opacity:0;animation:popIn 0.5s ease forwards}
+.badge-green{background:rgba(0,229,153,0.15);border:2px solid var(--primary);color:var(--primary)}
+.badge-red{background:rgba(239,68,68,0.15);border:2px solid var(--danger);color:var(--danger)}
+.badge-blue{background:rgba(14,165,233,0.15);border:2px solid var(--secondary);color:var(--secondary)}
+.badge-amber{background:rgba(245,158,11,0.15);border:2px solid var(--amber);color:var(--amber)}
+.badge-purple{background:rgba(139,92,246,0.15);border:2px solid var(--purple);color:var(--purple)}
+.badges-row{display:flex;gap:16px;margin:24px 0;flex-wrap:wrap;justify-content:center}
+
+/* KYC stamp */
+.kyc-stamp{font-size:90px;font-weight:900;color:var(--danger);letter-spacing:-3px;opacity:0;animation:stampSlam 0.6s ease forwards;text-shadow:0 0 40px rgba(239,68,68,0.4)}
+
+/* Feature cards */
+.feature-grid{display:grid;grid-template-columns:repeat(3,320px);gap:24px;margin:32px 0}
+.feature-card{padding:32px;border-radius:16px;border:2px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);text-align:center;opacity:0;animation:fadeUp 0.6s ease forwards}
+.feature-card:hover{border-color:var(--primary)}
+.feature-card .icon{font-size:48px;margin-bottom:16px}
+.feature-card h3{font-size:22px;font-weight:700;margin-bottom:8px}
+.feature-card p{font-size:16px;color:var(--muted);line-height:1.5}
+
+/* Code block */
+.code-block{background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:24px 32px;font-family:var(--mono);font-size:20px;line-height:1.8;text-align:left;max-width:900px;opacity:0;animation:fadeUp 0.8s ease forwards}
+.code-block .kw{color:var(--purple)}
+.code-block .fn{color:var(--secondary)}
+.code-block .str{color:var(--primary)}
+.code-block .cm{color:var(--muted)}
+
+/* Browser mockup */
+.browser-mock{width:860px;border-radius:12px;overflow:hidden;border:2px solid rgba(255,255,255,0.1);opacity:0;animation:fadeUp 0.6s ease forwards}
+.browser-bar{height:40px;background:rgba(255,255,255,0.06);display:flex;align-items:center;gap:8px;padding:0 16px}
+.browser-dot{width:12px;height:12px;border-radius:50%}
+.browser-url{flex:1;margin:0 12px;height:24px;border-radius:4px;background:rgba(255,255,255,0.06);display:flex;align-items:center;padding:0 12px;font-size:13px;font-family:var(--mono);color:var(--muted)}
+.browser-content{height:400px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:var(--bg)}
+
+/* Step flow */
+.step-flow{display:flex;align-items:center;gap:16px;margin:32px 0}
+.step-circle{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;color:white;flex-shrink:0;opacity:0;animation:popIn 0.5s ease forwards}
+.step-connector{width:60px;height:3px;background:rgba(255,255,255,0.1);opacity:0;animation:fadeIn 0.4s ease forwards}
+.step-label{font-size:16px;color:var(--muted);margin-top:8px;text-align:center;max-width:100px}
+
+/* Comparison table */
+.vs-table{display:flex;gap:48px;margin:32px 0}
+.vs-col{width:380px;padding:32px;border-radius:16px;border:2px solid;opacity:0}
+.vs-col h3{font-size:28px;font-weight:800;margin-bottom:20px}
+.vs-col ul{list-style:none;font-size:20px;line-height:2}
+.vs-col ul li::before{content:'';display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:12px}
+.vs-old{border-color:var(--danger);animation:slideInLeft 0.6s ease forwards}
+.vs-old h3{color:var(--danger)}
+.vs-old ul li::before{background:var(--danger)}
+.vs-new{border-color:var(--primary);animation:slideInRight 0.6s 0.3s ease forwards}
+.vs-new h3{color:var(--primary)}
+.vs-new ul li::before{background:var(--primary)}
+
+/* Persona cards */
+.persona-grid{display:grid;grid-template-columns:repeat(4,240px);gap:24px;margin:32px 0}
+.persona{padding:28px;border-radius:16px;border:2px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);text-align:center;opacity:0;animation:fadeUp 0.5s ease forwards}
+.persona .emoji{font-size:56px;margin-bottom:12px}
+.persona h3{font-size:20px;font-weight:700;margin-bottom:8px;color:var(--primary)}
+.persona p{font-size:15px;color:var(--muted);line-height:1.5}
+
+/* CTA button style */
+.cta-btn{display:inline-block;padding:16px 48px;border-radius:999px;font-size:24px;font-weight:800;color:var(--bg);background:linear-gradient(135deg,var(--primary),var(--secondary));opacity:0;animation:popIn 0.6s ease forwards;text-decoration:none;animation-name:ripple,popIn;animation-duration:2s,0.6s;animation-iteration-count:infinite,1;animation-timing-function:ease,ease}
+
+/* Progress bar */
+.progress-container{position:fixed;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,0.05);z-index:1000}
+.progress-bar{height:100%;background:var(--primary);transition:width 0.3s linear}
+
+/* Controls */
+.controls{position:fixed;top:20px;right:20px;z-index:1000;display:flex;gap:8px}
+.ctrl-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:var(--text);padding:8px 16px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:14px;font-weight:600}
+.ctrl-btn:hover{background:rgba(255,255,255,0.2)}
+.ctrl-btn.active{background:var(--primary);color:var(--bg);border-color:var(--primary)}
+
+/* Slide navigation arrows */
+.slide-nav{position:fixed;top:50%;z-index:1000;transform:translateY(-50%);width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text);font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s;backdrop-filter:blur(8px)}
+.slide-nav:hover{background:rgba(0,229,153,0.2);border-color:var(--primary);color:var(--primary)}
+.slide-nav-prev{left:24px}
+.slide-nav-next{right:24px}
+.slide-counter{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:1000;font-family:var(--mono);font-size:16px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:12px}
+.slide-dots{display:flex;gap:6px}
+.slide-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);cursor:pointer;transition:all 0.3s;border:none;padding:0}
+.slide-dot:hover{background:rgba(255,255,255,0.4)}
+.slide-dot.active{background:var(--primary);width:24px;border-radius:4px}
+
+.watermark{position:fixed;bottom:24px;right:32px;font-size:18px;font-weight:700;color:rgba(255,255,255,0.15);z-index:999;font-family:var(--sans)}
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button class="ctrl-btn" onclick="togglePlay()" id="playBtn">⏸ Pause</button>
+  <button class="ctrl-btn" onclick="restart()">↺ Restart</button>
+  <button class="ctrl-btn" onclick="toggleNarrator()" id="narratorBtn">🔊 Narrator</button>
+  <span class="ctrl-btn" id="timerDisplay">0:00 / 0:00</span>
+</div>
+<button class="slide-nav slide-nav-prev" onclick="goPrev()" title="Previous (←)">‹</button>
+<button class="slide-nav slide-nav-next" onclick="goNext()" title="Next (→)">›</button>
+<div class="slide-counter">
+  <span id="slideNum">1 / 21</span>
+  <div class="slide-dots" id="slideDots"></div>
+</div>
+<div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+<div class="watermark">zcoin.bio</div>
+
+<!-- ==================== SCENES ==================== -->
+
+<!-- S0: HOOK - DNA Helix -->
+<div class="scene" id="s0">
+  <div class="helix-container" id="helix0"></div>
+  <div class="narrator" style="margin-top:40px;animation-delay:1s">
+    "What if cryptocurrency was <strong>alive</strong>?"
+  </div>
+</div>
+
+<!-- S1: HOOK - Bases + Proteins -->
+<div class="scene" id="s1">
+  <div class="codon-vis">
+    <div class="codon" style="animation-delay:0s"><div class="codon-bases" style="color:#ef4444">T A C G</div><div class="codon-arrow">↓</div><div class="codon-amino" style="background:#ef4444">Tyr</div></div>
+    <div class="codon" style="animation-delay:0.2s"><div class="codon-bases" style="color:#f59e0b">A T G</div><div class="codon-arrow">↓</div><div class="codon-amino" style="background:#f59e0b">Met</div></div>
+    <div class="codon" style="animation-delay:0.4s"><div class="codon-bases" style="color:#3b82f6">G G G</div><div class="codon-arrow">↓</div><div class="codon-amino" style="background:#3b82f6">Gly</div></div>
+    <div class="codon" style="animation-delay:0.6s"><div class="codon-bases" style="color:#8b5cf6">T G G</div><div class="codon-arrow">↓</div><div class="codon-amino" style="background:#8b5cf6">Trp</div></div>
+    <div class="codon" style="animation-delay:0.8s"><div class="codon-bases" style="color:#00e599">T G C</div><div class="codon-arrow">↓</div><div class="codon-amino" style="background:#00e599">Cys</div></div>
+  </div>
+  <div class="narrator" style="animation-delay:1.2s">
+    "What if your wallet had <strong>DNA</strong>... your coins were <strong>proteins</strong>...<br>and every coin carried a biological fingerprint?"
+  </div>
+</div>
+
+<!-- S2: Logo Reveal -->
+<div class="scene" id="s2">
+  <div class="logo">
+    <span class="logo-icon">⧖</span>
+    <span>zcoin<span class="dim">.bio</span></span>
+  </div>
+  <div class="subtitle" style="max-width:700px">21 Million. DNA-Encoded. Unforgeable.</div>
+  <div class="badges-row" style="margin-top:32px">
+    <div class="badge badge-green" style="animation-delay:0.8s">NO BLOCKCHAIN</div>
+    <div class="badge badge-red" style="animation-delay:1.0s">NO KYC</div>
+    <div class="badge badge-blue" style="animation-delay:1.2s">NO GPU NEEDED</div>
+    <div class="badge badge-amber" style="animation-delay:1.4s">WORKS OFFLINE</div>
+  </div>
+  <div class="subtitle" style="animation-delay:1.8s;font-size:22px;color:var(--primary)">The Living Cryptocurrency</div>
+</div>
+
+<!-- S3: The Problem - Blockchain -->
+<div class="scene" id="s3">
+  <div class="section-label">THE PROBLEM</div>
+  <div class="blockchain-vis">
+    <div class="block" style="animation-delay:0s">#1</div>
+    <div class="block" style="animation-delay:0.1s">#2</div>
+    <div class="block" style="animation-delay:0.2s">#3</div>
+    <div class="block" style="animation-delay:0.3s">...</div>
+    <div class="block heavy" style="animation-delay:0.4s">#1M</div>
+    <div class="block heavy" style="animation-delay:0.5s">#2M</div>
+    <div class="block heavy" style="animation-delay:0.6s">#3M</div>
+    <div class="block heavy" style="animation-delay:0.7s">#∞</div>
+  </div>
+  <div class="narrator" style="animation-delay:0.5s">
+    "Blockchain changed the world. But every node stores every transaction — <em>forever</em>."
+  </div>
+</div>
+
+<!-- S4: Problem - KYC / Centralization / Offline -->
+<div class="scene" id="s4">
+  <div class="vs-table">
+    <div class="vs-col vs-old" style="animation-delay:0.3s">
+      <h3>Traditional Crypto</h3>
+      <ul>
+        <li>KYC — passport, selfie, wait days</li>
+        <li>Exchange fees — 1-5% per trade</li>
+        <li>Need $3,000 GPU to mine</li>
+        <li>Can't send coins offline</li>
+        <li>Government can freeze your wallet</li>
+        <li>Server goes down = coins stuck</li>
+      </ul>
+    </div>
+    <div class="vs-col vs-new" style="animation-delay:0.6s">
+      <h3>zBioCoin</h3>
+      <ul>
+        <li>No KYC — create wallet in 1 click</li>
+        <li>No exchange — peer-to-peer direct</li>
+        <li>Mine in your browser tab</li>
+        <li>Send coins offline via file</li>
+        <li>No one can freeze your DNA</li>
+        <li>Coins valid even if server dies</li>
+      </ul>
+    </div>
+  </div>
+  <div class="narrator" style="animation-delay:1.5s;font-size:28px;font-weight:700">
+    "What if we could keep the security...<br>but <strong>lose everything that holds you back</strong>?"
+  </div>
+</div>
+
+<!-- S5: Meet zBioCoin -->
+<div class="scene" id="s5">
+  <div class="section-label">INTRODUCING zBioCoin</div>
+  <div class="title" style="font-size:72px">Meet <span style="color:var(--primary)">zBioCoin</span></div>
+  <div class="subtitle">A cryptocurrency built on biology, not bureaucracy</div>
+  <div class="stats-row">
+    <div class="stat" style="animation-delay:0.4s"><div class="stat-val">6,000</div><div class="stat-lbl">DNA bases per wallet</div></div>
+    <div class="stat" style="animation-delay:0.6s"><div class="stat-val">180</div><div class="stat-lbl">bases per coin gene</div></div>
+    <div class="stat" style="animation-delay:0.8s"><div class="stat-val">504</div><div class="stat-lbl">bits of combined security</div></div>
+    <div class="stat" style="animation-delay:1.0s"><div class="stat-val">21M</div><div class="stat-lbl">maximum supply</div></div>
+    <div class="stat" style="animation-delay:1.2s"><div class="stat-val">0</div><div class="stat-lbl">KYC required</div></div>
+  </div>
+</div>
+
+<!-- S6: Ease of Mining - Browser -->
+<div class="scene" id="s6">
+  <div class="section-label">MINE IN YOUR BROWSER</div>
+  <div class="browser-mock" style="animation-delay:0.2s">
+    <div class="browser-bar">
+      <div class="browser-dot" style="background:#ef4444"></div>
+      <div class="browser-dot" style="background:#f59e0b"></div>
+      <div class="browser-dot" style="background:#00e599"></div>
+      <div class="browser-url">zcoin.bio/mine</div>
+    </div>
+    <div class="browser-content">
+      <div style="font-size:64px;animation:float 3s ease-in-out infinite">⛏</div>
+      <div style="font-family:var(--mono);font-size:28px;color:var(--primary)">Mining... 1,247 H/s</div>
+      <div style="font-size:18px;color:var(--muted)">No GPU · No downloads · No signup</div>
+    </div>
+  </div>
+  <div class="narrator" style="animation-delay:0.8s;font-size:32px">
+    "Open a tab. Click <strong>Start Mining</strong>. That's it.<br>Your browser does the rest."
+  </div>
+  <div class="badges-row" style="margin-top:16px">
+    <div class="badge badge-green" style="animation-delay:1.4s">SHA-256 PROOF-OF-WORK</div>
+    <div class="badge badge-red" style="animation-delay:1.6s">NO KYC</div>
+    <div class="badge badge-blue" style="animation-delay:1.8s">RUNS ON ANY DEVICE</div>
+  </div>
+</div>
+
+<!-- S7: Mining Rewards -->
+<div class="scene" id="s7">
+  <div class="section-label">BLOCK REWARDS</div>
+  <div class="equation" style="animation-delay:0.2s">SHA-256( gene || nonce ) &lt; target</div>
+  <div class="narrator" style="animation-delay:0.6s;font-size:32px">
+    "Each successful mine earns a <strong>block reward — 50 coins</strong> in the Genesis era."
+  </div>
+  <div style="display:flex;gap:32px;margin-top:32px">
+    <div class="stat" style="animation-delay:0.8s"><div class="stat-val">50</div><div class="stat-lbl">Genesis Era</div></div>
+    <div class="stat" style="animation-delay:1.0s"><div class="stat-val">25</div><div class="stat-lbl">Growth Era</div></div>
+    <div class="stat" style="animation-delay:1.2s"><div class="stat-val">12</div><div class="stat-lbl">Expansion Era</div></div>
+    <div class="stat" style="animation-delay:1.4s"><div class="stat-val">6</div><div class="stat-lbl">Maturity Era</div></div>
+    <div class="stat" style="animation-delay:1.6s"><div class="stat-val">...</div><div class="stat-lbl">→ Hayflick Limit</div></div>
+  </div>
+  <div class="narrator" style="animation-delay:2s;font-size:28px;color:var(--muted)">
+    Every 210,000 submissions, the reward <strong>halves</strong> — identical to Bitcoin.
+  </div>
+</div>
+
+<!-- S8: Telomere -->
+<div class="scene" id="s8">
+  <div class="section-label">THE TELOMERE CAP</div>
+  <div class="chromosome-vis">
+    <div class="telomere telomere-left" id="teloL" style="width:40%">TTAGGG</div>
+    <div class="chromosome-body">21,000,000 coins</div>
+    <div class="telomere telomere-right" id="teloR" style="width:40%">TTAGGG</div>
+  </div>
+  <div class="telo-counter" id="teloCounter">21,000,000</div>
+  <div class="narrator" style="animation-delay:0.5s">
+    "The network's DNA has <strong>telomeres</strong> — TTAGGG repeats.<br>
+    Every coin mined <strong>shortens them</strong>. When they're gone... mining stops <em>forever</em>."
+  </div>
+  <div class="narrator" style="animation-delay:3s;font-size:28px;font-weight:700;color:var(--danger)">
+    "Scarcity isn't a setting. It's a death sentence written into the DNA."
+  </div>
+</div>
+
+<!-- S9: RFLP / Paternity Test -->
+<div class="scene" id="s9">
+  <div class="section-label">THE PATERNITY TEST</div>
+  <div class="gel-container">
+    <div class="gel-lane">
+      <div class="gel-label" style="color:var(--purple)">Network</div>
+      <div class="gel-track">
+        <div class="gel-band" style="top:15%;background:var(--purple);animation-delay:0.3s"></div>
+        <div class="gel-band" style="top:30%;background:var(--purple);animation-delay:0.5s"></div>
+        <div class="gel-band" style="top:50%;background:var(--purple);animation-delay:0.7s"></div>
+        <div class="gel-band" style="top:70%;background:var(--purple);animation-delay:0.9s"></div>
+        <div class="gel-band" style="top:85%;background:var(--purple);animation-delay:1.1s"></div>
+      </div>
+    </div>
+    <div class="gel-lane">
+      <div class="gel-label" style="color:var(--primary)">Coin #1</div>
+      <div class="gel-track">
+        <div class="gel-band" style="top:15%;background:var(--primary);animation-delay:0.4s"></div>
+        <div class="gel-band" style="top:30%;background:var(--primary);animation-delay:0.6s"></div>
+        <div class="gel-band" style="top:50%;background:var(--primary);animation-delay:0.8s"></div>
+        <div class="gel-band" style="top:70%;background:var(--primary);animation-delay:1.0s"></div>
+        <div class="gel-band" style="top:85%;background:var(--primary);animation-delay:1.2s"></div>
+      </div>
+      <div class="gel-match">✓ MATCH</div>
+    </div>
+    <div class="gel-lane">
+      <div class="gel-label" style="color:var(--danger)">Forged</div>
+      <div class="gel-track">
+        <div class="gel-band" style="top:10%;background:var(--danger);animation-delay:0.5s"></div>
+        <div class="gel-band" style="top:25%;background:var(--danger);animation-delay:0.7s"></div>
+        <div class="gel-band" style="top:60%;background:var(--danger);animation-delay:0.9s"></div>
+      </div>
+      <div class="gel-fail">✗ NO MATCH</div>
+    </div>
+  </div>
+  <div class="narrator" style="animation-delay:0.5s">
+    "Five restriction enzymes cut the coin's marker DNA.<br>
+    The band pattern is a <strong>biological fingerprint</strong> — works <em>completely offline</em>."
+  </div>
+</div>
+
+<!-- S10: Four Shields -->
+<div class="scene" id="s10">
+  <div class="section-label">FOUR LAYERS OF DEFENSE</div>
+  <div class="shields">
+    <div class="shield" style="border-color:var(--amber);animation-delay:0.2s"><div class="shield-num" style="background:var(--amber)">1</div><div class="shield-body"><h3>SHA-256 Proof-of-Work</h3><p>Same algorithm as Bitcoin</p></div></div>
+    <div class="shield" style="border-color:var(--secondary);animation-delay:0.5s"><div class="shield-num" style="background:var(--secondary)">2</div><div class="shield-body"><h3>Ed25519 Digital Signatures</h3><p>Same cryptography as Solana & Signal</p></div></div>
+    <div class="shield" style="border-color:var(--purple);animation-delay:0.8s"><div class="shield-num" style="background:var(--purple)">3</div><div class="shield-body"><h3>RFLP Biological Fingerprinting</h3><p>A DNA paternity test no forger can fake</p></div></div>
+    <div class="shield" style="border-color:var(--danger);animation-delay:1.1s"><div class="shield-num" style="background:var(--danger)">4</div><div class="shield-body"><h3>Cryptographic Nullifiers</h3><p>Prevents any coin from being spent twice</p></div></div>
+  </div>
+  <div class="equation" style="animation-delay:1.8s;font-size:22px">Combined: 504-bit security = 2⁵⁰⁴ operations to break</div>
+</div>
+
+<!-- S11: Transfers = mRNA -->
+<div class="scene" id="s11">
+  <div class="section-label">TRANSFERS</div>
+  <div class="mrna-vis">
+    <div style="font-size:60px;opacity:0;animation:fadeUp 0.5s ease forwards">🧬</div>
+    <div class="mrna-arrow">→</div>
+    <div class="mrna-envelope">
+      <div style="font-size:28px">📧</div>
+      <div style="font-size:14px;font-weight:700">mRNA Payload</div>
+      <div class="mrna-stamp">Ed25519 ✓ · RFLP ✓ · PoW ✓</div>
+    </div>
+    <div class="mrna-arrow">→</div>
+    <div style="font-size:60px;opacity:0;animation:fadeUp 0.5s 0.6s ease forwards">🧬</div>
+  </div>
+  <div class="narrator" style="animation-delay:0.8s">
+    "The coin gene, its signature, fingerprint, and proof — <br>
+    everything in one <strong>self-contained file</strong>."
+  </div>
+  <div class="narrator" style="animation-delay:2s;font-size:28px;color:var(--muted)">
+    "Email. USB. QR code. Bluetooth. Verified <strong>offline</strong>. No server. No wait. <strong>No KYC.</strong>"
+  </div>
+</div>
+
+<!-- S12: NO KYC FREEDOM -->
+<div class="scene" id="s12">
+  <div class="section-label">FINANCIAL FREEDOM</div>
+  <div class="kyc-stamp" style="animation-delay:0.3s">NO KYC</div>
+  <div class="narrator" style="animation-delay:1s;font-size:34px">
+    "No passport. No selfie. No bank account. No waiting.<br>
+    <strong>Create a wallet in one click.</strong> Start using it instantly."
+  </div>
+  <div class="badges-row" style="margin-top:32px">
+    <div class="badge badge-green" style="animation-delay:1.8s">NO IDENTITY REQUIRED</div>
+    <div class="badge badge-green" style="animation-delay:2.0s">NO EMAIL</div>
+    <div class="badge badge-green" style="animation-delay:2.2s">NO PHONE</div>
+    <div class="badge badge-green" style="animation-delay:2.4s">NO ADDRESS</div>
+  </div>
+  <div class="narrator" style="animation-delay:3s;font-size:28px;color:var(--muted)">
+    "Your wallet is a DNA strand. Your identity is your private key.<br>
+    <strong>That's all you need.</strong> Anywhere in the world."
+  </div>
+</div>
+
+<!-- S13: PAYMENT GATEWAY -->
+<div class="scene" id="s13">
+  <div class="section-label">PAYMENT GATEWAY</div>
+  <div class="title" style="font-size:56px">Accept <span style="color:var(--primary)">zBioCoin</span> Payments</div>
+  <div class="subtitle" style="font-size:24px">Like PayPal, Stripe, or Revolut — but with DNA</div>
+  <div class="step-flow" style="margin-top:48px">
+    <div style="text-align:center">
+      <div class="step-circle" style="background:var(--primary);animation-delay:0.4s">1</div>
+      <div class="step-label">Customer clicks "Pay with zBioCoin"</div>
+    </div>
+    <div class="step-connector" style="animation-delay:0.6s"></div>
+    <div style="text-align:center">
+      <div class="step-circle" style="background:var(--secondary);animation-delay:0.8s">2</div>
+      <div class="step-label">Wallet popup opens</div>
+    </div>
+    <div class="step-connector" style="animation-delay:1.0s"></div>
+    <div style="text-align:center">
+      <div class="step-circle" style="background:var(--purple);animation-delay:1.2s">3</div>
+      <div class="step-label">Confirm with private key</div>
+    </div>
+    <div class="step-connector" style="animation-delay:1.4s"></div>
+    <div style="text-align:center">
+      <div class="step-circle" style="background:var(--amber);animation-delay:1.6s">4</div>
+      <div class="step-label">mRNA transfer sent</div>
+    </div>
+    <div class="step-connector" style="animation-delay:1.8s"></div>
+    <div style="text-align:center">
+      <div class="step-circle" style="background:var(--primary);animation-delay:2.0s">✓</div>
+      <div class="step-label">Verified instantly</div>
+    </div>
+  </div>
+  <div class="narrator" style="animation-delay:2.5s;font-size:28px;color:var(--muted)">
+    No credit card processor. No 3% fee. No chargebacks. <strong>Just biology.</strong>
+  </div>
+</div>
+
+<!-- S14: EASE OF INTEGRATION -->
+<div class="scene" id="s14">
+  <div class="section-label">5 LINES OF CODE</div>
+  <div class="code-block" style="animation-delay:0.3s">
+    <span class="cm">// Add zBioCoin payments to any website</span><br>
+    <span class="kw">import</span> { <span class="fn">ZcoinPay</span> } <span class="kw">from</span> <span class="str">'@zcoin/gateway'</span>;<br><br>
+    <span class="kw">const</span> pay = <span class="kw">new</span> <span class="fn">ZcoinPay</span>({ <span class="str">network</span>: <span class="str">'zcoin.bio'</span> });<br><br>
+    pay.<span class="fn">checkout</span>({ <span class="str">amount</span>: <span class="str">10</span>, <span class="str">label</span>: <span class="str">'Premium Plan'</span> })<br>
+    &nbsp;&nbsp;.<span class="fn">then</span>(receipt => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">'Paid!'</span>, receipt));
+  </div>
+  <div class="feature-grid" style="margin-top:40px">
+    <div class="feature-card" style="animation-delay:0.8s">
+      <div class="icon">🌐</div>
+      <h3>Any Website</h3>
+      <p>JavaScript SDK works on React, Vue, Svelte, WordPress, Shopify — anything</p>
+    </div>
+    <div class="feature-card" style="animation-delay:1.0s">
+      <div class="icon">🔌</div>
+      <h3>Plug and Play</h3>
+      <p>One script tag. One function call. Wallet popup handles the rest</p>
+    </div>
+    <div class="feature-card" style="animation-delay:1.2s">
+      <div class="icon">🧾</div>
+      <h3>Instant Settlement</h3>
+      <p>No pending period. No "3-5 business days". Coins move immediately</p>
+    </div>
+  </div>
+</div>
+
+<!-- S15: MARKETPLACE - Buy/Sell Coins -->
+<div class="scene" id="s15">
+  <div class="section-label">BUY & SELL COINS</div>
+  <div class="title" style="font-size:52px">The <span style="color:var(--primary)">zBioCoin Marketplace</span></div>
+  <div class="subtitle" style="font-size:22px">demo.zcoin.bio — peer-to-peer, no middleman</div>
+  <div class="browser-mock" style="margin-top:32px;animation-delay:0.5s">
+    <div class="browser-bar">
+      <div class="browser-dot" style="background:#ef4444"></div>
+      <div class="browser-dot" style="background:#f59e0b"></div>
+      <div class="browser-dot" style="background:#00e599"></div>
+      <div class="browser-url">demo.zcoin.bio</div>
+    </div>
+    <div class="browser-content" style="height:320px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:24px">
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">🎨</div>
+        <div style="font-weight:700;font-size:16px">Digital Art NFT</div>
+        <div style="color:var(--primary);font-family:var(--mono);margin-top:8px;font-weight:700">5 ZBIO</div>
+        <div style="margin-top:12px;padding:8px 16px;background:var(--primary);color:var(--bg);border-radius:6px;font-weight:700;font-size:14px">Buy Now</div>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">🎮</div>
+        <div style="font-weight:700;font-size:16px">Game Credits</div>
+        <div style="color:var(--primary);font-family:var(--mono);margin-top:8px;font-weight:700">2 ZBIO</div>
+        <div style="margin-top:12px;padding:8px 16px;background:var(--primary);color:var(--bg);border-radius:6px;font-weight:700;font-size:14px">Buy Now</div>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">📦</div>
+        <div style="font-weight:700;font-size:16px">Premium Access</div>
+        <div style="color:var(--primary);font-family:var(--mono);margin-top:8px;font-weight:700">10 ZBIO</div>
+        <div style="margin-top:12px;padding:8px 16px;background:var(--primary);color:var(--bg);border-radius:6px;font-weight:700;font-size:14px">Buy Now</div>
+      </div>
+    </div>
+  </div>
+  <div class="narrator" style="animation-delay:1.5s;font-size:28px">
+    "Don't want to mine? <strong>Buy coins from miners</strong> on the marketplace.<br>
+    Sell goods. Sell services. Sell coins. <strong>No middleman takes a cut.</strong>"
+  </div>
+</div>
+
+<!-- S16: WHO IS THIS FOR -->
+<div class="scene" id="s16">
+  <div class="section-label">WHO IS zBioCoin FOR?</div>
+  <div class="persona-grid">
+    <div class="persona" style="animation-delay:0.3s">
+      <div class="emoji">⛏</div>
+      <h3>Miners</h3>
+      <p>Open a browser tab and earn coins. No hardware investment. Sell what you mine.</p>
+    </div>
+    <div class="persona" style="animation-delay:0.5s">
+      <div class="emoji">🛒</div>
+      <h3>Merchants</h3>
+      <p>Accept DNA payments with 5 lines of code. Zero fees. Instant settlement.</p>
+    </div>
+    <div class="persona" style="animation-delay:0.7s">
+      <div class="emoji">👩‍💻</div>
+      <h3>Developers</h3>
+      <p>Build on our SDK. Create games, marketplaces, tipping — anything with value.</p>
+    </div>
+    <div class="persona" style="animation-delay:0.9s">
+      <div class="emoji">🌍</div>
+      <h3>Everyone</h3>
+      <p>No bank needed. No ID needed. Send value to anyone, anywhere, anytime.</p>
+    </div>
+  </div>
+  <div class="narrator" style="animation-delay:1.5s;font-size:30px">
+    "Whether you mine, build, trade, or spend — <br>
+    <strong>you're part of a living economy.</strong>"
+  </div>
+</div>
+
+<!-- S17: WHY MOVE TO ZCOIN -->
+<div class="scene" id="s17">
+  <div class="section-label">THE zBioCoin ECONOMY</div>
+  <div class="feature-grid">
+    <div class="feature-card" style="animation-delay:0.3s">
+      <div class="icon">💰</div>
+      <h3>Earn by Mining</h3>
+      <p>50 coins per block. Browser-only. While you work, sleep, or browse — your tab earns for you.</p>
+    </div>
+    <div class="feature-card" style="animation-delay:0.5s">
+      <div class="icon">🔒</div>
+      <h3>Own Your Keys</h3>
+      <p>Private key never leaves your device. Not stored on any server. Your DNA, your coins.</p>
+    </div>
+    <div class="feature-card" style="animation-delay:0.7s">
+      <div class="icon">⚡</div>
+      <h3>Instant & Free</h3>
+      <p>No gas fees. No confirmation wait. Transfer is verified the moment it arrives.</p>
+    </div>
+    <div class="feature-card" style="animation-delay:0.9s">
+      <div class="icon">🧬</div>
+      <h3>Biologically Unique</h3>
+      <p>Every coin has DNA that proves its origin. Counterfeit is biologically impossible.</p>
+    </div>
+    <div class="feature-card" style="animation-delay:1.1s">
+      <div class="icon">📡</div>
+      <h3>Works Offline</h3>
+      <p>Send coins without internet. Via file, USB, QR code. Verify without a server.</p>
+    </div>
+    <div class="feature-card" style="animation-delay:1.3s">
+      <div class="icon">🌐</div>
+      <h3>Open Source</h3>
+      <p>Every line of code is public. Fork it. Audit it. Build on it. Trust through transparency.</p>
+    </div>
+  </div>
+</div>
+
+<!-- S18: EARLY ADOPTER ADVANTAGE -->
+<div class="scene" id="s18">
+  <div class="section-label">EARLY ADOPTER ADVANTAGE</div>
+  <div style="display:flex;gap:64px;align-items:center;margin:32px 0">
+    <div style="text-align:center;opacity:0;animation:fadeUp 0.6s 0.3s ease forwards">
+      <div style="font-size:100px;line-height:1">🏁</div>
+      <div style="font-family:var(--mono);font-size:40px;font-weight:900;color:var(--primary);margin-top:16px">NOW</div>
+      <div style="font-size:20px;color:var(--muted);margin-top:8px">50 coins / block</div>
+      <div style="font-size:16px;color:var(--muted)">Low difficulty</div>
+    </div>
+    <div style="font-size:80px;color:var(--muted);opacity:0;animation:fadeIn 0.4s 0.8s ease forwards">→</div>
+    <div style="text-align:center;opacity:0;animation:fadeUp 0.6s 1s ease forwards">
+      <div style="font-size:100px;line-height:1">📈</div>
+      <div style="font-family:var(--mono);font-size:40px;font-weight:900;color:var(--amber);margin-top:16px">LATER</div>
+      <div style="font-size:20px;color:var(--muted);margin-top:8px">25 coins / block</div>
+      <div style="font-size:16px;color:var(--muted)">Higher difficulty</div>
+    </div>
+    <div style="font-size:80px;color:var(--muted);opacity:0;animation:fadeIn 0.4s 1.4s ease forwards">→</div>
+    <div style="text-align:center;opacity:0;animation:fadeUp 0.6s 1.6s ease forwards">
+      <div style="font-size:100px;line-height:1">🔒</div>
+      <div style="font-family:var(--mono);font-size:40px;font-weight:900;color:var(--danger);margin-top:16px">FINAL</div>
+      <div style="font-size:20px;color:var(--muted);margin-top:8px">0 coins / block</div>
+      <div style="font-size:16px;color:var(--muted)">Telomeres exhausted</div>
+    </div>
+  </div>
+  <div class="narrator" style="animation-delay:2.5s;font-size:34px;font-weight:600">
+    "The earlier you mine, the <strong>more you earn</strong>.<br>
+    Bitcoin's early miners became millionaires.<br>
+    <span style="color:var(--primary)">This is your Genesis moment.</span>"
+  </div>
+</div>
+
+<!-- S19: CTA -->
+<div class="scene" id="s19">
+  <div class="section-label">JOIN THE ORGANISM</div>
+  <div class="title" style="font-size:64px"><span style="color:var(--primary)">zcoin.bio</span></div>
+  <div class="stats-row" style="margin-top:40px">
+    <div class="stat" style="animation-delay:0.3s"><div class="stat-val">21M</div><div class="stat-lbl">Hard Cap</div></div>
+    <div class="stat" style="animation-delay:0.5s"><div class="stat-val">4</div><div class="stat-lbl">Security Layers</div></div>
+    <div class="stat" style="animation-delay:0.7s"><div class="stat-val">0</div><div class="stat-lbl">Blockchain</div></div>
+    <div class="stat" style="animation-delay:0.9s"><div class="stat-val">0</div><div class="stat-lbl">KYC</div></div>
+    <div class="stat" style="animation-delay:1.1s"><div class="stat-val">∞</div><div class="stat-lbl">Coin Validity</div></div>
+  </div>
+  <div class="narrator" style="animation-delay:1.5s;font-size:30px">
+    "No ICO. No pre-mine. No venture capital. <strong>Open source. Live right now.</strong>"
+  </div>
+  <div style="margin-top:32px">
+    <div class="cta-btn" style="animation-delay:2.2s">Start Mining — zcoin.bio/mine</div>
+  </div>
+</div>
+
+<!-- S20: Closing -->
+<div class="scene" id="s20">
+  <div class="logo" style="margin-bottom:32px">
+    <span class="logo-icon">⧖</span>
+    <span>zcoin<span class="dim">.bio</span></span>
+  </div>
+  <div class="narrator" style="animation-delay:0.5s;font-size:34px;font-weight:600">
+    "Bitcoin reimagined the economy.<br><span style="color:var(--primary)">zBioCoin</span> reimagines it through the lens of <strong>life itself</strong>."
+  </div>
+  <div class="badges-row" style="margin-top:32px">
+    <div class="badge badge-green" style="animation-delay:1.5s">NO BLOCKCHAIN</div>
+    <div class="badge badge-red" style="animation-delay:1.7s">NO KYC</div>
+    <div class="badge badge-blue" style="animation-delay:1.9s">NO MIDDLEMAN</div>
+    <div class="badge badge-amber" style="animation-delay:2.1s">NO FEES</div>
+    <div class="badge badge-purple" style="animation-delay:2.3s">NO LIMITS</div>
+  </div>
+  <div class="subtitle" style="animation-delay:3s;font-size:24px;margin-top:40px;color:var(--primary)">
+    21 million coins · Four layers of defense · Telomere-enforced scarcity · Mine for free in your browser
+  </div>
+</div>
+
+<script>
+const SCENES = [
+  { id: "s0",  duration: 8000,
+    narration: "What if cryptocurrency was alive?" },
+  { id: "s1",  duration: 9000,
+    narration: "What if your wallet had DNA. Your coins were proteins. And every coin carried a biological fingerprint?" },
+  { id: "s2",  duration: 9000,
+    narration: "Introducing zcoin dot bio. 21 million coins. DNA encoded. Unforgeable. No blockchain. No KYC. No GPU needed. Works offline. The living cryptocurrency." },
+  { id: "s3",  duration: 8000,
+    narration: "Blockchain changed the world. But every node stores every transaction, forever. The chain grows heavier with every block." },
+  { id: "s4",  duration: 12000,
+    narration: "Traditional crypto demands your passport, your selfie, days of waiting. Exchange fees eat your profits. You need a three thousand dollar GPU just to mine. You can't send coins offline. And if the server goes down, your coins are frozen. What if we could keep the security, but lose everything that holds you back?" },
+  { id: "s5",  duration: 9000,
+    narration: "Meet Zee-Bio-Coin. A cryptocurrency built on biology, not bureaucracy. 6,000 DNA bases per wallet. 180 bases per coin gene. 504 bits of combined security. 21 million maximum supply. And zero KYC required." },
+  { id: "s6",  duration: 10000,
+    narration: "Mining is as simple as opening a browser tab and clicking Start Mining. That's it. Your browser does the rest. SHA-256 proof of work, the same algorithm as Bitcoin, running on any device. No GPU. No downloads. No signup. No KYC." },
+  { id: "s7",  duration: 11000,
+    narration: "Each successful mine earns a block reward of 50 coins in the Genesis era. Every 210,000 submissions, the reward halves, identical to Bitcoin. 25 in the Growth era. 12 in Expansion. 6 in Maturity. And then, the Hayflick limit." },
+  { id: "s8",  duration: 12000, onEnter: animateTelomere,
+    narration: "The network's DNA has telomeres, T-T-A-G-G-G repeats at the ends of its chromosomes. Every coin mined shortens them. When they reach zero, mining stops forever. 21 million coins. Not a setting you can change. A death sentence written into the DNA itself." },
+  { id: "s9",  duration: 11000,
+    narration: "Every coin carries a biological paternity test. Five restriction enzymes cut the coin's marker DNA. The resulting band pattern is a unique fingerprint. A genuine coin matches the network. A forged coin? The bands don't line up. This works completely offline." },
+  { id: "s10", duration: 10000,
+    narration: "Four independent layers of defense. Layer one: SHA-256 proof of work, the same algorithm as Bitcoin. Layer two: Ed25519 digital signatures, the same cryptography as Solana and Signal. Layer three: RFLP biological fingerprinting, a DNA paternity test no forger can fake. Layer four: cryptographic nullifiers that prevent any coin from being spent twice. Combined, that's 504 bits of security. Two to the power of 504 operations to break." },
+  { id: "s11", duration: 9000,
+    narration: "Transfers work like biology. The coin gene, its signature, its fingerprint, and its proof, everything packed into one self-contained mRNA payload. Send it by email. USB drive. QR code. Bluetooth. It's verified offline. No server needed. No waiting. No KYC." },
+  { id: "s12", duration: 10000,
+    narration: "No passport. No selfie. No bank account. No waiting. Create a wallet in one click and start using it instantly. No identity required. No email. No phone number. No address. Your wallet is a DNA strand. Your identity is your private key. That's all you need. Anywhere in the world." },
+  { id: "s13", duration: 11000,
+    narration: "Accept Zee-Bio-Coin payments on any website. Like PayPal, Stripe, or Revolut, but powered by DNA. Customer clicks Pay with Zee-Bio-Coin. A wallet popup opens. They confirm with their private key. The mRNA transfer is sent. And it's verified instantly. No credit card processor. No 3% fee. No chargebacks. Just biology." },
+  { id: "s14", duration: 11000,
+    narration: "Integration takes five lines of code. Import the Zee-Bio-Coin gateway SDK. Create a new pay instance pointed at zcoin dot bio. Call checkout with an amount and label. That's it. Works on React, Vue, Svelte, WordPress, Shopify, anything. One script tag. One function call. The wallet popup handles the rest. Instant settlement. No pending period. No 3 to 5 business days." },
+  { id: "s15", duration: 11000,
+    narration: "Don't want to mine? Buy coins directly from miners on the Zee-Bio-Coin marketplace at demo dot zcoin dot bio. Sell digital art. Sell game credits. Sell premium access. Peer to peer. No middleman takes a cut." },
+  { id: "s16", duration: 10000,
+    narration: "Who is Zee-Bio-Coin for? Miners: open a browser tab and earn coins. No hardware investment. Sell what you mine. Merchants: accept DNA payments with five lines of code. Zero fees. Instant settlement. Developers: build on our SDK. Create games, marketplaces, tipping, anything with value. And everyone else: no bank needed. No ID needed. Send value to anyone, anywhere, anytime. You're part of a living economy." },
+  { id: "s17", duration: 11000,
+    narration: "The Zee-Bio-Coin economy. Earn by mining: 50 coins per block while your browser tab runs in the background. Own your keys: your private key never leaves your device. Not stored on any server. Instant and free: no gas fees, no confirmation wait. Biologically unique: every coin has DNA that proves its origin. Works offline: send coins without internet. And it's fully open source: every line of code is public." },
+  { id: "s18", duration: 11000,
+    narration: "Right now, in the Genesis era, the difficulty is low and the rewards are high. 50 coins per block. Later, the reward drops to 25. Then it halves again, and again, until the telomeres are exhausted and mining stops forever. The earlier you mine, the more you earn. Bitcoin's early miners became millionaires. This is your Genesis moment." },
+  { id: "s19", duration: 10000,
+    narration: "Join the organism. 21 million hard cap. Four security layers. Zero blockchain. Zero KYC. Infinite coin validity. No ICO. No pre-mine. No venture capital. Open source. Live right now. Start mining at zcoin dot bio slash mine." },
+  { id: "s20", duration: 10000,
+    narration: "Bitcoin reimagined the economy. Zee-Bio-Coin reimagines it through the lens of life itself. No blockchain. No KYC. No middleman. No fees. No limits. 21 million coins. Four layers of defense. Telomere enforced scarcity. Mine for free in your browser. zcoin dot bio." },
+];
+
+const TOTAL_DURATION = SCENES.reduce((s, sc) => s + sc.duration, 0);
+let currentScene = -1;
+let startTime = 0;
+let playing = true;
+let pausedAt = 0;
+let elapsed = 0;
+let narratorEnabled = true;
+let useAudioFiles = false;
+let currentAudio = null;
+
+const audioCache = {};
+
+async function probeAudioFiles() {
+  try {
+    const res = await fetch("/narration/s0.mp3", { method: "HEAD" });
+    useAudioFiles = res.ok;
+  } catch { useAudioFiles = false; }
+  const btn = document.getElementById("narratorBtn");
+  btn.textContent = useAudioFiles ? "🔊 AI Voice" : "🔊 Narrator";
+  if (useAudioFiles) {
+    SCENES.forEach((sc, i) => {
+      const a = new Audio(`/narration/s${i}.mp3`);
+      a.preload = "auto";
+      audioCache[i] = a;
+    });
+  }
+}
+probeAudioFiles();
+
+/* ── Fallback: Web Speech API ── */
+let narratorVoice = null;
+function pickVoice() {
+  const voices = speechSynthesis.getVoices();
+  const prefs = [
+    v => v.name.includes("Daniel") && v.lang.startsWith("en"),
+    v => v.name.includes("Google UK English Male"),
+    v => v.name.includes("Google US English"),
+    v => v.name.includes("Microsoft Mark"),
+    v => v.lang.startsWith("en-") && !v.name.includes("Whisper"),
+    v => v.lang.startsWith("en"),
+  ];
+  for (const test of prefs) { const m = voices.find(test); if (m) return m; }
+  return voices[0] || null;
+}
+if (typeof speechSynthesis !== "undefined") {
+  if (speechSynthesis.getVoices().length) narratorVoice = pickVoice();
+  else speechSynthesis.addEventListener("voiceschanged", () => { narratorVoice = pickVoice(); }, { once: true });
+}
+
+function stopNarration() {
+  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; currentAudio = null; }
+  if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
+}
+
+function speakScene(idx) {
+  stopNarration();
+  if (!narratorEnabled) return;
+
+  if (useAudioFiles && audioCache[idx]) {
+    const a = audioCache[idx];
+    a.currentTime = 0;
+    a.play().catch(() => {});
+    currentAudio = a;
+    return;
+  }
+
+  if (typeof speechSynthesis === "undefined") return;
+  const text = SCENES[idx]?.narration;
+  if (!text) return;
+  const utt = new SpeechSynthesisUtterance(text);
+  if (narratorVoice) utt.voice = narratorVoice;
+  utt.lang = "en-US"; utt.rate = 0.95; utt.pitch = 1.0; utt.volume = 1.0;
+  speechSynthesis.speak(utt);
+}
+
+function toggleNarrator() {
+  narratorEnabled = !narratorEnabled;
+  const btn = document.getElementById("narratorBtn");
+  if (narratorEnabled) {
+    btn.textContent = useAudioFiles ? "🔊 AI Voice" : "🔊 Narrator";
+    btn.classList.remove("active");
+    if (currentScene >= 0) speakScene(currentScene);
+  } else {
+    btn.textContent = "🔇 Muted";
+    btn.classList.add("active");
+    stopNarration();
+  }
+}
+
+function showScene(idx) {
+  document.querySelectorAll(".scene").forEach((el, i) => {
+    el.classList.remove("active", "fade-out");
+    if (i === idx) el.classList.add("active");
+  });
+  currentScene = idx;
+  speakScene(idx);
+  if (SCENES[idx]?.onEnter) SCENES[idx].onEnter();
+  updateSlideUI();
+}
+
+function updateSlideUI() {
+  document.getElementById("slideNum").textContent = `${currentScene + 1} / ${SCENES.length}`;
+  document.querySelectorAll(".slide-dot").forEach((dot, i) => {
+    dot.classList.toggle("active", i === currentScene);
+  });
+}
+
+function buildDots() {
+  const container = document.getElementById("slideDots");
+  for (let i = 0; i < SCENES.length; i++) {
+    const dot = document.createElement("button");
+    dot.className = "slide-dot";
+    dot.addEventListener("click", () => goToScene(i));
+    container.appendChild(dot);
+  }
+}
+
+function getSceneStartTime(idx) {
+  let acc = 0;
+  for (let i = 0; i < idx; i++) acc += SCENES[i].duration;
+  return acc;
+}
+
+function goToScene(idx) {
+  if (idx < 0 || idx >= SCENES.length) return;
+  const sceneStart = getSceneStartTime(idx);
+  startTime = Date.now() - sceneStart;
+  elapsed = sceneStart;
+  showScene(idx);
+  if (!playing) {
+    pausedAt = Date.now();
+  }
+}
+
+function goNext() { goToScene(Math.min(currentScene + 1, SCENES.length - 1)); }
+function goPrev() { goToScene(Math.max(currentScene - 1, 0)); }
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowRight" || e.key === "Right") goNext();
+  else if (e.key === "ArrowLeft" || e.key === "Left") goPrev();
+  else if (e.key === " ") { e.preventDefault(); togglePlay(); }
+});
+
+function tick() {
+  if (!playing) { requestAnimationFrame(tick); return; }
+
+  elapsed = Date.now() - startTime;
+  const pct = Math.min(100, (elapsed / TOTAL_DURATION) * 100);
+  document.getElementById("progressBar").style.width = pct + "%";
+
+  const mins = Math.floor(elapsed / 60000);
+  const secs = Math.floor((elapsed % 60000) / 1000);
+  const totalMins = Math.floor(TOTAL_DURATION / 60000);
+  const totalSecs = Math.floor((TOTAL_DURATION % 60000) / 1000);
+  document.getElementById("timerDisplay").textContent =
+    `${mins}:${String(secs).padStart(2,"0")} / ${totalMins}:${String(totalSecs).padStart(2,"0")}`;
+
+  let acc = 0;
+  for (let i = 0; i < SCENES.length; i++) {
+    if (elapsed < acc + SCENES[i].duration) {
+      if (currentScene !== i) showScene(i);
+      break;
+    }
+    acc += SCENES[i].duration;
+  }
+
+  if (elapsed < TOTAL_DURATION) requestAnimationFrame(tick);
+}
+
+function togglePlay() {
+  if (playing) {
+    playing = false;
+    pausedAt = Date.now();
+    document.getElementById("playBtn").textContent = "▶ Play";
+    if (currentAudio && !currentAudio.paused) currentAudio.pause();
+    if (typeof speechSynthesis !== "undefined" && speechSynthesis.speaking) speechSynthesis.pause();
+  } else {
+    startTime += Date.now() - pausedAt;
+    playing = true;
+    document.getElementById("playBtn").textContent = "⏸ Pause";
+    if (currentAudio && currentAudio.paused && currentAudio.currentTime > 0) currentAudio.play().catch(() => {});
+    if (typeof speechSynthesis !== "undefined" && speechSynthesis.paused) speechSynthesis.resume();
+  }
+}
+
+function restart() {
+  stopNarration();
+  startTime = Date.now();
+  elapsed = 0;
+  currentScene = -1;
+  playing = true;
+  document.getElementById("playBtn").textContent = "⏸ Pause";
+  showScene(0);
+}
+
+function buildHelix() {
+  const container = document.getElementById("helix0");
+  if (!container) return;
+  const colors = ["#ef4444", "#f59e0b", "#3b82f6", "#00e599"];
+  for (let i = 0; i < 30; i++) {
+    const y = i * 20;
+    const phase = i * 0.35;
+    const x1 = 100 + Math.sin(phase) * 80;
+    const x2 = 200 - Math.sin(phase) * 80;
+    const c1 = colors[i % 4];
+    const c2 = colors[(i + 2) % 4];
+
+    const b1 = document.createElement("div");
+    b1.className = "helix-base";
+    b1.style.cssText = `left:${x1}px;top:${y}px;background:${c1};animation-delay:${i*0.1}s`;
+    container.appendChild(b1);
+
+    const b2 = document.createElement("div");
+    b2.className = "helix-base";
+    b2.style.cssText = `left:${x2}px;top:${y}px;background:${c2};animation-delay:${i*0.1+0.05}s`;
+    container.appendChild(b2);
+
+    const bond = document.createElement("div");
+    bond.className = "helix-bond";
+    bond.style.cssText = `left:${Math.min(x1,x2)+7}px;top:${y+6}px;width:${Math.abs(x2-x1)-14}px`;
+    container.appendChild(bond);
+  }
+}
+
+function animateTelomere() {
+  const teloL = document.getElementById("teloL");
+  const teloR = document.getElementById("teloR");
+  const counter = document.getElementById("teloCounter");
+  if (!teloL || !teloR || !counter) return;
+
+  teloL.style.width = "40%";
+  teloR.style.width = "40%";
+  let val = 21000000;
+  counter.textContent = val.toLocaleString();
+
+  setTimeout(() => {
+    teloL.style.width = "5%";
+    teloR.style.width = "5%";
+    const steps = 60;
+    const dec = val / steps;
+    let step = 0;
+    const iv = setInterval(() => {
+      step++;
+      val = Math.max(0, Math.round(21000000 - dec * step));
+      counter.textContent = val.toLocaleString();
+      if (step >= steps) { clearInterval(iv); counter.textContent = "0"; }
+    }, 50);
+  }, 1500);
+}
+
+buildHelix();
+buildDots();
+startTime = Date.now();
+showScene(0);
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

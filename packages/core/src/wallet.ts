@@ -9,6 +9,8 @@ export interface Wallet {
   privateKeyDNA: string;
   publicKeyHash: string;
   ownershipProofHash: string;
+  networkGenome: string;
+  networkId: string;
   createdAt: number;
 }
 
@@ -40,23 +42,24 @@ export const COIN_HEADER_ACIDS = ["Met", "Gly", "Trp", "Cys"];
  * the wallet DNA's proof region, produces a deterministic protein whose
  * hash serves as proof of ownership.
  */
-export function createWallet(dnaLength: number = 6000): Wallet {
-  // Generate the base wallet DNA (random, looks "full")
+/**
+ * Create a new wallet. Pass the network's public key DNA (genome) and
+ * network ID so the wallet can verify coins offline forever.
+ */
+export function createWallet(
+  dnaLength: number = 6000,
+  networkGenome: string = "",
+  networkId: string = "",
+): Wallet {
   const baseDNA = generateDNA(dnaLength);
-
-  // Generate private key as a separate DNA strand
   const privateKeyDNA = generateDNA(Math.floor(dnaLength / 2));
 
-  // Derive the ownership proof using only the stable identity region (first 300 bases).
   const identityRegion = baseDNA.slice(0, 300);
   const hybridized = hybridizeStrands(identityRegion, privateKeyDNA);
   const hybridResult = ribosome(hybridized);
   const ownershipProofHash = sha256(hybridResult.publicKeyChain);
 
-  // Embed the ownership proof hash into the wallet DNA at a known position.
-  // We encode it as a codon sequence in the first 256 bases.
   const proofEmbedded = embedProofInDNA(baseDNA, ownershipProofHash);
-
   const walletResult = ribosome(proofEmbedded);
 
   return {
@@ -64,6 +67,8 @@ export function createWallet(dnaLength: number = 6000): Wallet {
     privateKeyDNA,
     publicKeyHash: walletResult.publicKeyHash,
     ownershipProofHash,
+    networkGenome,
+    networkId,
     createdAt: Date.now(),
   };
 }

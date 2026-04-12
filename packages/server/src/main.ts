@@ -3,8 +3,8 @@ import { ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
 import helmet from "helmet";
 import { join } from "path";
-import * as express from "express";
 import * as fs from "fs";
+import * as express from "express";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -50,37 +50,38 @@ async function bootstrap() {
   const demoIndex = join(demoDist, "index.html");
   const hasDemoApp = fs.existsSync(demoIndex);
 
-  const expressApp = app.getHttpAdapter().getInstance();
-
-  expressApp.use((req: any, _res: any, next: any) => {
+  app.use((req: any, _res: any, next: any) => {
     const host = (req.hostname || req.headers.host || "").replace(/:\d+$/, "");
     req._isDemo = host === "demo.zcoin.bio";
     next();
   });
 
-  expressApp.use((req: any, res: any, next: any) => {
+  if (hasDemoApp) {
+    app.use((req: any, res: any, next: any) => {
+      if (req._isDemo) {
+        express.static(demoDist, { index: false })(req, res, () => {
+          if (req.method === "GET" && !req.path.startsWith("/api/") && !req.path.includes(".")) {
+            return res.sendFile(demoIndex);
+          }
+          next();
+        });
+      } else {
+        next();
+      }
+    });
+  }
+
+  app.use(express.static(frontendDist, { index: false }));
+
+  app.use((req: any, res: any, next: any) => {
+    if (req._isDemo) return next();
     if (req.path.startsWith("/api/") || req.path.startsWith("/socket.io/")) return next();
-    const dist = req._isDemo && hasDemoApp ? demoDist : frontendDist;
-    const filePath = join(dist, req.path);
-    if (req.path.includes(".") && fs.existsSync(filePath)) {
-      return res.sendFile(filePath);
+    if (req.method === "GET" && !req.path.includes(".")) {
+      if (fs.existsSync(frontendIndex)) {
+        return res.sendFile(frontendIndex);
+      }
     }
     next();
-  });
-
-  expressApp.use(express.static(frontendDist));
-
-  expressApp.use((req: any, res: any, next: any) => {
-    if (
-      req.method !== "GET" ||
-      req.path.startsWith("/api/") ||
-      req.path.startsWith("/socket.io/") ||
-      req.path.includes(".")
-    ) {
-      return next();
-    }
-    const index = req._isDemo && hasDemoApp ? demoIndex : frontendIndex;
-    res.sendFile(index);
   });
 
   const port = process.env.PORT || 3000;

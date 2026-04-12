@@ -8,5 +8,8 @@
     "packages/frontend",
     "packages/gateway",
     "packages/demo"
-  ]
+  ],
+  "devDependencies": {
+    "canvas": "^3.2.3"
+  }
 }

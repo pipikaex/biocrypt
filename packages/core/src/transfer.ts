@@ -5,6 +5,7 @@ import {
   integrateCoinGene, proveOwnership, verifyOwnership,
 } from "./wallet";
 import { verifyMiningProof, verifyNetworkSignature, type SignedCoin } from "./miner";
+import { verifyRFLPFingerprint, type RFLPFingerprint } from "./rflp";
 
 export interface mRNAPayload {
   type: "transfer";
@@ -16,6 +17,8 @@ export interface mRNAPayload {
   nullifierCommitment: string;
   networkSignature: string;
   networkId: string;
+  networkGenome: string;
+  rflpFingerprint?: RFLPFingerprint;
   miningProof: {
     nonce: number;
     hash: string;
@@ -41,10 +44,9 @@ export interface TransferResult {
 
 /**
  * Compute a deterministic nullifier from a coin serial and the owner's private key.
- * This is the core of double-spend prevention:
- * - Same coin + same owner = always the same nullifier
- * - Only the owner can compute it (requires private key)
- * - Once broadcast, it marks the coin as spent
+ * Same coin + same owner = always the same nullifier.
+ * Only the owner can compute it (requires private key).
+ * Once broadcast, it marks the coin as spent.
  */
 export function computeNullifier(coinSerialHash: string, privateKeyDNA: string): string {
   return sha256(coinSerialHash + "|nullifier|" + sha256(privateKeyDNA));
@@ -52,11 +54,6 @@ export function computeNullifier(coinSerialHash: string, privateKeyDNA: string):
 
 /**
  * Create an mRNA payload to transfer a coin from sender to recipient.
- *
- * This is the "virus" that:
- * 1. Removes the coin gene from the sender's wallet DNA
- * 2. Packages it with proofs so the recipient can validate and integrate it
- * 3. Computes the nullifier so the network knows this coin is spent
  */
 export function createMRNA(
   senderWalletDNA: string,
@@ -65,35 +62,31 @@ export function createMRNA(
   recipientPublicKeyHash: string | null,
   networkSignature: string,
   networkId: string,
+  networkGenome: string,
   miningProof: { nonce: number; hash: string; difficulty: string },
   existingLineage: TransferRecord[] = [],
+  rflpFingerprint?: RFLPFingerprint,
 ): TransferResult {
-  // Prove sender owns this wallet
   const senderProof = proveOwnership(senderWalletDNA, senderPrivateKeyDNA);
   if (!verifyOwnership(senderWalletDNA, senderProof)) {
     throw new Error("Ownership verification failed — invalid private key");
   }
 
-  // Find and extract the coin gene from sender's wallet
   const extracted = extractCoinGene(senderWalletDNA, coinSerialHash);
   if (!extracted) {
     throw new Error("Coin not found in wallet DNA");
   }
 
-  // Remove the gene from sender's DNA
   const modifiedSenderDNA = mutateDelete(
     senderWalletDNA,
     extracted.startIdx,
     extracted.endIdx - extracted.startIdx,
   );
 
-  // Compute the nullifier
   const nullifier = computeNullifier(coinSerialHash, senderPrivateKeyDNA);
 
-  // Get sender's public key hash
   const senderResult = ribosome(senderWalletDNA);
 
-  // Build lineage record
   const transferRecord: TransferRecord = {
     from: senderResult.publicKeyHash,
     to: recipientPublicKeyHash ?? "any",
@@ -112,6 +105,8 @@ export function createMRNA(
     nullifierCommitment: sha256(nullifier),
     networkSignature,
     networkId,
+    networkGenome,
+    rflpFingerprint,
     miningProof,
     lineage: [...existingLineage, transferRecord],
     createdAt: Date.now(),
@@ -126,26 +121,23 @@ export function createMRNA(
 
 /**
  * Apply an mRNA payload to a recipient's wallet DNA.
- * Validates the mRNA structure before integrating.
+ * Validates structure AND network signature before integrating.
  */
 export function applyMRNA(
   recipientWalletDNA: string,
   mrna: mRNAPayload,
-  networkDNA?: string,
+  recipientNetworkGenome?: string,
 ): string {
-  // Validate mRNA structure
-  validateMRNA(mrna, networkDNA);
-
-  // Integrate the coin gene into the recipient's wallet DNA
+  validateMRNA(mrna, recipientNetworkGenome);
   return integrateCoinGene(recipientWalletDNA, mrna.coinGene);
 }
 
 /**
  * Validate an mRNA payload.
- * Checks structural validity — does NOT check for double-spend
- * (that requires the gossip network).
+ * Checks structural validity, mining proof, AND network signature.
+ * Throws on any failure.
  */
-export function validateMRNA(mrna: mRNAPayload, networkDNA?: string): void {
+export function validateMRNA(mrna: mRNAPayload, networkGenome?: string): void {
   if (mrna.type !== "transfer") {
     throw new Error("Invalid mRNA type");
   }
@@ -158,7 +150,6 @@ export function validateMRNA(mrna: mRNAPayload, networkDNA?: string): void {
     throw new Error("Invalid coin serial hash");
   }
 
-  // Verify the coin gene produces a valid protein
   const result = ribosome(mrna.coinGene);
   if (result.proteins.length === 0) {
     throw new Error("Coin gene does not produce a valid protein");
@@ -169,20 +160,17 @@ export function validateMRNA(mrna: mRNAPayload, networkDNA?: string): void {
     throw new Error("Coin gene does not have valid coin header");
   }
 
-  // Verify the serial hash matches
   const serial = getCoinSerial(protein);
   if (sha256(serial) !== mrna.coinSerialHash) {
     throw new Error("Coin serial hash mismatch");
   }
 
-  // Verify mining proof
   if (!verifyMiningProof(mrna.coinGene, mrna.miningProof.nonce, mrna.miningProof.difficulty)) {
-    // Allow for genes that were modified by network signing
-    // (network signature codons are appended before STOP)
+    throw new Error("Invalid mining proof — coin was not properly mined");
   }
 
-  // Verify network signature if network DNA is available
-  if (networkDNA) {
+  const genome = networkGenome || mrna.networkGenome;
+  if (genome && mrna.networkSignature) {
     const coin: SignedCoin = {
       coinGene: mrna.coinGene,
       serial,
@@ -190,12 +178,20 @@ export function validateMRNA(mrna: mRNAPayload, networkDNA?: string): void {
       miningProof: mrna.miningProof,
       networkSignature: mrna.networkSignature,
       networkId: mrna.networkId,
+      networkGenome: mrna.networkGenome,
       signedAt: mrna.createdAt,
     };
-    // Network verification is advisory for offline transfers
+    if (!verifyNetworkSignature(coin, genome)) {
+      throw new Error("Invalid network signature — coin is not from this network");
+    }
   }
 
-  // Validate lineage chain
+  if (mrna.rflpFingerprint) {
+    if (!verifyRFLPFingerprint(mrna.rflpFingerprint)) {
+      throw new Error("Invalid RFLP fingerprint — parentage marker DNA is inconsistent");
+    }
+  }
+
   if (mrna.lineage.length > 0) {
     for (let i = 1; i < mrna.lineage.length; i++) {
       const prev = mrna.lineage[i - 1];
@@ -209,7 +205,6 @@ export function validateMRNA(mrna: mRNAPayload, networkDNA?: string): void {
 
 /**
  * Serialize mRNA to a transferable format (JSON string).
- * This is the "file" that gets sent between users.
  */
 export function serializeMRNA(mrna: mRNAPayload): string {
   return JSON.stringify(mrna);
@@ -224,6 +219,50 @@ export function deserializeMRNA(data: string): mRNAPayload {
     throw new Error("Invalid mRNA data");
   }
   return parsed as mRNAPayload;
+}
+
+/* ── Bundle support (multi-coin transfers) ──────────────────────────── */
+
+export interface mRNABundle {
+  type: "bundle";
+  mrnas: mRNAPayload[];
+  createdAt: number;
+}
+
+export function serializeBundle(mrnas: mRNAPayload[]): string {
+  const bundle: mRNABundle = { type: "bundle", mrnas, createdAt: Date.now() };
+  return JSON.stringify(bundle);
+}
+
+/**
+ * Parse raw mRNA data that can be either a single mRNA or a bundle.
+ * Always returns an array of mRNAPayload.
+ */
+export function parseMRNAData(data: string): mRNAPayload[] {
+  const parsed = JSON.parse(data);
+  if (parsed.type === "bundle" && Array.isArray(parsed.mrnas)) {
+    return (parsed as mRNABundle).mrnas;
+  }
+  if (parsed.type === "transfer") {
+    return [parsed as mRNAPayload];
+  }
+  throw new Error("Invalid mRNA data: expected transfer or bundle");
+}
+
+/**
+ * Apply multiple mRNA payloads to a recipient wallet sequentially.
+ * Returns the final wallet DNA after all coins are integrated.
+ */
+export function applyMRNABundle(
+  recipientWalletDNA: string,
+  mrnas: mRNAPayload[],
+  recipientNetworkGenome?: string,
+): string {
+  let dna = recipientWalletDNA;
+  for (const mrna of mrnas) {
+    dna = applyMRNA(dna, mrna, recipientNetworkGenome);
+  }
+  return dna;
 }
 
 /**

@@ -1,12 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import {
   createMRNA, applyMRNA, validateMRNA, serializeMRNA, deserializeMRNA,
+  parseMRNAData,
   computeNullifier, createNullifierProof, viewWallet,
   type mRNAPayload, type TransferResult,
 } from "@zcoin/core";
 import { WalletService } from "../wallet/wallet.service";
 import { RegistryService } from "../registry/registry.service";
 import { NetworkService } from "../network/network.service";
+
+const TRANSFER_BURN_RATE = parseFloat(process.env.TRANSFER_BURN_RATE || "0.01");
 
 @Injectable()
 export class TransferService {
@@ -38,15 +41,19 @@ export class TransferService {
       recipientPublicKeyHash,
       networkSignature,
       this.network.getNetworkId(),
+      this.network.getNetworkGenome(),
       miningProof,
     );
 
-    // Update sender wallet
     this.walletService.updateDNA(senderWalletId, result.modifiedSenderDNA);
 
-    // Register nullifier
     const proof = createNullifierProof(coinSerialHash, senderPrivateKeyDNA);
     this.registry.registerNullifier(proof, "server");
+
+    if (TRANSFER_BURN_RATE > 0 && Math.random() < TRANSFER_BURN_RATE) {
+      this.network.incrementBurnedCoins(1);
+      console.log(`Transfer burn: 1 coin burned (deflationary pressure). Total burned: ${this.network.getBurnedCoins()}`);
+    }
 
     return {
       mrna: serializeMRNA(result.mrna),
@@ -64,9 +71,9 @@ export class TransferService {
       throw new Error("Coin already spent (double-spend detected)");
     }
 
-    validateMRNA(mrna, this.network.getNetworkDNA());
+    validateMRNA(mrna, this.network.getNetworkGenome());
 
-    const newDNA = applyMRNA(recipient.dna, mrna);
+    const newDNA = applyMRNA(recipient.dna, mrna, this.network.getNetworkGenome());
     this.walletService.updateDNA(recipientWalletId, newDNA);
 
     const view = viewWallet(newDNA);
@@ -78,10 +85,24 @@ export class TransferService {
     const spent = this.registry.isCoinSpent(mrna.coinSerialHash);
 
     try {
-      validateMRNA(mrna, this.network.getNetworkDNA());
+      validateMRNA(mrna, this.network.getNetworkGenome());
       return { valid: true, spent, details: { coinSerialHash: mrna.coinSerialHash, lineage: mrna.lineage } };
     } catch (e: any) {
       return { valid: false, spent, details: { error: e.message } };
     }
+  }
+
+  validateBundle(rawData: string): { results: { valid: boolean; spent: boolean; coinSerialHash?: string; error?: string }[] } {
+    const mrnas = parseMRNAData(rawData);
+    const results = mrnas.map((mrna) => {
+      const spent = this.registry.isCoinSpent(mrna.coinSerialHash);
+      try {
+        validateMRNA(mrna, this.network.getNetworkGenome());
+        return { valid: true, spent, coinSerialHash: mrna.coinSerialHash };
+      } catch (e: any) {
+        return { valid: false, spent, coinSerialHash: mrna.coinSerialHash, error: e.message };
+      }
+    });
+    return { results };
   }
 }

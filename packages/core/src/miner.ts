@@ -3,6 +3,13 @@ import {
 } from "./dna";
 import { ribosome, type Protein } from "./ribosome";
 import { COIN_GENE_HEADER, integrateCoinGene } from "./wallet";
+import { signWithDNA, verifyWithDNA } from "./ed25519-dna";
+import {
+  generateCoinRFLP, verifyRFLPFingerprint,
+  type RFLPFingerprint,
+} from "./rflp";
+
+export const DEFAULT_BODY_LENGTH = 180;
 
 export interface MiningResult {
   coinGene: string;
@@ -26,6 +33,8 @@ export interface SignedCoin {
   };
   networkSignature: string;
   networkId: string;
+  networkGenome: string;
+  rflpFingerprint?: RFLPFingerprint;
   signedAt: number;
 }
 
@@ -39,10 +48,9 @@ export interface SignedCoin {
  * 5. The nonce that satisfies difficulty is embedded into the coin body
  *    as additional codons, making the coin unique
  */
-export function mineCoin(difficulty: string = "000", bodyLength: number = 60): MiningResult {
+export function mineCoin(difficulty: string = "000", bodyLength: number = DEFAULT_BODY_LENGTH): MiningResult {
   const minedAt = Date.now();
 
-  // Generate random coin body codons (must be valid codons, not STOP)
   let coinBody = "";
   while (coinBody.length < bodyLength) {
     const codon = BASES[Math.floor(Math.random() * 4)]
@@ -53,20 +61,17 @@ export function mineCoin(difficulty: string = "000", bodyLength: number = 60): M
     }
   }
 
-  // Nonce search
   let nonce = 0;
   let hash = "";
   const basePayload = COIN_GENE_HEADER + coinBody;
 
   while (true) {
-    // Encode nonce as codons and append to body
     const nonceCodons = encodeNonceAsCodons(nonce);
-    const fullGene = basePayload + nonceCodons + "TAA"; // TAA = STOP
+    const fullGene = basePayload + nonceCodons + "TAA";
     const payload = fullGene + "|" + nonce;
     hash = sha256(payload);
 
     if (hash.startsWith(difficulty)) {
-      // Mine the final gene with the winning nonce embedded
       const coinGene = fullGene;
       const result = ribosome(coinGene);
       const protein = result.proteins[0];
@@ -101,7 +106,6 @@ function encodeNonceAsCodons(nonce: number): string {
   let codons = "";
   let n = nonce;
 
-  // Encode at least 2 codons (6 bases) for the nonce
   for (let i = 0; i < Math.max(2, Math.ceil(Math.log2(nonce + 2) / 6)); i++) {
     const val = n % 64;
     n = Math.floor(n / 64);
@@ -109,9 +113,8 @@ function encodeNonceAsCodons(nonce: number): string {
     const b1 = BASES[(val >> 2) & 3];
     const b2 = BASES[val & 3];
     const codon = b0 + b1 + b2;
-    // Skip if it would be a STOP or START codon
     if (STOP_CODONS.has(codon) || codon === "ATG") {
-      codons += "GCT"; // Ala — safe fallback
+      codons += "GCT";
     } else {
       codons += codon;
     }
@@ -131,7 +134,6 @@ export function verifyMiningProof(coinGene: string, nonce: number, difficulty: s
 
 /**
  * Verify a mining proof against a 64-char hex target (Bitcoin-style).
- * The hash must be lexicographically <= the target.
  */
 export function verifyMiningProofWithTarget(coinGene: string, nonce: number, target: string): boolean {
   const payload = coinGene + "|" + nonce;
@@ -141,7 +143,6 @@ export function verifyMiningProofWithTarget(coinGene: string, nonce: number, tar
 
 /**
  * Convert a number of leading hex zeros into a full 64-char target string.
- * e.g. 5 -> "00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
  */
 export function leadingZerosToTarget(zeros: number): string {
   const z = Math.max(0, Math.min(63, Math.floor(zeros)));
@@ -161,21 +162,28 @@ export function targetToPrefix(target: string): string {
 }
 
 /**
- * Sign a coin with network DNA.
+ * Sign a coin with the network's Ed25519 private key and generate RFLP proof.
  *
- * The network "signs" by combining network DNA with the coin to produce
- * a network-specific marker. Different networks produce different markers.
- * This marker is appended as additional codons to the coin gene.
+ * Two layers of verification:
+ * 1. Ed25519 signature (mathematical proof — 256-bit security)
+ * 2. RFLP fingerprint (biological proof — parentage marker DNA + gel bands)
+ *
+ * The coin gene is NEVER modified — mining proofs and protein serials stay
+ * intact. Instead, a separate "parentage marker DNA" is generated from the
+ * private key + coin serial. This marker DNA carries inherited restriction
+ * sites that prove the coin was signed by this network — like mitochondrial
+ * DNA inherited from the mother.
  */
 export function signCoinWithNetwork(
   miningResult: MiningResult,
-  networkDNA: string,
+  networkPrivateKeyDNA: string,
   networkId: string,
+  networkGenome: string,
 ): SignedCoin {
-  // Derive network signature: hash(coin serial + network DNA segment)
-  const networkSegment = networkDNA.slice(0, 300);
-  const signatureInput = miningResult.serialHash + "|" + networkSegment + "|" + networkId;
-  const networkSignature = sha256(signatureInput);
+  const signatureData = miningResult.serialHash + "|" + networkId;
+  const networkSignature = signWithDNA(signatureData, networkPrivateKeyDNA);
+
+  const rflpFingerprint = generateCoinRFLP(networkPrivateKeyDNA, miningResult.serialHash);
 
   return {
     coinGene: miningResult.coinGene,
@@ -188,27 +196,39 @@ export function signCoinWithNetwork(
     },
     networkSignature,
     networkId,
+    networkGenome,
+    rflpFingerprint,
     signedAt: Date.now(),
   };
 }
 
 /**
- * Verify a coin's network signature.
+ * Verify a coin's network signature using Ed25519.
+ * Works OFFLINE — only needs the network's public key DNA (genome),
+ * which every wallet carries since creation.
  */
 export function verifyNetworkSignature(
   coin: SignedCoin,
-  networkDNA: string,
+  networkGenome?: string,
 ): boolean {
-  const networkSegment = networkDNA.slice(0, 300);
-  const signatureInput = coin.serialHash + "|" + networkSegment + "|" + coin.networkId;
-  const expected = sha256(signatureInput);
-  return expected === coin.networkSignature;
+  const genome = networkGenome || coin.networkGenome;
+  if (!genome || !coin.networkSignature) return false;
+  const signatureData = coin.serialHash + "|" + coin.networkId;
+  return verifyWithDNA(signatureData, coin.networkSignature, genome);
+}
+
+/**
+ * Verify a coin's RFLP fingerprint — the biological parentage test.
+ * Re-digests the stored marker DNA and confirms the fragment pattern matches.
+ * Returns true if the coin has a valid, consistent RFLP fingerprint.
+ */
+export function verifyCoinRFLP(coin: SignedCoin): boolean {
+  if (!coin.rflpFingerprint) return false;
+  return verifyRFLPFingerprint(coin.rflpFingerprint);
 }
 
 /**
  * Integrate a signed coin into a wallet's DNA.
- * The coin gene is inserted as-is; the network signature is metadata
- * stored alongside, not embedded in the gene itself.
  */
 export function integrateCoinIntoWallet(walletDNA: string, coin: SignedCoin): string {
   return integrateCoinGene(walletDNA, coin.coinGene);

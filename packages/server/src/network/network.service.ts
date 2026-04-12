@@ -1,7 +1,11 @@
 import { Injectable, OnModuleInit, Inject, forwardRef } from "@nestjs/common";
 import {
-  generateDNA, sha256, integrateCoinIntoWallet,
+  generateDNA, sha256, integrateCoinGene,
   leadingZerosToTarget, targetToPrefix,
+  ribosome, analyzeProtein, isCoinProtein, getCoinSerial,
+  generateNetworkKeyPair, derivePublicKeyDNA,
+  DEFAULT_BODY_LENGTH,
+  generateNetworkFingerprint, generateCoinRFLP, type RFLPFingerprint,
 } from "@zcoin/core";
 import * as fs from "fs";
 import * as path from "path";
@@ -10,26 +14,48 @@ const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const NETWORK_FILE = path.join(DATA_DIR, "network.json");
 
 const INITIAL_LEADING_ZEROS = parseInt(process.env.INITIAL_DIFFICULTY_ZEROS || "5", 10);
-const ADJUSTMENT_INTERVAL = parseInt(process.env.DIFFICULTY_ADJUSTMENT_INTERVAL || "10", 10);
+const ADJUSTMENT_INTERVAL = parseInt(process.env.DIFFICULTY_ADJUSTMENT_INTERVAL || "2016", 10);
 const TARGET_BLOCK_TIME_MS = parseInt(process.env.TARGET_BLOCK_TIME_MS || "60000", 10);
-const MAX_ADJUSTMENT_FACTOR = 4;
+const MAX_ADJUSTMENT_FACTOR = 2;
+
+const MAX_SUPPLY = 21_000_000;
+const HALVING_INTERVAL = 210_000;
+const INITIAL_REWARD = 50;
+const TELOMERE_REPEAT = "TTAGGG";
+const TELOMERE_INITIAL_REPEATS = MAX_SUPPLY;
+
+const ERA_NAMES = [
+  "Genesis", "Growth", "Expansion", "Maturity", "Stability",
+  "Consolidation", "Scarcity", "Twilight", "Final", "Senescence",
+];
 
 @Injectable()
 export class NetworkService implements OnModuleInit {
   private networkDNA: string;
   private networkId: string;
   private networkWalletDNA: string;
+  private networkPrivateKeyDNA: string;
+  private networkGenome: string;
   private feeCoinCount = 0;
   private signedCoinCount = 0;
+  private burnedCoins = 0;
+  private totalMinedCoins = 0;
+
+  private signedSerialHashes = new Set<string>();
 
   private difficultyTarget: string;
   private epochStartTime: number;
   private epochSubmissions: number;
   private totalSubmissions: number;
 
+  private telomereRepeats: number;
+
   private walletService: any;
   private gossipService: any;
   private registryService: any;
+
+  private activeMiners = new Map<string, number>();
+  private readonly MINER_WINDOW_MS = 10 * 60 * 1000;
 
   onModuleInit() {
     if (!fs.existsSync(DATA_DIR)) {
@@ -43,22 +69,50 @@ export class NetworkService implements OnModuleInit {
       this.networkWalletDNA = data.networkWalletDNA || data.networkDNA;
       this.feeCoinCount = data.feeCoinCount || 0;
       this.signedCoinCount = data.signedCoinCount || 0;
+      this.burnedCoins = data.burnedCoins || 0;
+      this.totalMinedCoins = data.totalMinedCoins || (this.feeCoinCount + this.signedCoinCount);
       this.difficultyTarget = data.difficultyTarget || leadingZerosToTarget(INITIAL_LEADING_ZEROS);
       this.epochStartTime = data.epochStartTime || Date.now();
       this.epochSubmissions = data.epochSubmissions || 0;
       this.totalSubmissions = data.totalSubmissions || 0;
-      console.log(`Network loaded: ${this.networkId} (difficulty: ${this.getDifficultyPrefix()}, submissions: ${this.totalSubmissions})`);
+      this.telomereRepeats = data.telomereRepeats ?? TELOMERE_INITIAL_REPEATS;
+
+      if (data.networkPrivateKeyDNA && data.networkGenome) {
+        this.networkPrivateKeyDNA = data.networkPrivateKeyDNA;
+        this.networkGenome = data.networkGenome;
+      } else {
+        const keyPair = generateNetworkKeyPair();
+        this.networkPrivateKeyDNA = keyPair.privateKeyDNA;
+        this.networkGenome = keyPair.publicKeyDNA;
+        this.networkId = "zcoin-" + sha256(this.networkGenome).slice(0, 12);
+        this.persist();
+        console.log(`Network upgraded with Ed25519 keypair: ${this.networkId}`);
+      }
+
+      if (data.signedSerialHashes) {
+        this.signedSerialHashes = new Set(data.signedSerialHashes);
+      }
+
+      console.log(`Network loaded: ${this.networkId} (difficulty: ${this.getDifficultyPrefix()}, submissions: ${this.totalSubmissions}, signed: ${this.signedSerialHashes.size})`);
     } else {
       this.networkDNA = generateDNA(6000);
-      this.networkId = "zcoin-" + sha256(this.networkDNA).slice(0, 12);
       this.networkWalletDNA = generateDNA(6000);
+
+      const keyPair = generateNetworkKeyPair();
+      this.networkPrivateKeyDNA = keyPair.privateKeyDNA;
+      this.networkGenome = keyPair.publicKeyDNA;
+      this.networkId = "zcoin-" + sha256(this.networkGenome).slice(0, 12);
+
       this.signedCoinCount = 0;
+      this.burnedCoins = 0;
+      this.totalMinedCoins = 0;
+      this.telomereRepeats = TELOMERE_INITIAL_REPEATS;
       this.difficultyTarget = leadingZerosToTarget(INITIAL_LEADING_ZEROS);
       this.epochStartTime = Date.now();
       this.epochSubmissions = 0;
       this.totalSubmissions = 0;
       this.persist();
-      console.log(`Network created: ${this.networkId} (difficulty: ${this.getDifficultyPrefix()})`);
+      console.log(`Network created: ${this.networkId} (difficulty: ${this.getDifficultyPrefix()}, supply cap: ${MAX_SUPPLY.toLocaleString()}, reward: ${INITIAL_REWARD})`);
     }
   }
 
@@ -67,8 +121,14 @@ export class NetworkService implements OnModuleInit {
       networkDNA: this.networkDNA,
       networkId: this.networkId,
       networkWalletDNA: this.networkWalletDNA,
+      networkPrivateKeyDNA: this.networkPrivateKeyDNA,
+      networkGenome: this.networkGenome,
       feeCoinCount: this.feeCoinCount,
       signedCoinCount: this.signedCoinCount,
+      burnedCoins: this.burnedCoins,
+      totalMinedCoins: this.totalMinedCoins,
+      telomereRepeats: this.telomereRepeats,
+      signedSerialHashes: Array.from(this.signedSerialHashes),
       difficultyTarget: this.difficultyTarget,
       epochStartTime: this.epochStartTime,
       epochSubmissions: this.epochSubmissions,
@@ -82,8 +142,6 @@ export class NetworkService implements OnModuleInit {
 
   /**
    * Bitcoin-style difficulty adjustment.
-   * Every ADJUSTMENT_INTERVAL submissions, compare actual elapsed time
-   * against expected time and adjust the target proportionally, capped at 4x.
    */
   recordSubmission(): { adjusted: boolean; oldPrefix?: string; newPrefix?: string } {
     this.epochSubmissions++;
@@ -125,6 +183,14 @@ export class NetworkService implements OnModuleInit {
     return { adjusted: true, oldPrefix, newPrefix };
   }
 
+  isSerialAlreadySigned(serialHash: string): boolean {
+    return this.signedSerialHashes.has(serialHash);
+  }
+
+  registerSignedSerial(serialHash: string): void {
+    this.signedSerialHashes.add(serialHash);
+  }
+
   getDifficultyTarget(): string {
     return this.difficultyTarget;
   }
@@ -137,16 +203,108 @@ export class NetworkService implements OnModuleInit {
     return this.totalSubmissions;
   }
 
-  incrementSignedCoins(): void {
-    this.signedCoinCount++;
+  incrementSignedCoins(count: number = 1): void {
+    this.signedCoinCount += count;
+  }
+
+  integrateCoinIntoNetworkDNA(coinGene: string): void {
+    this.networkDNA = integrateCoinGene(this.networkDNA, coinGene);
+    this.persist();
   }
 
   getSignedCoinCount(): number {
     return this.signedCoinCount;
   }
 
+  getNetworkPrivateKeyDNA(): string {
+    return this.networkPrivateKeyDNA;
+  }
+
+  getNetworkGenome(): string {
+    return this.networkGenome;
+  }
+
+  recordMinerActivity(minerId: string): void {
+    this.activeMiners.set(minerId, Date.now());
+  }
+
+  getActiveMinerCount(): number {
+    const cutoff = Date.now() - this.MINER_WINDOW_MS;
+    let count = 0;
+    for (const [id, ts] of this.activeMiners) {
+      if (ts >= cutoff) {
+        count++;
+      } else {
+        this.activeMiners.delete(id);
+      }
+    }
+    return count;
+  }
+
   getEpochProgress(): { current: number; interval: number } {
     return { current: this.epochSubmissions, interval: ADJUSTMENT_INTERVAL };
+  }
+
+  getHalvingEra(): number {
+    return Math.floor(this.totalSubmissions / HALVING_INTERVAL);
+  }
+
+  getCurrentBlockReward(): number {
+    const era = this.getHalvingEra();
+    const reward = Math.floor(INITIAL_REWARD / Math.pow(2, era));
+    return Math.max(reward, 1);
+  }
+
+  getCoinsUntilHalving(): number {
+    return HALVING_INTERVAL - (this.totalSubmissions % HALVING_INTERVAL);
+  }
+
+  getHalvingEraName(): string {
+    const era = this.getHalvingEra();
+    return ERA_NAMES[Math.min(era, ERA_NAMES.length - 1)];
+  }
+
+  getTelomereRepeats(): number {
+    return this.telomereRepeats;
+  }
+
+  getTelomerePercent(): number {
+    return Math.round((this.telomereRepeats / TELOMERE_INITIAL_REPEATS) * 10000) / 100;
+  }
+
+  getMaxSupply(): number {
+    return MAX_SUPPLY;
+  }
+
+  getCirculatingSupply(): number {
+    return this.totalMinedCoins - this.burnedCoins;
+  }
+
+  getBurnedCoins(): number {
+    return this.burnedCoins;
+  }
+
+  isSupplyExhausted(): boolean {
+    return this.totalMinedCoins >= MAX_SUPPLY;
+  }
+
+  /**
+   * Mint N coins for a single PoW submission (block reward).
+   * Returns the number of coins actually minted (may be less if hitting cap).
+   */
+  consumeTelomere(coinsToMint: number): number {
+    const remainingSupply = MAX_SUPPLY - this.totalMinedCoins;
+    const actual = Math.min(coinsToMint, remainingSupply, this.telomereRepeats);
+    if (actual <= 0) return 0;
+
+    this.telomereRepeats -= actual;
+    this.totalMinedCoins += actual;
+    return actual;
+  }
+
+  incrementBurnedCoins(count: number = 1): void {
+    this.burnedCoins += count;
+    this.persist();
   }
 
   setServices(wallet: any, gossip: any, registry: any) {
@@ -155,12 +313,42 @@ export class NetworkService implements OnModuleInit {
     this.registryService = registry;
   }
 
-  mintNetworkFeeCoin(miningService: any): void {
-    const coin = miningService.mineAndSign();
-    this.networkWalletDNA = integrateCoinIntoWallet(this.networkWalletDNA, coin);
+  mintNetworkFeeCoin(_miningService?: any): void {
+    const feeGene = this.generateFeeCoinGene();
+    this.networkWalletDNA = integrateCoinGene(this.networkWalletDNA, feeGene);
+    this.networkDNA = integrateCoinGene(this.networkDNA, feeGene);
     this.feeCoinCount++;
     this.persist();
     console.log(`Network fee coin minted (#${this.feeCoinCount})`);
+  }
+
+  private generateFeeCoinGene(): string {
+    const COIN_HEADER = "ATGGGGTGGTGC";
+    const BASES_ARR = ["T", "A", "C", "G"];
+    const STOP = new Set(["TAA", "TAG", "TGA"]);
+    let body = "";
+    const bodyLen = DEFAULT_BODY_LENGTH;
+    while (body.length < bodyLen) {
+      const c = BASES_ARR[Math.floor(Math.random() * 4)]
+        + BASES_ARR[Math.floor(Math.random() * 4)]
+        + BASES_ARR[Math.floor(Math.random() * 4)];
+      if (!STOP.has(c) && c !== "ATG") body += c;
+    }
+    const stamp = sha256(this.networkId + "|fee|" + Date.now() + "|" + this.feeCoinCount);
+    let nonceCodons = "";
+    for (let i = 0; i < 6; i++) {
+      const val = parseInt(stamp.slice(i * 2, i * 2 + 2), 16) % 64;
+      const b0 = BASES_ARR[(val >> 4) & 3];
+      const b1 = BASES_ARR[(val >> 2) & 3];
+      const b2 = BASES_ARR[val & 3];
+      const cod = b0 + b1 + b2;
+      nonceCodons += (STOP.has(cod) || cod === "ATG") ? "GCT" : cod;
+    }
+    return COIN_HEADER + body + nonceCodons + "TAA";
+  }
+
+  getNetworkRFLPFingerprint(): RFLPFingerprint {
+    return generateNetworkFingerprint(this.networkDNA);
   }
 
   getNetworkDNA(): string {
@@ -176,29 +364,74 @@ export class NetworkService implements OnModuleInit {
       networkId: this.networkId,
       dnaLength: this.networkDNA.length,
       dnaHash: sha256(this.networkDNA),
+      networkGenome: this.networkGenome,
+    };
+  }
+
+  getDnaAnalysis() {
+    const result = ribosome(this.networkDNA);
+    const coins: {
+      index: number;
+      serial: string;
+      serialHash: string;
+      aminoAcids: string[];
+      length: number;
+      rflpFragments: number[];
+      rflpMarkerCount: number;
+    }[] = [];
+    const structuralProteins: {
+      index: number;
+      aminoAcids: string[];
+      length: number;
+      role: string;
+      charge: number;
+      polarity: number;
+      hydrophobicity: number;
+    }[] = [];
+
+    for (const p of result.proteins) {
+      if (isCoinProtein(p)) {
+        const serial = getCoinSerial(p);
+        const serialHash = sha256(serial);
+        const rflp = generateCoinRFLP(this.networkPrivateKeyDNA, serialHash);
+        coins.push({
+          index: p.index,
+          serial,
+          serialHash,
+          aminoAcids: p.aminoAcids,
+          length: p.length,
+          rflpFragments: rflp.fragments,
+          rflpMarkerCount: rflp.markerCount,
+        });
+      } else {
+        const analysis = analyzeProtein(p);
+        structuralProteins.push({
+          index: p.index,
+          aminoAcids: p.aminoAcids,
+          length: p.length,
+          role: analysis.dominantRole,
+          charge: analysis.charge,
+          polarity: Math.round(analysis.polarity * 100) / 100,
+          hydrophobicity: Math.round(analysis.hydrophobicity * 100) / 100,
+        });
+      }
+    }
+
+    return {
+      dna: this.networkDNA,
+      dnaLength: this.networkDNA.length,
+      dnaHash: sha256(this.networkDNA),
+      totalProteins: result.proteins.length,
+      totalCoins: coins.length,
+      totalStructural: structuralProteins.length,
+      intergenicRegions: result.intergenicRegions.length,
+      publicKeyHash: result.publicKeyHash,
+      coins,
+      structuralProteins,
     };
   }
 
   getStats() {
-    const WALLETS_DIR = path.join(DATA_DIR, "wallets");
-    let totalWallets = 0;
-    let totalCoins = 0;
-
-    if (fs.existsSync(WALLETS_DIR)) {
-      const files = fs.readdirSync(WALLETS_DIR).filter((f) => f.endsWith(".json"));
-      totalWallets = files.length;
-      for (const file of files) {
-        try {
-          const w = JSON.parse(fs.readFileSync(path.join(WALLETS_DIR, file), "utf-8"));
-          const matches = (w.dna as string).match(/ATGGGGTGGTGC/g);
-          if (matches) totalCoins += matches.length;
-        } catch {}
-      }
-    }
-
-    totalCoins += this.feeCoinCount + this.signedCoinCount;
-
-    let peers = 0;
     let nullifiers = 0;
     try {
       const REGISTRY_FILE = path.join(DATA_DIR, "nullifiers.json");
@@ -212,18 +445,28 @@ export class NetworkService implements OnModuleInit {
 
     return {
       networkId: this.networkId,
+      networkGenome: this.networkGenome,
       dnaLength: this.networkDNA.length,
       dnaHash: sha256(this.networkDNA),
       difficulty: this.getDifficultyPrefix(),
       difficultyTarget: this.difficultyTarget,
-      totalWallets,
-      totalCoins,
+      totalWallets: this.getActiveMinerCount(),
+      totalCoins: this.totalMinedCoins,
       totalSubmissions: this.totalSubmissions,
       epochProgress: `${epoch.current}/${epoch.interval}`,
       nextAdjustmentIn: epoch.interval - epoch.current,
-      peers,
+      peers: this.getActiveMinerCount(),
       nullifiers,
       feeCoinCount: this.feeCoinCount,
+      maxSupply: MAX_SUPPLY,
+      currentReward: this.getCurrentBlockReward(),
+      halvingEra: this.getHalvingEra(),
+      halvingEraName: this.getHalvingEraName(),
+      coinsUntilHalving: this.getCoinsUntilHalving(),
+      telomereLength: this.telomereRepeats,
+      telomerePercent: this.getTelomerePercent(),
+      circulatingSupply: this.getCirculatingSupply(),
+      burnedCoins: this.burnedCoins,
     };
   }
 }

@@ -39,6 +39,20 @@ export class RegistryService implements OnModuleInit {
     return this.registry.isCoinSpent(coinSerialHash);
   }
 
+  markCoinSpent(coinSerialHash: string, sourceNode: string): boolean {
+    if (this.registry.isCoinSpent(coinSerialHash)) return false;
+    const syntheticNullifier = "spent:" + coinSerialHash;
+    const proof = {
+      nullifier: syntheticNullifier,
+      coinSerialHash,
+      commitment: syntheticNullifier,
+      timestamp: Date.now(),
+    };
+    this.registry.registerDirect(proof, sourceNode);
+    this.persist();
+    return true;
+  }
+
   getAllNullifiers(): NullifierProof[] {
     return this.registry.getAllNullifiers();
   }
