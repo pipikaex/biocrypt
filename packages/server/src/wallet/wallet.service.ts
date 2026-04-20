@@ -3,7 +3,7 @@ import {
   createWallet, viewWallet, proveOwnership, verifyOwnership,
   encodeWalletToPixels, decodeWalletFromPixels,
   sha256, type Wallet, type WalletView, type WalletPNGPayload,
-} from "@zcoin/core";
+} from "@biocrypt/core";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -16,6 +16,22 @@ interface StoredWallet {
   publicKeyHash: string;
   ownershipProofHash: string;
   createdAt: number;
+}
+
+function atomicWrite(filePath: string, data: string): void {
+  const tmp = filePath + ".tmp";
+  fs.writeFileSync(tmp, data);
+  fs.renameSync(tmp, filePath);
+}
+
+function safeReadJSON<T>(filePath: string): T | null {
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  } catch (e) {
+    console.error(`Failed to parse ${filePath}:`, e);
+    return null;
+  }
 }
 
 @Injectable()
@@ -38,7 +54,7 @@ export class WalletService {
       createdAt: w.createdAt,
     };
 
-    fs.writeFileSync(
+    atomicWrite(
       path.join(WALLETS_DIR, `${id}.json`),
       JSON.stringify(stored),
     );
@@ -48,15 +64,14 @@ export class WalletService {
 
   getById(id: string): StoredWallet | null {
     const file = path.join(WALLETS_DIR, `${id}.json`);
-    if (!fs.existsSync(file)) return null;
-    return JSON.parse(fs.readFileSync(file, "utf-8"));
+    return safeReadJSON<StoredWallet>(file);
   }
 
   updateDNA(id: string, newDNA: string): void {
     const wallet = this.getById(id);
     if (!wallet) throw new Error("Wallet not found");
     wallet.dna = newDNA;
-    fs.writeFileSync(
+    atomicWrite(
       path.join(WALLETS_DIR, `${id}.json`),
       JSON.stringify(wallet),
     );
@@ -98,7 +113,7 @@ export class WalletService {
       createdAt: payload.createdAt,
     };
 
-    fs.writeFileSync(
+    atomicWrite(
       path.join(WALLETS_DIR, `${id}.json`),
       JSON.stringify(stored),
     );
@@ -110,6 +125,7 @@ export class WalletService {
     if (!fs.existsSync(WALLETS_DIR)) return [];
     return fs.readdirSync(WALLETS_DIR)
       .filter((f) => f.endsWith(".json"))
-      .map((f) => JSON.parse(fs.readFileSync(path.join(WALLETS_DIR, f), "utf-8")));
+      .map((f) => safeReadJSON<StoredWallet>(path.join(WALLETS_DIR, f)))
+      .filter((w): w is StoredWallet => w !== null);
   }
 }

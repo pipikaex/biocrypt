@@ -1,10 +1,11 @@
-import { sha256, BASES, STOP_CODONS, DEFAULT_BODY_LENGTH } from "@zcoin/core";
+import { sha256, BASES, STOP_CODONS, DEFAULT_BODY_LENGTH } from "@biocrypt/core";
 
 interface StartMsg {
   type: "start";
   target: string;
   difficulty: string;
   bodyLength?: number;
+  blockReward?: number;
 }
 
 interface StopMsg {
@@ -15,6 +16,7 @@ interface UpdateTargetMsg {
   type: "updateTarget";
   target: string;
   difficulty: string;
+  blockReward?: number;
 }
 
 type InMsg = StartMsg | StopMsg | UpdateTargetMsg;
@@ -22,6 +24,73 @@ type InMsg = StartMsg | StopMsg | UpdateTargetMsg;
 let running = false;
 let currentTarget = "";
 let currentDifficulty = "";
+let currentBlockReward = 1;
+
+/* ─── Merkle root encoding as DNA ─── */
+
+const HEX_CODONS: Record<string, string> = {
+  "0": "TTT", "1": "TTC", "2": "TTA", "3": "TTG",
+  "4": "TAT", "5": "TAC", "6": "TCT", "7": "TCC",
+  "8": "TCA", "9": "TCG", "a": "TGT", "b": "TGC",
+  "c": "TGG", "d": "CTT", "e": "CTC", "f": "CTG",
+};
+
+const MERKLE_MARKER = "CGACGCCGA";
+
+function encodeMerkleRootAsDNA(root: string): string {
+  let dna = MERKLE_MARKER;
+  for (const ch of root.toLowerCase()) {
+    dna += HEX_CODONS[ch] || "TTT";
+  }
+  return dna;
+}
+
+function merkleRootFromLeaves(leaves: string[]): string {
+  if (leaves.length === 0) return sha256("");
+  let layer = leaves.map((l) => sha256("L:" + l));
+  while (layer.length > 1) {
+    const next: string[] = [];
+    for (let i = 0; i < layer.length; i += 2) {
+      const left = layer[i];
+      const right = i + 1 < layer.length ? layer[i + 1] : left;
+      next.push(sha256("N:" + left + right));
+    }
+    layer = next;
+  }
+  return layer[0];
+}
+
+function merkleProofFor(
+  leaves: string[],
+  index: number,
+): Array<{ hash: string; position: "left" | "right" }> {
+  if (leaves.length <= 1) return [];
+  const proof: Array<{ hash: string; position: "left" | "right" }> = [];
+  let layer = leaves.map((l) => sha256("L:" + l));
+  let idx = index;
+  while (layer.length > 1) {
+    const next: string[] = [];
+    for (let i = 0; i < layer.length; i += 2) {
+      const left = layer[i];
+      const right = i + 1 < layer.length ? layer[i + 1] : left;
+      next.push(sha256("N:" + left + right));
+      if (i === idx || i + 1 === idx) {
+        if (idx % 2 === 0) {
+          proof.push({ hash: i + 1 < layer.length ? layer[i + 1] : layer[i], position: "right" });
+        } else {
+          proof.push({ hash: layer[i], position: "left" });
+        }
+      }
+    }
+    layer = next;
+    idx = Math.floor(idx / 2);
+  }
+  return proof;
+}
+
+/* ─── Coin gene helpers ─── */
+
+const COIN_GENE_HEADER = "ATGGGGTGGTGC";
 
 function encodeNonceAsCodons(nonce: number): string {
   let codons = "";
@@ -43,7 +112,6 @@ function encodeNonceAsCodons(nonce: number): string {
 }
 
 function generateCoinBody(bodyLength: number): string {
-  const COIN_GENE_HEADER = "ATGGGGTGGTGC";
   let coinBody = "";
   while (coinBody.length < bodyLength) {
     const codon =
@@ -54,63 +122,7 @@ function generateCoinBody(bodyLength: number): string {
       coinBody += codon;
     }
   }
-  return COIN_GENE_HEADER + coinBody;
-}
-
-function mineLoop(target: string, difficulty: string, bodyLength: number) {
-  running = true;
-  currentTarget = target;
-  currentDifficulty = difficulty;
-
-  let lastReport = performance.now();
-  let hashCount = 0;
-  let totalNonce = 0;
-
-  while (running) {
-    const basePayload = generateCoinBody(bodyLength);
-    let nonce = 0;
-
-    while (running) {
-      const nonceCodons = encodeNonceAsCodons(nonce);
-      const fullGene = basePayload + nonceCodons + "TAA";
-      const payload = fullGene + "|" + nonce;
-      const hash = sha256(payload);
-      hashCount++;
-      totalNonce++;
-
-      if (hash <= currentTarget) {
-        const extracted = extractSerial(fullGene);
-        if (extracted) {
-          self.postMessage({
-            type: "result",
-            coinGene: fullGene,
-            serial: extracted.serial,
-            serialHash: sha256(extracted.serial),
-            aminoAcids: extracted.aminoAcids,
-            nonce,
-            hash,
-            difficulty: currentDifficulty,
-            minedAt: Date.now(),
-          });
-          break;
-        }
-      }
-
-      nonce++;
-
-      const now = performance.now();
-      if (now - lastReport >= 500) {
-        const elapsed = (now - lastReport) / 1000;
-        self.postMessage({
-          type: "progress",
-          hashrate: Math.round(hashCount / elapsed),
-          nonce: totalNonce,
-        });
-        hashCount = 0;
-        lastReport = now;
-      }
-    }
-  }
+  return coinBody;
 }
 
 function extractSerial(coinGene: string): { serial: string; aminoAcids: string[] } | null {
@@ -152,14 +164,159 @@ function extractSerial(coinGene: string): { serial: string; aminoAcids: string[]
   return { serial: acids.slice(4).join("-"), aminoAcids: acids };
 }
 
+/* ─── Mining loop ─── */
+
+function mineLoop(target: string, difficulty: string, bodyLength: number) {
+  running = true;
+  currentTarget = target;
+  currentDifficulty = difficulty;
+
+  let lastReport = performance.now();
+  let hashCount = 0;
+  let totalNonce = 0;
+
+  while (running) {
+    const reward = currentBlockReward;
+
+    if (reward <= 1) {
+      // Single coin — no Merkle needed (legacy path, slightly faster)
+      const basePayload = COIN_GENE_HEADER + generateCoinBody(bodyLength);
+      let nonce = 0;
+
+      while (running) {
+        const nonceCodons = encodeNonceAsCodons(nonce);
+        const fullGene = basePayload + nonceCodons + "TAA";
+        const payload = fullGene + "|" + nonce;
+        const hash = sha256(payload);
+        hashCount++;
+        totalNonce++;
+
+        if (hash <= currentTarget) {
+          const extracted = extractSerial(fullGene);
+          if (extracted) {
+            self.postMessage({
+              type: "result",
+              coinGene: fullGene,
+              serial: extracted.serial,
+              serialHash: sha256(extracted.serial),
+              aminoAcids: extracted.aminoAcids,
+              nonce,
+              hash,
+              difficulty: currentDifficulty,
+              minedAt: Date.now(),
+              bonusCoinGenes: [],
+            });
+            break;
+          }
+        }
+
+        nonce++;
+        reportProgress(hashCount, totalNonce, lastReport);
+        if (hashCount === 0) lastReport = performance.now();
+      }
+    } else {
+      // Multi-coin block with Merkle root
+      const bonusBodies: string[] = [];
+      const bonusGenes: string[] = [];
+      for (let i = 0; i < reward - 1; i++) {
+        const body = generateCoinBody(bodyLength);
+        bonusBodies.push(body);
+        bonusGenes.push(COIN_GENE_HEADER + body + "TAA");
+      }
+
+      const primaryBody = generateCoinBody(bodyLength);
+
+      // Compute Merkle leaves: primary placeholder (will be recomputed) + bonus genes
+      // We need the Merkle root BEFORE completing the primary gene,
+      // but the primary gene includes the Merkle root — circular dependency.
+      // Solution: primary leaf = sha256(HEADER + body + merkleRootDNA + nonce + TAA)
+      // But Merkle root depends on primary leaf...
+      //
+      // Resolution: primary leaf in the tree is sha256 of the PRIMARY BODY (not full gene).
+      // This uniquely commits to the primary coin's random data.
+      // Bonus leaves = sha256 of their full genes.
+      const primaryLeaf = sha256(COIN_GENE_HEADER + primaryBody);
+      const allLeaves = [primaryLeaf, ...bonusGenes.map((g) => sha256(g))];
+      const root = merkleRootFromLeaves(allLeaves);
+      const merkleRootDNA = encodeMerkleRootAsDNA(root);
+
+      const basePayload = COIN_GENE_HEADER + primaryBody + merkleRootDNA;
+      let nonce = 0;
+
+      while (running) {
+        const nonceCodons = encodeNonceAsCodons(nonce);
+        const fullGene = basePayload + nonceCodons + "TAA";
+        const payload = fullGene + "|" + nonce;
+        const hash = sha256(payload);
+        hashCount++;
+        totalNonce++;
+
+        if (hash <= currentTarget) {
+          const extracted = extractSerial(fullGene);
+          if (extracted) {
+            // Build Merkle proofs for each bonus coin
+            const bonusWithProofs = bonusGenes.map((gene, idx) => ({
+              coinGene: gene,
+              merkleProof: merkleProofFor(allLeaves, idx + 1),
+            }));
+
+            self.postMessage({
+              type: "result",
+              coinGene: fullGene,
+              serial: extracted.serial,
+              serialHash: sha256(extracted.serial),
+              aminoAcids: extracted.aminoAcids,
+              nonce,
+              hash,
+              difficulty: currentDifficulty,
+              minedAt: Date.now(),
+              bonusCoinGenes: bonusWithProofs,
+            });
+            break;
+          }
+        }
+
+        nonce++;
+        const now = performance.now();
+        if (now - lastReport >= 500) {
+          const elapsed = (now - lastReport) / 1000;
+          self.postMessage({
+            type: "progress",
+            hashrate: Math.round(hashCount / elapsed),
+            nonce: totalNonce,
+          });
+          hashCount = 0;
+          lastReport = now;
+        }
+      }
+    }
+  }
+
+  function reportProgress(hc: number, _tn: number, lr: number) {
+    const now = performance.now();
+    if (now - lr >= 500) {
+      const elapsed = (now - lr) / 1000;
+      self.postMessage({
+        type: "progress",
+        hashrate: Math.round(hc / elapsed),
+        nonce: totalNonce,
+      });
+      hashCount = 0;
+      lastReport = now;
+    }
+  }
+}
+
 self.onmessage = (e: MessageEvent<InMsg>) => {
   const msg = e.data;
   if (msg.type === "start") {
+    currentBlockReward = msg.blockReward ?? 1;
     mineLoop(msg.target, msg.difficulty, msg.bodyLength ?? DEFAULT_BODY_LENGTH);
   } else if (msg.type === "stop") {
     running = false;
   } else if (msg.type === "updateTarget") {
     currentTarget = msg.target;
     currentDifficulty = msg.difficulty;
+    if (msg.blockReward !== undefined) currentBlockReward = msg.blockReward;
   }
 };

@@ -8,6 +8,11 @@ import {
   generateCoinRFLP, verifyRFLPFingerprint,
   type RFLPFingerprint,
 } from "./rflp";
+import {
+  merkleRoot, merkleProof, verifyMerkleProof,
+  encodeMerkleRootAsDNA, decodeMerkleRootFromDNA,
+  type MerkleProofStep,
+} from "./merkle";
 
 export const DEFAULT_BODY_LENGTH = 180;
 
@@ -99,10 +104,41 @@ export function mineCoin(difficulty: string = "000", bodyLength: number = DEFAUL
 }
 
 /**
+ * Generate a random coin body (without header/stop) for use in Merkle block mining.
+ */
+export function generateCoinBody(bodyLength: number = DEFAULT_BODY_LENGTH): string {
+  let coinBody = "";
+  while (coinBody.length < bodyLength) {
+    const codon = BASES[Math.floor(Math.random() * 4)]
+               + BASES[Math.floor(Math.random() * 4)]
+               + BASES[Math.floor(Math.random() * 4)];
+    if (!STOP_CODONS.has(codon) && codon !== "ATG") {
+      coinBody += codon;
+    }
+  }
+  return coinBody;
+}
+
+/**
+ * Assemble a bonus coin gene from a body (no Merkle root, just header + body + stop).
+ */
+export function assembleBonusCoinGene(body: string): string {
+  return COIN_GENE_HEADER + body + "TAA";
+}
+
+/**
+ * Assemble the primary coin gene base (header + body + Merkle root DNA).
+ * The nonce codons and TAA stop are appended during PoW search.
+ */
+export function assemblePrimaryCoinBase(body: string, merkleRootHex: string): string {
+  return COIN_GENE_HEADER + body + encodeMerkleRootAsDNA(merkleRootHex);
+}
+
+/**
  * Encode a nonce as valid DNA codons (non-STOP, non-START).
  * Each 12 bits of the nonce encodes as one codon (4^3 = 64 possibilities).
  */
-function encodeNonceAsCodons(nonce: number): string {
+export function encodeNonceAsCodons(nonce: number): string {
   let codons = "";
   let n = nonce;
 

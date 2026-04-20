@@ -48,7 +48,7 @@ export function HowItWorks() {
         <div className="hiw-container">
           <div className="hiw-tag">Architecture</div>
           <h1 className="hiw-title">
-            How <span className="hiw-grad">zBioCoin</span> Works
+            How <span className="hiw-grad">BioCrypt</span> Works
           </h1>
           <p className="hiw-sub">
             A cryptocurrency where wallets are DNA, coins are proteins, transfers are mRNA, 
@@ -150,8 +150,8 @@ export function HowItWorks() {
                 <code className="hiw-formula">SHA-256(gene + "|" + nonce) {"<="} difficulty target</code>
               </p>
               <p>
-                This is <strong>identical to Bitcoin's proof-of-work</strong> &mdash; the same SHA-256 hash 
-                function, the same difficulty adjustment, the same computational guarantee. 
+                This is <strong>similar to Bitcoin's SHA-256 proof-of-work</strong> &mdash; the same SHA-256 hash 
+                function, adaptive difficulty adjustment, the same computational guarantee. 
                 Each coin's 180-base body produces ~60 amino acids, giving <strong>259 bits of entropy</strong> &mdash;
                 more collision-resistant than SHA-256 itself. Nobody can create coins for free.
               </p>
@@ -169,10 +169,10 @@ export function HowItWorks() {
                     <span className="text-muted">nonce:</span> <span className="mono">158,859</span>
                   </div>
                   <div className="hiw-pow-line">
-                    <span className="text-muted">hash:</span> <span className="mono"><span style={{ color: "#22c55e" }}>00000</span>8ea12dabe1...</span>
+                    <span className="text-muted">hash:</span> <span className="mono"><span style={{ color: "#22c55e" }}>000000000</span>8ea12dabe1...</span>
                   </div>
                   <div className="hiw-pow-line">
-                    <span className="text-muted">target:</span> <span className="mono">5 leading zeros</span>
+                    <span className="text-muted">target:</span> <span className="mono">9 leading hex zeros</span>
                   </div>
                 </div>
                 <div className="hiw-arrow-down">{"\u2193"}</div>
@@ -193,7 +193,7 @@ export function HowItWorks() {
               <div className="hiw-step-badge" style={{ background: "#a855f7" }}>Step 3</div>
               <h2>Network Signing &mdash; Ed25519 as DNA</h2>
               <p>
-                The zBioCoin network has an <strong>Ed25519 keypair encoded as DNA</strong>. The private key 
+                The BioCrypt network has an <strong>Ed25519 keypair encoded as DNA</strong>. The private key 
                 (128 bases) is the "reproductive DNA" &mdash; only the server has it. The public key 
                 (128 bases) is the "Network Genome" &mdash; shared with every wallet.
               </p>
@@ -392,7 +392,7 @@ export function HowItWorks() {
         <div className="hiw-container">
           <div className="hiw-header">
             <div className="hiw-tag">Comparison</div>
-            <h2 className="hiw-section-title">zBioCoin vs. Bitcoin vs. Traditional Crypto</h2>
+            <h2 className="hiw-section-title">BioCrypt vs. Bitcoin vs. Traditional Crypto</h2>
           </div>
           <div className="hiw-table-wrap">
             <table className="hiw-table">
@@ -401,7 +401,7 @@ export function HowItWorks() {
                   <th>Feature</th>
                   <th>Bitcoin</th>
                   <th>Typical Altcoin</th>
-                  <th className="hiw-table-highlight">zBioCoin</th>
+                  <th className="hiw-table-highlight">BioCrypt</th>
                 </tr>
               </thead>
               <tbody>

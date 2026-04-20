@@ -16,7 +16,7 @@ services:
     expose:
       - "3000"
     volumes:
-      - zcoin-data:/app/data
+      - biocrypt-data:/app/data
     environment:
       - PORT=3000
       - MINING_DIFFICULTY=0000
@@ -25,4 +25,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  zcoin-data:
+  biocrypt-data:

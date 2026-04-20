@@ -12,9 +12,9 @@ async function bootstrap() {
   app.setGlobalPrefix("api");
 
   const prodOrigins = [
-    "https://zcoin.bio",
-    "https://www.zcoin.bio",
-    "https://demo.zcoin.bio",
+    "https://biocrypt.net",
+    "https://www.biocrypt.net",
+    "https://file.biocrypt.net",
   ];
 
   app.enableCors({
@@ -24,11 +24,26 @@ async function bootstrap() {
       }
       if (!origin) return callback(null, true);
       if (prodOrigins.includes(origin)) return callback(null, true);
-      // Gateway and marketplace APIs are open to any origin (merchant sites)
-      callback(null, true);
+      callback(new Error(`CORS: origin ${origin} not allowed`));
     },
     credentials: true,
   });
+
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.use("/api/gateway", (_req: any, res: any, next: any) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    next();
+  });
+  expressApp.use("/api/marketplace", (_req: any, res: any, next: any) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    next();
+  });
+
+  expressApp.use(express.json({ limit: "1mb" }));
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -52,7 +67,7 @@ async function bootstrap() {
 
   app.use((req: any, _res: any, next: any) => {
     const host = (req.hostname || req.headers.host || "").replace(/:\d+$/, "");
-    req._isDemo = host === "demo.zcoin.bio";
+    req._isDemo = host === "file.biocrypt.net";
     next();
   });
 
@@ -86,7 +101,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`Zcoin server running on http://localhost:${port}`);
-  if (hasDemoApp) console.log(`Demo marketplace available for demo.zcoin.bio`);
+  console.log(`Biocrypt server running on http://localhost:${port}`);
+  if (hasDemoApp) console.log(`File marketplace available for file.biocrypt.net`);
 }
 bootstrap();

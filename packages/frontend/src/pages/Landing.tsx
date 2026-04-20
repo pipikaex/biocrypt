@@ -108,11 +108,11 @@ const HERO_SLIDES: HeroSlide[] = [
     visual: <HelixAnimation />,
   },
   {
-    title: <>&ldquo;What if your wallet had <span className="grad-text">DNA</span>&hellip;<br />your coins were <span className="grad-text">proteins</span>?&rdquo;</>,
+    title: <>&ldquo;What if your wallet had <span className="grad-text">DNA</span>&hellip;<br />your ZBIO were <span className="grad-text">proteins</span>?&rdquo;</>,
     visual: <CodonVisual />,
   },
   {
-    title: <>zcoin<span style={{ color: "var(--text-dim)", fontWeight: 500 }}>.bio</span></>,
+    title: <>biocrypt<span style={{ color: "var(--text-dim)", fontWeight: 500 }}>.net</span></>,
     sub: "21 Million. DNA-Encoded. Unforgeable.",
     badges: [
       { label: "NO BLOCKCHAIN", color: "var(--primary)" },
@@ -129,30 +129,33 @@ const HERO_SLIDES: HeroSlide[] = [
   },
   {
     tag: "INTRODUCING",
-    title: <>Meet <span className="grad-text">zBioCoin</span></>,
+    title: <>Meet <span className="grad-text">BioCrypt</span></>,
     sub: "A cryptocurrency built on biology, not bureaucracy.",
     stats: [
       { val: "6,000", label: "DNA bases / wallet" },
-      { val: "180", label: "bases / coin gene" },
-      { val: "504", label: "bits of security" },
+      { val: "180", label: "bases / ZBIO gene" },
+      { val: "516", label: "bits of security" },
       { val: "21M", label: "max supply" },
       { val: "0", label: "KYC required" },
     ],
   },
   {
-    tag: "MINE IN YOUR BROWSER",
-    title: <>Open a tab. Click <span className="grad-text">Start Mining</span>. That&rsquo;s it.</>,
-    sub: "SHA-256 Proof-of-Work — the same algorithm as Bitcoin. No GPU. No downloads. No signup.",
+    tag: "MINE IN YOUR BROWSER — OR GO NATIVE",
+    title: <>Open a tab. Click <span className="grad-text">Start Mining</span>. Or compile the C miner for raw speed.</>,
+    sub: "Browser mining works on any device. Need more power? Our open-source C miner uses Apple Silicon hardware-accelerated SHA-256 with multi-threaded pthreads — orders of magnitude faster.",
     badges: [
       { label: "SHA-256 PROOF-OF-WORK", color: "var(--primary)" },
       { label: "NO KYC", color: "#f85149" },
-      { label: "RUNS ON ANY DEVICE", color: "var(--secondary)" },
+      { label: "BROWSER OR NATIVE", color: "var(--secondary)" },
     ],
-    cta: [{ label: "Start Mining — Free", to: "/mine", primary: true }],
+    cta: [
+      { label: "Start Mining — Free", to: "/mine", primary: true },
+      { label: "Native Miner (C)", to: "https://github.com/pipikaex/biocoin/blob/main/zcoin-miner.c" },
+    ],
   },
   {
     tag: "BLOCK REWARDS",
-    title: <>50 coins per block in the <span className="grad-text">Genesis Era</span></>,
+    title: <>50 ZBIO per block in the <span className="grad-text">Genesis Era</span></>,
     sub: "Every 210,000 submissions the reward halves — identical to Bitcoin.",
     stats: [
       { val: "50", label: "Genesis Era" },
@@ -165,29 +168,29 @@ const HERO_SLIDES: HeroSlide[] = [
   {
     tag: "THE TELOMERE CAP",
     title: <>Scarcity written into the <span className="grad-text">DNA</span></>,
-    sub: "The network's DNA has TTAGGG telomeres. Every coin mined shortens them. When they're gone — mining stops forever.",
+    sub: "The network's DNA has TTAGGG telomeres. Every ZBIO mined shortens them. When they're gone — mining stops forever.",
     visual: <TelomereVisual />,
   },
   {
     tag: "THE PATERNITY TEST",
-    title: <>Every coin carries a <span className="grad-text">biological fingerprint</span></>,
-    sub: "Five restriction enzymes cut the coin's marker DNA. The band pattern proves parentage — completely offline.",
+    title: <>Every ZBIO carries a <span className="grad-text">biological fingerprint</span></>,
+    sub: "Five restriction enzymes cut the ZBIO's marker DNA. The band pattern proves parentage — completely offline.",
     visual: <GelVisual />,
   },
   {
     tag: "FOUR LAYERS OF DEFENSE",
-    title: <>504 bits of <span className="grad-text">combined security</span></>,
+    title: <>516 bits of <span className="grad-text">combined security</span></>,
     visual: <ShieldsVisual />,
   },
   {
     tag: "TRANSFERS",
-    title: <>Send coins via <span className="grad-text">mRNA payloads</span></>,
+    title: <>Send ZBIO via <span className="grad-text">mRNA payloads</span></>,
     sub: "Email. USB. QR code. Bluetooth. Verified offline. No server. No wait. No KYC.",
     visual: <MrnaVisual />,
   },
   {
     tag: "FINANCIAL FREEDOM",
-    title: <span style={{ fontSize: "3rem", color: "#f85149", fontWeight: 900 }}>NO KYC</span>,
+    title: <span className="no-kyc-title">NO KYC</span>,
     sub: "No passport. No selfie. No bank account. Create a wallet in one click. Start using it instantly. Anywhere in the world.",
     badges: [
       { label: "NO IDENTITY REQUIRED", color: "var(--primary)" },
@@ -197,31 +200,31 @@ const HERO_SLIDES: HeroSlide[] = [
   },
   {
     tag: "PAYMENT GATEWAY",
-    title: <>Accept <span className="grad-text">zBioCoin</span> on any website</>,
+    title: <>Accept <span className="grad-text">BioCrypt</span> on any website</>,
     sub: "Like PayPal, Stripe, or Revolut — but powered by DNA. No credit card processor. No 3% fee. No chargebacks.",
     cta: [
-      { label: "Try Demo Marketplace", to: "https://demo.zcoin.bio", primary: true },
+      { label: "File Marketplace", to: "https://file.biocrypt.net", primary: true },
       { label: "View Gateway Source", to: "https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway" },
     ],
   },
   {
     tag: "5 LINES OF CODE",
-    title: <>Integrate zBioCoin <span className="grad-text">anywhere</span></>,
+    title: <>Integrate BioCrypt <span className="grad-text">anywhere</span></>,
     visual: <CodeVisual />,
   },
   {
     tag: "MARKETPLACE",
-    title: <>Buy &amp; sell coins <span className="grad-text">peer-to-peer</span></>,
-    sub: "Don't want to mine? Buy coins from miners on the marketplace. Sell goods, sell services, sell coins. No middleman.",
-    cta: [{ label: "Visit Marketplace", to: "https://demo.zcoin.bio", primary: true }],
+    title: <>Buy &amp; sell ZBIO <span className="grad-text">peer-to-peer</span></>,
+    sub: "Don't want to mine? Buy ZBIO from miners on the marketplace. Sell goods, sell services, sell ZBIO. No middleman.",
+    cta: [{ label: "Visit Marketplace", to: "https://file.biocrypt.net", primary: true }],
   },
   {
-    tag: "WHO IS zBioCoin FOR?",
+    tag: "WHO IS BioCrypt FOR?",
     title: <>Whether you mine, build, trade, or spend</>,
     visual: <PersonaVisual />,
   },
   {
-    tag: "THE zBioCoin ECONOMY",
+    tag: "THE BioCrypt ECONOMY",
     title: <>The <span className="grad-text">living economy</span></>,
     visual: <EconomyVisual />,
   },
@@ -233,14 +236,14 @@ const HERO_SLIDES: HeroSlide[] = [
   },
   {
     tag: "JOIN THE ORGANISM",
-    title: <span style={{ color: "var(--primary)" }}>zcoin.bio</span>,
+    title: <span style={{ color: "var(--primary)" }}>biocrypt.net</span>,
     sub: "No ICO. No pre-mine. No venture capital. Open source. Live right now.",
     stats: [
       { val: "21M", label: "Hard Cap" },
       { val: "4", label: "Security Layers" },
       { val: "0", label: "Blockchain" },
       { val: "0", label: "KYC" },
-      { val: "∞", label: "Coin Validity" },
+      { val: "∞", label: "ZBIO Validity" },
     ],
     cta: [
       { label: "Start Mining", to: "/mine", primary: true },
@@ -248,7 +251,7 @@ const HERO_SLIDES: HeroSlide[] = [
     ],
   },
   {
-    title: <>Bitcoin reimagined the economy.<br /><span className="grad-text">zBioCoin</span> reimagines it through <span className="grad-text">life itself</span>.</>,
+    title: <>Bitcoin reimagined the economy.<br /><span className="grad-text">BioCrypt</span> reimagines it through <span className="grad-text">life itself</span>.</>,
     badges: [
       { label: "NO BLOCKCHAIN", color: "var(--primary)" },
       { label: "NO KYC", color: "#f85149" },
@@ -256,7 +259,7 @@ const HERO_SLIDES: HeroSlide[] = [
       { label: "NO FEES", color: "#d29922" },
       { label: "NO LIMITS", color: "#8b5cf6" },
     ],
-    cta: [{ label: "Get Started — zcoin.bio", to: "/mine", primary: true }],
+    cta: [{ label: "Get Started — biocrypt.net", to: "/mine", primary: true }],
   },
 ];
 
@@ -405,7 +408,7 @@ function TelomereVisual() {
     <div className="slide-telo">
       <div className="slide-telo-bar">
         <div className="slide-telo-end left">TTAGGG</div>
-        <div className="slide-telo-body">21,000,000 coins</div>
+        <div className="slide-telo-body">21,000,000 ZBIO</div>
         <div className="slide-telo-end right">TTAGGG</div>
       </div>
     </div>
@@ -415,7 +418,7 @@ function TelomereVisual() {
 function GelVisual() {
   const lanes = [
     { label: "Network", color: "#8b5cf6", positions: [15, 30, 50, 70, 85], match: true },
-    { label: "Coin", color: "#00e599", positions: [15, 30, 50, 70, 85], match: true },
+    { label: "ZBIO", color: "#00e599", positions: [15, 30, 50, 70, 85], match: true },
     { label: "Forged", color: "#ef4444", positions: [10, 25, 60], match: false },
   ];
   return (
@@ -473,9 +476,9 @@ function MrnaVisual() {
 function CodeVisual() {
   return (
     <div className="slide-code">
-      <pre>{`import { ZcoinPay } from '@zcoin/gateway';
+      <pre>{`import { BiocryptPay } from '@biocrypt/gateway';
 
-const pay = new ZcoinPay({ network: 'zcoin.bio' });
+const pay = new BiocryptPay({ network: 'biocrypt.net' });
 
 pay.checkout({ amount: 10, label: 'Premium' })
    .then(r => console.log('Paid!', r));`}</pre>
@@ -485,7 +488,7 @@ pay.checkout({ amount: 10, label: 'Premium' })
 
 function PersonaVisual() {
   const personas = [
-    { emoji: "⛏", label: "Miners", desc: "Open a tab, earn coins" },
+    { emoji: "⛏", label: "Miners", desc: "Open a tab, earn ZBIO" },
     { emoji: "🛒", label: "Merchants", desc: "5 lines of code, zero fees" },
     { emoji: "👩‍💻", label: "Developers", desc: "Build on the SDK" },
     { emoji: "🌍", label: "Everyone", desc: "No bank, no ID needed" },
@@ -530,19 +533,19 @@ function EarlyAdopterVisual() {
       <div className="slide-era">
         <span className="slide-era-icon">{"\uD83C\uDFC1"}</span>
         <strong style={{ color: "var(--primary)" }}>NOW</strong>
-        <span>50 coins / block</span>
+        <span>50 ZBIO / block</span>
       </div>
       <span className="slide-era-arrow">&rarr;</span>
       <div className="slide-era">
         <span className="slide-era-icon">{"\uD83D\uDCC8"}</span>
         <strong style={{ color: "#d29922" }}>LATER</strong>
-        <span>25 coins / block</span>
+        <span>25 ZBIO / block</span>
       </div>
       <span className="slide-era-arrow">&rarr;</span>
       <div className="slide-era">
         <span className="slide-era-icon">{"\uD83D\uDD12"}</span>
         <strong style={{ color: "#f85149" }}>FINAL</strong>
-        <span>0 coins / block</span>
+        <span>0 ZBIO / block</span>
       </div>
     </div>
   );
@@ -557,7 +560,7 @@ function Ticker({ stats }: { stats: NetworkStats | null }) {
       <div className="ticker-inner">
         <span className="pulse-dot" /> <span className="ticker-live">Live</span>
         <span className="sep">&middot;</span>
-        <span>Coins: <b className="text-primary">{stats.totalCoins}</b></span>
+        <span>ZBIO: <b className="text-primary">{stats.totalCoins}</b></span>
         <span className="sep">&middot;</span>
         <span>Miners: <b>{stats.totalWallets}</b></span>
         <span className="sep">&middot;</span>
@@ -571,25 +574,25 @@ function Ticker({ stats }: { stats: NetworkStats | null }) {
   );
 }
 
-/* ─── Why zcoin? ────────────────────────────────────────────────────────── */
+/* ─── Why biocrypt? ──────────────────────────────────────────────────────── */
 
 function WhySection() {
   const r = useReveal();
   const px = useParallax();
   const cards = [
-    { icon: "&#x1F9EC;", title: "Mine in your browser", desc: "No GPU rigs, no electricity bills. Open a tab and your browser's CPU does the work. Anyone with a web browser can earn coins." },
-    { icon: "&#x26D3;&#xFE0F;", title: "No blockchain", desc: "Faster, lighter, more private. Nullifier-based double-spend prevention, duplicate serial tracking, and Ed25519 verification \u2014 no chain, no blocks." },
-    { icon: "&#x1F510;", title: "Ed25519 + SHA-256 + RFLP", desc: "Ed25519 asymmetric signatures, SHA-256 proof-of-work, and biological RFLP fingerprinting. Three independent layers — mathematical, computational, and biological. 259 bits of protein entropy per coin." },
-    { icon: "&#x1F4E1;", title: "Offline everything", desc: "Transfer and verify coins without internet. Every wallet carries the Network Genome to validate Ed25519 signatures offline. RFLP parentage tests work anywhere. True peer-to-peer, even without servers." },
-    { icon: "&#x1F52C;", title: "DNA-encoded value", desc: "Every coin is a gene sequence. Every wallet is a DNA strand. Coins carry inherited restriction enzyme markers — a biological fingerprint proving parentage, just like a DNA paternity test." },
-    { icon: "&#x1F680;", title: "Build your own", desc: "Fork the network, create your own coin with custom DNA. Our TypeScript SDK makes it trivial to launch a new biological token." },
+    { icon: "&#x1F9EC;", title: "Mine in your browser", desc: "No GPU rigs, no electricity bills. Open a tab and your browser's CPU does the work. Anyone with a web browser can earn ZBIO." },
+    { icon: "&#x26D3;&#xFE0F;", title: "No blockchain", desc: "Faster, lighter, more private. Nullifier-based double-spend prevention, duplicate serial tracking, and Ed25519 verification \u2014 no blockchain ledger." },
+    { icon: "&#x1F510;", title: "Ed25519 + SHA-256 + RFLP", desc: "Ed25519 asymmetric signatures, SHA-256 proof-of-work, and biological RFLP fingerprinting. Three independent layers — mathematical, computational, and biological. 259 bits of protein entropy per ZBIO." },
+    { icon: "&#x1F4E1;", title: "Offline everything", desc: "Transfer and verify ZBIO without internet. Every wallet carries the Network Genome to validate Ed25519 signatures offline. RFLP parentage tests work anywhere. True peer-to-peer, even without servers." },
+    { icon: "&#x1F52C;", title: "DNA-encoded value", desc: "Every ZBIO is a gene sequence. Every wallet is a DNA strand. Each ZBIO carries inherited restriction enzyme markers — a biological fingerprint proving parentage, just like a DNA paternity test." },
+    { icon: "&#x1F680;", title: "Build your own", desc: "Fork the network, create your own ZBIO network with custom DNA. Our TypeScript SDK makes it trivial to launch a new biological token." },
   ];
   return (
     <section className="section parallax-section" id="why" ref={px}>
       <SideHelix side="right" top="5%" />
       <div className="container" ref={r.ref} data-reveal={r.visible}>
         <div className="section-header">
-          <span className="section-tag">Why zBioCoin?</span>
+          <span className="section-tag">Why BioCrypt?</span>
           <h2 className="section-title">Cryptocurrency <span className="grad-text">reimagined</span></h2>
           <p className="section-sub">
             We didn't just create another token. We built a new paradigm where
@@ -624,7 +627,11 @@ const MARKER_DNA =
   "TACGGATCCAGTCAAGCTTGCATGAATTCGTAGTCGACCTGCAGATTGGATCCAACGAATTCTTAAGCTTGCCTGCAGATCGTCGACAAT" +
   "GGATCCGAGAATTCCTGCAGTTAAAGCTTGCGTCGACCGATGGATCCTTGAATTCAAGCTTCTGCAGTCGTCGACGAATTCGGATCCTAA" +
   "GCTTCTGCAGGTCGACTATGGATCCAAAGCTTCGAATTCAGTCGACCTGCAGTTGGATCCGAATTCAAGCTTGTCGACTCTGCAGGATCC" +
-  "GCTTAAGCTTGAATTCGTCGACCTGCAGGGATCCAAGCTTGAATTCTCGTCGACCTGCAGATGGATCCTTAAGCTTGCGAATTCGTCGAC";
+  "GCTTAAGCTTGAATTCGTCGACCTGCAGGGATCCAAGCTTGAATTCTCGTCGACCTGCAGATGGATCCTTAAGCTTGCGAATTCGTCGAC" +
+  "AATGGATCCGCTTAAGCTTCTGCAGAATTCGTCGACGGATCCAAGCTTGAATTCCTGCAGGTCGACTTGGATCCAAGCTTGAATTCCTGC" +
+  "AGGTCGACTATGGATCCGAATTCAAGCTTGTCGACCTGCAGATTGGATCCAACGAATTCTTAAGCTTGCCTGCAGATCGTCGACAATGGA" +
+  "TCCGAGAATTCCTGCAGTTAAAGCTTGCGTCGACCGATGGATCCTTGAATTCAAGCTTCTGCAGTCGTCGACGAATTCGGATCCTAAGCT" +
+  "TCTGCAGGTCGACTATGGATCCAAAGCTTCGAATTCAGTCGACCTGCAGTTGGATCCGAATTCAAGCTTGTCGACTCTGCAGGATCCGCT";
 
 function buildGelData() {
   const cuts: { pos: number; enzyme: typeof GEL_ENZYMES[number] }[] = [];
@@ -646,10 +653,38 @@ function buildGelData() {
   }
   frags.sort((a, b) => b - a);
 
-  const forged = [68, 41, 29, 17, 9, 52, 5, 33];
-  forged.sort((a, b) => b - a);
+  // Spread fragments across a wider range for visual clarity
+  // Map each unique position to a virtual bp size from 200 down to 5
+  const displayFrags = frags.map((_f, i) => Math.round(200 - (i / (frags.length - 1)) * 195));
 
-  return { cuts, frags, forged };
+  // Pick ~35 representative bands (every ~3rd)
+  const step = Math.max(1, Math.floor(displayFrags.length / 35));
+  const netBands: number[] = [];
+  for (let i = 0; i < displayFrags.length; i += step) netBands.push(displayFrags[i]);
+  if (netBands[netBands.length - 1] !== displayFrags[displayFrags.length - 1])
+    netBands.push(displayFrags[displayFrags.length - 1]);
+
+  const rng = (seed: number, i: number) => (((i + 1) * seed * 2654435761) >>> 0) / 4294967296;
+
+  // Valid ZBIO lanes: same bands, but each has ~20% missing (different ones per ZBIO)
+  const makeCoinVis = (seed: number) => netBands.map((_f, i) => rng(seed, i) < 0.20 ? 0 : rng(seed, i) < 0.30 ? 0.35 : 1);
+  const coin1Vis = makeCoinVis(1);
+  const coin2Vis = makeCoinVis(7);
+  const coin3Vis = makeCoinVis(13);
+
+  // Forged: mostly same bands, but 3 bands SHIFTED to wrong positions + 2 missing
+  const forgedBands = netBands.map((f, i) => {
+    if (i === 3) return f + 14;
+    if (i === 10) return f - 18;
+    if (i === Math.floor(netBands.length * 0.7)) return f + 12;
+    return f;
+  });
+  const forgedVis = netBands.map((_f, i) => {
+    if (i === 6 || i === 18) return 0;
+    return 1;
+  });
+
+  return { cuts, frags: netBands, coin1Vis, coin2Vis, coin3Vis, forged: forgedBands, forgedVis };
 }
 
 const GEL_DATA = buildGelData();
@@ -660,8 +695,7 @@ const _clamp01 = (t: number) => Math.max(0, Math.min(1, t));
 const _lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const _logY = (frag: number, maxFrag: number, top: number, bot: number) => {
   const ratio = frag / maxFrag;
-  const pos = 1 - ratio * ratio;
-  return top + pos * (bot - top);
+  return top + (1 - ratio) * (bot - top);
 };
 
 function GelElectrophoresisSection() {
@@ -697,14 +731,14 @@ function GelElectrophoresisSection() {
     const cycleElapsed = now % CYCLE;
     const globalT = _clamp01(cycleElapsed / ANIM_DURATION);
 
-    const tDna       = _clamp01(globalT / 0.18);
-    const tScan      = _clamp01((globalT - 0.10) / 0.22);
-    const tCut       = _clamp01((globalT - 0.28) / 0.10);
-    const tDnaFade   = _clamp01((globalT - 0.36) / 0.08);
-    const tGelIn     = _clamp01((globalT - 0.38) / 0.08);
-    const tMigrate   = _clamp01((globalT - 0.42) / 0.30);
-    const tLines     = _clamp01((globalT - 0.68) / 0.10);
-    const tVerdict   = _clamp01((globalT - 0.76) / 0.10);
+    const tDna       = _clamp01(globalT / 0.12);
+    const tScan      = _clamp01((globalT - 0.08) / 0.14);
+    const tCut       = _clamp01((globalT - 0.20) / 0.08);
+    const tDnaFade   = _clamp01((globalT - 0.34) / 0.06);
+    const tGelIn     = _clamp01((globalT - 0.36) / 0.06);
+    const tMigrate   = _clamp01((globalT - 0.40) / 0.25);
+    const tLines     = _clamp01((globalT - 0.65) / 0.08);
+    const tVerdict   = _clamp01((globalT - 0.73) / 0.08);
 
     const dnaAlpha = 1 - _easeInOut(tDnaFade);
     const gelAlpha = _easeInOut(tGelIn);
@@ -850,48 +884,80 @@ function GelElectrophoresisSection() {
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Size ladder on left
-      const ladderW = W > 600 ? 36 : 24;
+      const migrateEase = _easeInOut(tMigrate);
+
+      // Size ladder (M lane) on left — looks like real marker bands
+      const ladderW = W > 600 ? 38 : 26;
       const DEFAULT_LADDER = [200, 150, 100, 75, 50, 40, 30, 20, 15, 10, 5];
-      ctx.font = `${W > 600 ? 8 : 6}px monospace`;
+
+      // Ladder header
+      ctx.font = `bold ${W > 600 ? 9 : 7}px sans-serif`;
+      ctx.fillStyle = "rgba(148,163,184,0.5)";
+      ctx.textAlign = "center";
+      ctx.fillText("M", gelX + ladderW / 2, gelTop - 8);
+
+      // Ladder well
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+      ctx.fillRect(gelX + 4, gelTop, ladderW - 8, 5);
+
+      ctx.font = `${W > 600 ? 7 : 5}px monospace`;
       ctx.textAlign = "right";
-      for (const sz of DEFAULT_LADDER) {
+      for (let si = 0; si < DEFAULT_LADDER.length; si++) {
+        const sz = DEFAULT_LADDER[si];
         if (sz > maxFrag * 1.1) continue;
-        const y = _logY(sz, maxFrag, gelTop + 12, gelBot - 12);
-        ctx.fillStyle = "rgba(100,116,139,0.35)";
-        ctx.fillRect(gelX + 4, y - 1, ladderW - 10, 2);
-        ctx.fillStyle = "rgba(100,116,139,0.4)";
-        ctx.fillText(String(sz), gelX + ladderW - 2, y + 3);
+        const y = _logY(sz, maxFrag, gelTop + 14, gelBot - 10);
+        const laddY = _lerp(gelTop + 8, y, migrateEase);
+        const isKey = sz === 100 || sz === 50 || sz === 20;
+        const bandAlpha = isKey ? 0.5 : 0.25;
+        const bh = isKey ? 2.5 : 1.5;
+        ctx.fillStyle = "rgba(148,163,184,1)";
+        ctx.globalAlpha = gelAlpha * bandAlpha * Math.min(1, migrateEase * 1.5);
+        ctx.fillRect(gelX + 4, laddY - bh / 2, ladderW - 10, bh);
+        // Label
+        ctx.globalAlpha = gelAlpha * 0.35 * Math.min(1, migrateEase * 1.5);
+        ctx.fillStyle = "rgba(148,163,184,0.7)";
+        ctx.fillText(String(sz), gelX + ladderW - 1, laddY + 3);
+        ctx.globalAlpha = gelAlpha;
       }
 
       // Lanes
       const laneLabels = [
         { label: "Network", color: "#a855f7" },
-        { label: "Coin #1", color: "#22c55e" },
-        { label: "Coin #2", color: "#22c55e" },
-        { label: "Coin #3", color: "#38bdf8" },
+        { label: "ZBIO #1", color: "#22c55e" },
+        { label: "ZBIO #2", color: "#3b82f6" },
+        { label: "ZBIO #3", color: "#38bdf8" },
         { label: "Forged", color: "#ef4444" },
       ];
+      const { coin1Vis, coin2Vis, coin3Vis, forgedVis } = GEL_DATA;
       const laneData: number[][] = [frags, frags, frags, frags, forged];
+      const laneVis: (number[] | null)[] = [null, coin1Vis, coin2Vis, coin3Vis, forgedVis];
       const numLanes = laneLabels.length;
       const laneArea = gelW - ladderW - 12;
       const laneW = laneArea / numLanes;
       const laneXStart = gelX + ladderW + 6;
 
-      const migrateEase = _easeInOut(tMigrate);
+      // Pseudo-random for per-band variation (deterministic from band index + lane)
+      const bRng = (li: number, bi: number, k: number) =>
+        ((((li * 131 + bi * 997 + k * 7919 + 1) * 2654435761) >>> 0) / 4294967296);
 
       for (let li = 0; li < numLanes; li++) {
         const lx = laneXStart + li * laneW + laneW / 2;
         const lane = laneLabels[li];
         const bands = laneData[li];
 
-        // Lane background
-        ctx.fillStyle = "rgba(255,255,255,0.015)";
+        // Lane background — slight vertical gradient
+        const laneGrad = ctx.createLinearGradient(0, gelTop, 0, gelBot);
+        laneGrad.addColorStop(0, "rgba(255,255,255,0.02)");
+        laneGrad.addColorStop(0.5, "rgba(255,255,255,0.01)");
+        laneGrad.addColorStop(1, "rgba(255,255,255,0.025)");
+        ctx.fillStyle = laneGrad;
         ctx.fillRect(laneXStart + li * laneW + 2, gelTop, laneW - 4, gelH);
 
         // Well at top
-        ctx.fillStyle = "rgba(255,255,255,0.05)";
-        ctx.fillRect(lx - 12, gelTop, 24, 6);
+        ctx.fillStyle = "rgba(255,255,255,0.06)";
+        ctx.fillRect(lx - 14, gelTop, 28, 5);
+        ctx.fillStyle = "rgba(255,255,255,0.03)";
+        ctx.fillRect(lx - 14, gelTop + 5, 28, 3);
 
         // Lane header
         ctx.font = `bold ${W > 600 ? 11 : 8}px sans-serif`;
@@ -899,59 +965,83 @@ function GelElectrophoresisSection() {
         ctx.textAlign = "center";
         ctx.fillText(lane.label, lx, gelTop - 8);
 
-        // Bands
-        const bandW = Math.max(8, laneW - 14);
+        // Bands — flat style, no shadows
+        const bandW = Math.max(10, laneW - 12);
         for (let bi = 0; bi < bands.length; bi++) {
           const frag = bands[bi];
-          const targetY = _logY(frag, maxFrag, gelTop + 12, gelBot - 12);
+          const targetY = _logY(frag, maxFrag, gelTop + 14, gelBot - 10);
           const currentY = _lerp(gelTop + 8, targetY, migrateEase);
 
           const normSize = frag / maxFrag;
-          const bandH = Math.max(2, 2 + normSize * 4);
-          const intensity = 0.35 + normSize * 0.55;
+          const r0 = bRng(li, bi, 0);
+          const r1 = bRng(li, bi, 1);
+          const r2 = bRng(li, bi, 2);
 
-          // Glow
+          // Per-lane visibility: some bands faint/missing (like real gel loading variation)
+          const vis = laneVis[li];
+          const visMul = vis ? vis[bi] : 1;
+          if (visMul === 0) continue;
+          const faintFactor = r2 < 0.12 ? 0.15 : r2 < 0.25 ? 0.4 : r2 < 0.45 ? 0.7 : 1.0;
+          const intensity = (0.25 + normSize * 0.55) * (0.75 + r0 * 0.5) * faintFactor * visMul;
+          const bandH = Math.max(1, (1 + normSize * 3) * (0.6 + r1 * 0.8));
+
+          // Main band — simple flat rectangle
           ctx.fillStyle = lane.color;
-          ctx.globalAlpha = gelAlpha * intensity * migrateEase * 0.3;
-          ctx.shadowColor = lane.color;
-          ctx.shadowBlur = 10;
-          ctx.beginPath();
-          ctx.roundRect(lx - bandW / 2, currentY - bandH / 2 - 1, bandW, bandH + 2, 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-
-          // Band
           ctx.globalAlpha = gelAlpha * intensity * Math.min(1, migrateEase * 1.5);
-          ctx.beginPath();
-          ctx.roundRect(lx - bandW / 2, currentY - bandH / 2, bandW, bandH, 1.5);
-          ctx.fill();
+          ctx.fillRect(lx - bandW / 2, currentY - bandH / 2, bandW, bandH);
 
-          // Size label on hover zone (always show for first lane)
-          if (li === 0 && migrateEase > 0.8 && W > 500) {
-            ctx.globalAlpha = gelAlpha * 0.3 * _clamp01((migrateEase - 0.8) * 5);
-            ctx.font = "6px monospace";
-            ctx.fillStyle = "rgba(168,85,247,0.6)";
-            ctx.textAlign = "left";
-            ctx.fillText(String(frag) + "bp", lx + bandW / 2 + 3, currentY + 3);
+          // Fainter wider smear above/below (diffusion)
+          if (faintFactor > 0.5) {
+            ctx.globalAlpha = gelAlpha * intensity * migrateEase * 0.08;
+            ctx.fillRect(lx - bandW / 2 + 1, currentY - bandH, bandW - 2, bandH * 2);
           }
+
           ctx.globalAlpha = gelAlpha;
         }
 
-        // Comparison lines from network to genuine coin lanes
-        if (li >= 1 && li <= 3 && tLines > 0) {
-          ctx.globalAlpha = gelAlpha * _easeInOut(tLines) * 0.25;
-          ctx.strokeStyle = lane.color;
-          ctx.setLineDash([2, 3]);
-          ctx.lineWidth = 0.8;
-          const netLx = laneXStart + laneW / 2;
-          for (const frag of frags) {
-            const y = _logY(frag, maxFrag, gelTop + 12, gelBot - 12);
-            ctx.beginPath();
-            ctx.moveTo(netLx + bandW / 2 + 2, y);
-            ctx.lineTo(lx - bandW / 2 - 2, y);
-            ctx.stroke();
+        // Horizontal alignment guides (subtle) for valid ZBIO lanes, mismatch markers for forged
+        if (tLines > 0) {
+          const lineAlpha = _easeInOut(tLines);
+
+          if (li >= 1 && li <= 3) {
+            // Valid ZBIO: subtle horizontal dashes from network to this lane
+            ctx.globalAlpha = gelAlpha * lineAlpha * 0.08;
+            ctx.strokeStyle = lane.color;
+            ctx.setLineDash([1, 4]);
+            ctx.lineWidth = 0.5;
+            const netLx = laneXStart + laneW / 2;
+            for (let bi = 0; bi < Math.min(frags.length, bands.length); bi++) {
+              const y = _logY(frags[bi], maxFrag, gelTop + 12, gelBot - 12);
+              ctx.beginPath(); ctx.moveTo(netLx + bandW / 2 + 2, y); ctx.lineTo(lx - bandW / 2 - 2, y); ctx.stroke();
+            }
+            ctx.setLineDash([]);
           }
-          ctx.setLineDash([]);
+
+          if (li === 4) {
+            // Forged: highlight shifted bands with red arrows
+            for (let bi = 0; bi < bands.length; bi++) {
+              const diff = Math.abs(frags[bi] - bands[bi]);
+              if (diff < 5) continue;
+              const coinY = _logY(bands[bi], maxFrag, gelTop + 14, gelBot - 10);
+              const netY = _logY(frags[bi], maxFrag, gelTop + 14, gelBot - 10);
+              ctx.globalAlpha = gelAlpha * lineAlpha * 0.7;
+              // Red arrow from expected to actual
+              ctx.strokeStyle = "#ef4444";
+              ctx.setLineDash([3, 2]);
+              ctx.lineWidth = 1.5;
+              ctx.beginPath(); ctx.moveTo(lx + bandW / 2 + 4, netY); ctx.lineTo(lx + bandW / 2 + 4, coinY); ctx.stroke();
+              ctx.setLineDash([]);
+              // Triangle marker
+              ctx.fillStyle = "#ef4444";
+              const dir = coinY > netY ? 1 : -1;
+              ctx.beginPath();
+              ctx.moveTo(lx + bandW / 2 + 4, coinY);
+              ctx.lineTo(lx + bandW / 2 + 1, coinY - dir * 5);
+              ctx.lineTo(lx + bandW / 2 + 7, coinY - dir * 5);
+              ctx.closePath();
+              ctx.fill();
+            }
+          }
           ctx.globalAlpha = gelAlpha;
         }
 
@@ -974,7 +1064,7 @@ function GelElectrophoresisSection() {
             ctx.fillText("✗ REJECT", lx, gelBot + 20);
             ctx.font = `${W > 600 ? 9 : 7}px sans-serif`;
             ctx.fillStyle = "rgba(239,68,68,0.6)";
-            ctx.fillText("Wrong pattern", lx, gelBot + 33);
+            ctx.fillText("3 shifted · 2 missing", lx, gelBot + 33);
           }
           ctx.globalAlpha = gelAlpha;
         }
@@ -1023,7 +1113,7 @@ function GelElectrophoresisSection() {
     { at: 0.30, label: `Enzymes cut at ${GEL_DATA.cuts.length} sites → ${GEL_DATA.frags.length} fragments` },
     { at: 0.42, label: "Fragments migrate through gel — smaller = faster" },
     { at: 0.70, label: "Compare band patterns across lanes" },
-    { at: 0.78, label: "Genuine coins match network pattern; forgeries don't" },
+    { at: 0.73, label: "ZBIO match with different missing bands; forged has 3 shifted + 2 missing" },
   ];
 
   return (
@@ -1032,12 +1122,12 @@ function GelElectrophoresisSection() {
         <div className="section-header">
           <span className="section-tag">Biological Verification</span>
           <h2 className="section-title">
-            Gel Electrophoresis &mdash; <span className="grad-text">Coin Paternity Test</span>
+            Gel Electrophoresis &mdash; <span className="grad-text">ZBIO Paternity Test</span>
           </h2>
           <p className="section-sub">
-            Every signed coin carries parentage marker DNA from the network. Five restriction
+            Every signed ZBIO carries parentage marker DNA from the network. Five restriction
             enzymes cut it at specific recognition sequences, producing {GEL_DATA.frags.length} fragments
-            with a unique band pattern &mdash; a visual fingerprint that proves the coin was
+            with a unique band pattern &mdash; a visual fingerprint that proves the ZBIO was
             born from this network. Works completely offline.
           </p>
         </div>
@@ -1085,37 +1175,37 @@ interface FlowStep {
 const FLOW_STEPS: FlowStep[] = [
   {
     id: "wallet", icon: "🧬", label: "01", title: "Create Wallet",
-    desc: "One click generates a 6,000-base DNA strand. An Ed25519 keypair is encoded as DNA. The network's public genome is embedded so you can verify coins offline forever.",
+    desc: "One click generates a 6,000-base DNA strand. An Ed25519 keypair is encoded as DNA. The network's public genome is embedded so you can verify ZBIO offline forever.",
     color: "#00e599",
   },
   {
-    id: "mine", icon: "⛏", label: "02", title: "Mine a Coin",
+    id: "mine", icon: "⛏", label: "02", title: "Mine ZBIO",
     desc: "A Web Worker brute-forces SHA-256 hashes on a random 180-base gene sequence until the hash meets the difficulty target. Same proof-of-work as Bitcoin — running in your browser.",
     color: "#3b82f6",
   },
   {
     id: "sign", icon: "✍️", label: "03", title: "Network Signing",
-    desc: "The network verifies your proof-of-work, then signs the coin with its Ed25519 private key and generates an RFLP fingerprint — a unique restriction enzyme gel-band pattern proving parentage.",
+    desc: "The network verifies your proof-of-work, then signs the ZBIO with its Ed25519 private key and generates an RFLP fingerprint — a unique restriction enzyme gel-band pattern proving parentage.",
     color: "#a855f7",
   },
   {
-    id: "integrate", icon: "🧪", label: "04", title: "Coin Integration",
-    desc: "The signed coin gene is spliced into your wallet's DNA via biological mutation. Your wallet now physically contains the coin — it's part of your DNA, not a balance in a database.",
+    id: "integrate", icon: "🧪", label: "04", title: "ZBIO Integration",
+    desc: "The signed ZBIO gene is spliced into your wallet's DNA via biological mutation. Your wallet now physically contains the ZBIO — it's part of your DNA, not a balance in a database.",
     color: "#d29922",
   },
   {
     id: "transfer", icon: "📧", label: "05", title: "Transfer via mRNA",
-    desc: "To send a coin, an mRNA payload is created containing the gene, Ed25519 signature, RFLP fingerprint, and proof-of-work. The coin is excised from your DNA. Send via email, USB, QR, or Bluetooth.",
+    desc: "To send ZBIO, an mRNA payload is created containing the gene, Ed25519 signature, RFLP fingerprint, and proof-of-work. The ZBIO is excised from your DNA. Send via email, USB, QR, or Bluetooth.",
     color: "#f59e0b",
   },
   {
     id: "receive", icon: "📥", label: "06", title: "Receive & Verify",
-    desc: "The recipient verifies the Ed25519 signature against the embedded Network Genome, runs the RFLP gel-band check, and confirms the nullifier hasn't been spent — all offline. Then the coin gene integrates into their DNA.",
+    desc: "The recipient verifies the Ed25519 signature against the embedded Network Genome, runs the RFLP gel-band check, and confirms the nullifier hasn't been spent — all offline. Then the ZBIO gene integrates into their DNA.",
     color: "#22c55e",
   },
   {
     id: "gateway", icon: "💳", label: "07", title: "Payment Gateway",
-    desc: "Merchants add one script tag. Customer clicks 'Pay with zBioCoin', a popup opens on zcoin.bio, they approve the transfer with their private key, and the mRNA is sent. Verified instantly. No 3% fee. No chargebacks.",
+    desc: "Merchants add one script tag. Customer clicks 'Pay with BioCrypt', a popup opens on biocrypt.net, they approve the transfer with their private key, and the mRNA is sent. Verified instantly. No 3% fee. No chargebacks.",
     color: "#38bdf8",
   },
 ];
@@ -1127,11 +1217,26 @@ function FlowAnimation() {
   const [visible, setVisible] = useState(false);
   const animRef = useRef<number>(0);
   const sizeRef = useRef({ w: 0, h: 0 });
+  const pinnedRef = useRef<number | null>(null);
+  const pinStartRef = useRef(0);
+  const [isPinned, setIsPinned] = useState(false);
 
   const STEP_DURATION = 8000;
   const STEP_HOLD = 6000;
   const STEP_CYCLE = STEP_DURATION + STEP_HOLD;
   const FULL_CYCLE = STEP_CYCLE * FLOW_STEPS.length;
+
+  const handleStepClick = useCallback((i: number) => {
+    pinnedRef.current = i;
+    pinStartRef.current = performance.now();
+    setActiveStep(i);
+    setIsPinned(true);
+  }, []);
+
+  const handleResume = useCallback(() => {
+    pinnedRef.current = null;
+    setIsPinned(false);
+  }, []);
 
   const drawFlow = useCallback((now: number) => {
     const canvas = canvasRef.current;
@@ -1151,11 +1256,21 @@ function FlowAnimation() {
     const H = rect.height;
     ctx.clearRect(0, 0, W, H);
 
-    const cyclePos = now % FULL_CYCLE;
-    const step = Math.min(FLOW_STEPS.length - 1, Math.floor(cyclePos / STEP_CYCLE));
-    const stepElapsed = cyclePos - step * STEP_CYCLE;
-    const stepT = _clamp01(stepElapsed / STEP_DURATION);
-    setActiveStep(step);
+    let step: number;
+    let stepT: number;
+
+    if (pinnedRef.current !== null) {
+      const elapsed = now - pinStartRef.current;
+      step = pinnedRef.current;
+      stepT = _clamp01(elapsed / STEP_DURATION);
+      setActiveStep(step);
+    } else {
+      const cyclePos = now % FULL_CYCLE;
+      step = Math.min(FLOW_STEPS.length - 1, Math.floor(cyclePos / STEP_CYCLE));
+      const stepElapsed = cyclePos - step * STEP_CYCLE;
+      stepT = _clamp01(stepElapsed / STEP_DURATION);
+      setActiveStep(step);
+    }
 
     const cx = W / 2;
     const cy = H / 2;
@@ -1238,7 +1353,7 @@ function FlowAnimation() {
         ctx.fillStyle = isMatch ? "#22c55e" : "rgba(255,255,255,0.3)";
         ctx.globalAlpha = alpha;
 
-        const prefix = isMatch ? "0000000000" : "4f" + String(i * 3 + 7).padStart(8, "a");
+        const prefix = isMatch ? "000000000" : "4f" + String(i * 3 + 7).padStart(8, "a");
         const rest = isMatch ? "a7c3e1..." : String(Math.floor(Math.random() * 9999)).padStart(4, "0") + "...";
         ctx.fillText(`SHA-256(gene|nonce=${1247 + i * 389}) = ${prefix}${rest}`, cx, y);
         ctx.globalAlpha = 1;
@@ -1249,7 +1364,7 @@ function FlowAnimation() {
         ctx.font = `bold ${baseFont + 4}px sans-serif`;
         ctx.fillStyle = "#22c55e";
         ctx.textAlign = "center";
-        ctx.fillText("✓ COIN FOUND", cx, hashY + numHashes * 18 + 28);
+        ctx.fillText("✓ ZBIO FOUND", cx, hashY + numHashes * 18 + 28);
         ctx.font = `${baseFont}px monospace`;
         ctx.fillStyle = "rgba(255,255,255,0.4)";
         ctx.fillText("Hash below difficulty target — proof-of-work complete", cx, hashY + numHashes * 18 + 46);
@@ -1261,11 +1376,11 @@ function FlowAnimation() {
     if (step === 2) {
       const t = _easeInOut(stepT);
 
-      // Coin travels to network
+      // ZBIO travels to network
       const coinX = cx - 140 + t * 100;
       const netX = cx + 80;
 
-      // Coin circle
+      // ZBIO circle
       ctx.beginPath();
       ctx.arc(coinX, cy - 20, 24, 0, Math.PI * 2);
       ctx.fillStyle = "#3b82f620";
@@ -1276,7 +1391,7 @@ function FlowAnimation() {
       ctx.font = `bold ${baseFont + 2}px sans-serif`;
       ctx.fillStyle = "#3b82f6";
       ctx.textAlign = "center";
-      ctx.fillText("COIN", coinX, cy - 16);
+      ctx.fillText("ZBIO", coinX, cy - 16);
 
       // Arrow
       if (t > 0.2) {
@@ -1342,7 +1457,7 @@ function FlowAnimation() {
       }
     }
 
-    // ── STEP 3: COIN INTEGRATION ──
+    // ── STEP 3: ZBIO INTEGRATION ──
     if (step === 3) {
       const t = _easeInOut(stepT);
 
@@ -1365,7 +1480,7 @@ function FlowAnimation() {
         ctx.stroke();
       }
 
-      // Coin gene splicing in
+      // ZBIO gene splicing in
       const geneW = 40;
       const geneX = cx - geneW / 2;
       const geneTargetY = dnaY;
@@ -1403,7 +1518,7 @@ function FlowAnimation() {
         ctx.fillStyle = "#d29922";
         ctx.textAlign = "center";
         ctx.globalAlpha = _easeOut(flashT);
-        ctx.fillText("Coin gene spliced into wallet DNA", cx, cy + 60);
+        ctx.fillText("ZBIO gene spliced into wallet DNA", cx, cy + 60);
         ctx.globalAlpha = 1;
       }
     }
@@ -1524,7 +1639,7 @@ function FlowAnimation() {
         ctx.font = `bold ${baseFont + 2}px sans-serif`;
         ctx.fillStyle = "#22c55e";
         ctx.textAlign = "center";
-        ctx.fillText("ALL VERIFIED — coin integrated into DNA", cx, cy + 60);
+        ctx.fillText("ALL VERIFIED — ZBIO integrated into DNA", cx, cy + 60);
         ctx.font = `${baseFont}px monospace`;
         ctx.fillStyle = "rgba(34,197,94,0.5)";
         ctx.fillText("No server needed · Completely offline", cx, cy + 78);
@@ -1576,7 +1691,7 @@ function FlowAnimation() {
       ctx.font = `bold ${baseFont}px sans-serif`;
       ctx.fillStyle = "#00e599";
       ctx.textAlign = "center";
-      ctx.fillText("Pay with zBioCoin", cx, btnY + 18);
+      ctx.fillText("Pay with BioCrypt", cx, btnY + 18);
 
       // Popup appearing
       if (t > 0.25) {
@@ -1596,7 +1711,7 @@ function FlowAnimation() {
           ctx.font = `bold ${baseFont}px sans-serif`;
           ctx.fillStyle = "#00e599";
           ctx.textAlign = "center";
-          ctx.fillText("zcoin.bio wallet", cx, popY + 18);
+          ctx.fillText("biocrypt.net wallet", cx, popY + 18);
 
           ctx.font = `${baseFont - 1}px sans-serif`;
           ctx.fillStyle = "rgba(255,255,255,0.4)";
@@ -1657,8 +1772,8 @@ function FlowAnimation() {
             From wallet to <span className="grad-text">payment</span> — every step
           </h2>
           <p className="section-sub">
-            Watch the entire lifecycle of a zBioCoin — from DNA wallet creation through mining,
-            signing, transferring, and spending via the payment gateway.
+            Click any step to explore, or sit back and watch the animation cycle through
+            the entire lifecycle of a BioCrypt coin.
           </p>
         </div>
         <div className="flow-layout">
@@ -1668,6 +1783,7 @@ function FlowAnimation() {
                 key={s.id}
                 className={`flow-step-btn ${activeStep === i ? "active" : ""} ${activeStep > i ? "done" : ""}`}
                 style={{ "--fc": s.color } as React.CSSProperties}
+                onClick={() => handleStepClick(i)}
               >
                 <div className="flow-step-icon">{s.icon}</div>
                 <div className="flow-step-info">
@@ -1677,13 +1793,21 @@ function FlowAnimation() {
                 </div>
               </div>
             ))}
+            {isPinned && (
+              <button className="flow-resume-btn" onClick={handleResume}>
+                &#x25B6; Resume auto-play
+              </button>
+            )}
           </div>
           <div className="flow-canvas-col">
             <canvas ref={canvasRef} className="flow-canvas" />
             <div className="flow-progress">
               {FLOW_STEPS.map((s, i) => (
-                <div key={s.id} className={`flow-dot ${activeStep === i ? "active" : ""} ${activeStep > i ? "done" : ""}`}
-                  style={{ "--fc": s.color } as React.CSSProperties} />
+                <div key={s.id}
+                  className={`flow-dot ${activeStep === i ? "active" : ""} ${activeStep > i ? "done" : ""}`}
+                  style={{ "--fc": s.color } as React.CSSProperties}
+                  onClick={() => handleStepClick(i)}
+                />
               ))}
             </div>
           </div>
@@ -1698,10 +1822,10 @@ function FlowAnimation() {
 function HowItWorks() {
   const r = useReveal();
   const steps = [
-    { n: "01", title: "Create a wallet", desc: "One click generates a 6,000-base DNA strand with a private key. The network\u2019s Ed25519 public key is embedded, letting you verify coins offline forever. No KYC. No signup.", color: "var(--primary)" },
-    { n: "02", title: "Mine coins", desc: "Click \u201CStart Mining\u201D and a Web Worker brute-forces SHA-256 hashes until one meets the difficulty target. Real proof-of-work \u2014 same algorithm as Bitcoin \u2014 running in your browser.", color: "var(--secondary)" },
-    { n: "03", title: "Get signed + fingerprinted", desc: "The network validates your proof-of-work, signs with Ed25519, and generates a unique RFLP gel-band fingerprint. Two independent proofs travel with every coin for offline verification.", color: "#d29922" },
-    { n: "04", title: "Trade & transfer", desc: "Send coins via mRNA payloads \u2014 self-contained files carrying the gene, signature, and fingerprint. Recipients validate everything offline. Email, USB, QR \u2014 your choice.", color: "#f85149" },
+    { n: "01", title: "Create a wallet", desc: "One click generates a 6,000-base DNA strand with a private key. The network\u2019s Ed25519 public key is embedded, letting you verify ZBIO offline forever. No KYC. No signup.", color: "var(--primary)" },
+    { n: "02", title: "Mine ZBIO", desc: "Click \u201CStart Mining\u201D in your browser, or compile the native C miner for maximum throughput. Both brute-force SHA-256 until a hash meets the difficulty target \u2014 real proof-of-work, same algorithm as Bitcoin.", color: "var(--secondary)" },
+    { n: "03", title: "Get signed + fingerprinted", desc: "The network validates your proof-of-work, signs with Ed25519, and generates a unique RFLP gel-band fingerprint. Two independent proofs travel with every ZBIO for offline verification.", color: "#d29922" },
+    { n: "04", title: "Trade & transfer", desc: "Send ZBIO via mRNA payloads \u2014 self-contained files carrying the gene, signature, and fingerprint. Recipients validate everything offline. Email, USB, QR \u2014 your choice.", color: "#f85149" },
   ];
   const px = useParallax();
   return (
@@ -1729,7 +1853,7 @@ function HowItWorks() {
         </div>
         <div style={{ textAlign: "center", marginTop: "2.5rem" }}>
           <Link to="/mine" className="btn btn-primary btn-lg btn-glow">
-            Try it now &mdash; mine your first coin
+            Try it now &mdash; mine your first ZBIO
           </Link>
         </div>
       </div>
@@ -1761,8 +1885,8 @@ function QuickStart() {
           <div className="qs-card">
             <div className="qs-num">2</div>
             <div className="qs-icon">&#x26CF;&#xFE0F;</div>
-            <h3>Mine coins</h3>
-            <p>Hit "Start Mining" and your browser's CPU begins proof-of-work. Coins are found automatically.</p>
+            <h3>Mine ZBIO</h3>
+            <p>Hit "Start Mining" in your browser, or compile our high-performance C miner for maximum hash rate on Apple Silicon.</p>
             <Link to="/mine" className="btn btn-secondary btn-sm" style={{ marginTop: "auto" }}>Start Mining</Link>
           </div>
           <div className="qs-arrow">&#x2192;</div>
@@ -1770,7 +1894,7 @@ function QuickStart() {
             <div className="qs-num">3</div>
             <div className="qs-icon">&#x1F4E8;</div>
             <h3>Send &amp; trade</h3>
-            <p>Transfer coins via mRNA files, use them in the marketplace, or accept payments on your site.</p>
+            <p>Transfer ZBIO via mRNA files, use them in the marketplace, or accept payments on your site.</p>
             <Link to="/transfer" className="btn btn-secondary btn-sm" style={{ marginTop: "auto" }}>Go to Transfer</Link>
           </div>
         </div>
@@ -1793,13 +1917,13 @@ function ForEveryone() {
         <div className="persona-grid">
           <div className="persona-card">
             <h3>Miners</h3>
-            <p>Earn coins by donating your browser's CPU. No hardware investment. Mine while you browse, earn while you sleep.</p>
+            <p>Mine in your browser with zero setup, or use the open-source C miner for hardware-accelerated performance on macOS. Mine while you browse, earn while you sleep.</p>
             <Link to="/mine" className="btn btn-primary btn-sm">Start Mining</Link>
           </div>
           <div className="persona-card">
             <h3>Traders</h3>
-            <p>Transfer coins peer-to-peer with zero fees. Create mRNA payloads offline and hand-deliver value. No exchange needed.</p>
-            <Link to="/transfer" className="btn btn-primary btn-sm">Transfer Coins</Link>
+            <p>Transfer ZBIO peer-to-peer with zero fees. Create mRNA payloads offline and hand-deliver value. No exchange needed.</p>
+            <Link to="/transfer" className="btn btn-primary btn-sm">Transfer ZBIO</Link>
           </div>
           <div className="persona-card">
             <h3>Developers</h3>
@@ -1808,8 +1932,8 @@ function ForEveryone() {
           </div>
           <div className="persona-card">
             <h3>Businesses</h3>
-            <p>Accept zBioCoin as payment with our drop-in gateway SDK. One script tag, popup checkout &mdash; like PayPal, but decentralized.</p>
-            <a href="https://demo.zcoin.bio" target="_blank" rel="noopener" className="btn btn-primary btn-sm">See Demo Marketplace</a>
+            <p>Accept BioCrypt as payment with our drop-in gateway SDK. One script tag, popup checkout &mdash; like PayPal, but decentralized.</p>
+            <a href="https://file.biocrypt.net" target="_blank" rel="noopener" className="btn btn-primary btn-sm">See File Marketplace</a>
           </div>
         </div>
       </div>
@@ -1821,7 +1945,7 @@ function ForEveryone() {
 
 function Tokenomics({ stats }: { stats: NetworkStats | null }) {
   const r = useReveal();
-  const liveDifficulty = stats?.difficulty ?? "000000";
+  const liveDifficulty = stats?.difficulty ?? "000000000";
   const reward = (stats as any)?.currentReward ?? 50;
   const eraName = (stats as any)?.halvingEraName ?? "Genesis";
   const pct = (stats as any)?.telomerePercent ?? 100;
@@ -1861,9 +1985,9 @@ function Tokenomics({ stats }: { stats: NetworkStats | null }) {
         </div>
         <div className="tok-explain">
           <p>
-            <b>How value is created:</b> Each coin requires real computational work (SHA-256 PoW). Block rewards start at 50 coins
+            <b>How value is created:</b> Each ZBIO requires real computational work (SHA-256 PoW). Block rewards start at 50 ZBIO
             and halve every 210,000 submissions — identical to Bitcoin. The network's telomeres (TTAGGG repeats) shorten with each
-            mine. When they reach zero, mining stops forever (Hayflick limit). Transfers burn 1% of coins, creating deflationary pressure.
+            mine. When they reach zero, mining stops forever (Hayflick limit). Transfers burn 1% of ZBIO, creating deflationary pressure.
           </p>
           <p style={{ marginTop: "0.75rem" }}>
             <Link to="/economics" style={{ color: "var(--primary)", fontWeight: 600 }}>
@@ -1884,25 +2008,25 @@ function SecuritySection() {
     {
       icon: "\u{1F6E1}\u{FE0F}",
       title: "Layer 1 — Proof-of-Work",
-      detail: "SHA-256 mining: each coin requires real computational effort. Dynamic difficulty adjustment every epoch. Identical to Bitcoin's mining algorithm.",
+      detail: "SHA-256 mining: each ZBIO requires real computational effort. Dynamic difficulty adjustment every epoch. Identical to Bitcoin's mining algorithm.",
       color: "var(--primary)",
     },
     {
       icon: "\u{1F58A}\u{FE0F}",
       title: "Layer 2 — Ed25519 Signature",
-      detail: "The network signs every coin with its Ed25519 private key DNA (256-bit security). Any wallet can verify the signature offline using the embedded Network Genome. Mathematically impossible to forge.",
+      detail: "The network signs every ZBIO with its Ed25519 private key DNA (256-bit security). Any wallet can verify the signature offline using the embedded Network Genome. Mathematically impossible to forge.",
       color: "var(--secondary)",
     },
     {
       icon: "\u{1F9EC}",
       title: "Layer 3 — RFLP Fingerprint",
-      detail: "Biological proof of parentage. The network generates a unique parentage marker DNA for each coin, containing restriction enzyme sites derived from the private key. Digest with public enzymes (EcoRI, BamHI, HindIII, PstI, SalI) to see the gel-band pattern — a visual \"paternity test\" proving the coin was born from this network.",
+      detail: "Biological proof of parentage. The network generates a unique parentage marker DNA for each ZBIO, containing restriction enzyme sites derived from the private key. Digest with public enzymes (EcoRI, BamHI, HindIII, PstI, SalI) to see the gel-band pattern — a visual \"paternity test\" proving the ZBIO was born from this network.",
       color: "#d29922",
     },
     {
       icon: "\u{1F6AB}",
       title: "Layer 4 — Nullifier + Duplicate Tracking",
-      detail: "Deterministic nullifiers (SHA-256 of serial + private key) prevent double-spending. The network also tracks all signed serial hashes to reject duplicate submissions. Two overlapping mechanisms for absolute safety.",
+      detail: "Deterministic nullifiers (SHA-256 of serialHash + delimiter + SHA-256 of privateKeyDNA) prevent double-spending. The network also tracks all signed serial hashes to reject duplicate submissions. Two overlapping mechanisms for absolute safety.",
       color: "#f85149",
     },
   ];
@@ -1934,7 +2058,7 @@ function SecuritySection() {
         <div className="security-gel-explainer">
           <div className="gel-ascii">
             <div className="gel-ascii-header">Gel Electrophoresis — Parentage Verification</div>
-            <pre>{`  Network    Coin #1    Coin #2    FORGERY
+            <pre>{`  Network    ZBIO #1    ZBIO #2    FORGERY
   ┈┈┈┈┈┈┈    ┈┈┈┈┈┈┈    ┈┈┈┈┈┈┈    ┈┈┈┈┈┈┈
   ████         ████       ████
     ██           ██         ██
@@ -1948,12 +2072,12 @@ function SecuritySection() {
           </div>
           <p className="text-sm text-muted">
             Like a real DNA paternity test: restriction enzymes cut the marker DNA at known recognition
-            sequences. The resulting fragment lengths form a unique "bar code." A legitimate coin's bands
-            align with the network's pattern. A forged coin produces random, non-matching bands.
+            sequences. The resulting fragment lengths form a unique "bar code." A legitimate ZBIO's bands
+            align with the network's pattern. A forged ZBIO produces random, non-matching bands.
           </p>
         </div>
         <div style={{ textAlign: "center", marginTop: "2rem" }}>
-          <Link to="/how" className="btn btn-secondary btn-lg">
+          <Link to="/how-it-works" className="btn btn-secondary btn-lg">
             Read the full technical breakdown
           </Link>
         </div>
@@ -1971,9 +2095,9 @@ function PaymentGateway() {
       <div className="container" ref={r.ref} data-reveal={r.visible}>
         <div className="section-header">
           <span className="section-tag">Payment Gateway</span>
-          <h2 className="section-title">Accept zBioCoin <span className="grad-text">anywhere</span></h2>
+          <h2 className="section-title">Accept BioCrypt <span className="grad-text">anywhere</span></h2>
           <p className="section-sub">
-            Add zBioCoin payments to any website with a single script tag. Popup checkout,
+            Add BioCrypt payments to any website with a single script tag. Popup checkout,
             cryptographic verification, zero fees. Like PayPal &mdash; but decentralized.
           </p>
         </div>
@@ -1982,14 +2106,14 @@ function PaymentGateway() {
             <div className="gw-step">1</div>
             <h3>Add the SDK</h3>
             <div className="code-block" style={{ margin: 0 }}>
-              <pre className="code-body" style={{ fontSize: "0.75rem", padding: "0.75rem" }}>{`<script src="https://zcoin.bio/gateway/zcoin-pay.js"></script>`}</pre>
+              <pre className="code-body" style={{ fontSize: "0.75rem", padding: "0.75rem" }}>{`<script src="https://www.biocrypt.net/gateway/biocrypt-pay.js"></script>`}</pre>
             </div>
           </div>
           <div className="gw-card">
             <div className="gw-step">2</div>
             <h3>Request payment</h3>
             <div className="code-block" style={{ margin: 0 }}>
-              <pre className="code-body" style={{ fontSize: "0.75rem", padding: "0.75rem" }}>{`const pay = new ZcoinPay();
+              <pre className="code-body" style={{ fontSize: "0.75rem", padding: "0.75rem" }}>{`const pay = new BiocryptPay();
 const result = await pay.requestPayment({
   amount: 2,
   to: "your-public-key",
@@ -2001,15 +2125,15 @@ const result = await pay.requestPayment({
             <div className="gw-step">3</div>
             <h3>User approves in popup</h3>
             <p className="text-muted text-sm">
-              A secure popup opens on zcoin.bio where the buyer selects coins from their wallet
+              A secure popup opens on biocrypt.net where the buyer selects ZBIO from their wallet
               and approves the transfer. mRNA is created client-side &mdash; private keys never leave
               the browser.
             </p>
           </div>
         </div>
         <div style={{ textAlign: "center", marginTop: "2.5rem", display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap" }}>
-          <a href="https://demo.zcoin.bio" target="_blank" rel="noopener" className="btn btn-primary btn-lg btn-glow">
-            Try Demo Marketplace
+          <a href="https://file.biocrypt.net" target="_blank" rel="noopener" className="btn btn-primary btn-lg btn-glow">
+            File Marketplace
           </a>
           <a href="https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway" target="_blank" rel="noopener" className="btn btn-secondary btn-lg">
             View Source
@@ -2031,7 +2155,7 @@ function BuildYourOwn() {
           <span className="section-tag">Open platform</span>
           <h2 className="section-title">Build your own <span className="grad-text">biological token</span></h2>
           <p className="section-sub">
-            zcoin.bio is open source. Fork it, customize the DNA, set your own difficulty,
+            biocrypt.net is open source. Fork it, customize the DNA, set your own difficulty,
             and launch a new network in minutes. Our TypeScript SDK handles everything.
           </p>
         </div>
@@ -2046,13 +2170,13 @@ function BuildYourOwn() {
   generateNetworkKeyPair, sha256,
   mineCoin, signCoinWithNetwork,
   verifyNetworkSignature
-} from "@zcoin/core";
+} from "@biocrypt/core";
 
 // Generate Ed25519 keypair encoded as DNA
 const { publicKeyDNA, privateKeyDNA } = generateNetworkKeyPair();
 const networkId = sha256(publicKeyDNA).slice(0, 16);
 
-// Mine a coin (180-base gene, SHA-256 proof-of-work)
+// Mine ZBIO (180-base gene, SHA-256 proof-of-work)
 const coin = mineCoin("00000");
 const signed = signCoinWithNetwork(
   coin, privateKeyDNA, networkId, publicKeyDNA
@@ -2076,7 +2200,7 @@ console.log(verifyNetworkSignature(signed, publicKeyDNA)); // true`}</pre>
 function Roadmap() {
   const r = useReveal();
   const items = [
-    { q: "Now", title: "Genesis", items: ["Browser mining", "Wallet management", "Peer-to-peer transfers", "Network signing", "Payment gateway SDK", "Demo marketplace"], done: true },
+    { q: "Now", title: "Genesis", items: ["Browser mining", "Native C miner (macOS)", "Wallet management", "Peer-to-peer transfers", "Network signing", "Payment gateway SDK", "File Marketplace"], done: true },
     { q: "Q3 2026", title: "Growth", items: ["Mobile wallet app", "Multi-network support", "WordPress / WooCommerce plugin", "Developer SDK + docs"], done: false },
     { q: "Q4 2026", title: "Ecosystem", items: ["Payment gateway plugin", "Smart protein contracts", "Decentralized app store", "Governance via DNA voting"], done: false },
     { q: "2027", title: "Evolution", items: ["Cross-network transfers", "Hardware wallet support", "Enterprise API", "Organism-based DeFi"], done: false },
@@ -2122,7 +2246,7 @@ function Community() {
           <span className="section-tag">Community</span>
           <h2 className="section-title">Join the <span className="grad-text">evolution</span></h2>
           <p className="section-sub">
-            zcoin.bio is built by the community, for the community. Every miner, trader,
+            biocrypt.net is built by the community, for the community. Every miner, trader,
             and developer helps the network grow stronger.
           </p>
         </div>
@@ -2133,11 +2257,11 @@ function Community() {
           </a>
           <a href="https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway" className="social-card" target="_blank" rel="noopener">
             <div className="social-icon">Payment Gateway</div>
-            <p>Demo marketplace, embeddable SDK, and integration examples for accepting zBioCoin payments.</p>
+            <p>File Marketplace, embeddable SDK, and integration examples for accepting BioCrypt payments.</p>
           </a>
-          <a href="https://demo.zcoin.bio" className="social-card" target="_blank" rel="noopener">
+          <a href="https://file.biocrypt.net" className="social-card" target="_blank" rel="noopener">
             <div className="social-icon">Live Demo</div>
-            <p>Try the marketplace demo &mdash; list items, buy with zBioCoin, see the payment gateway in action.</p>
+            <p>Try the File Marketplace &mdash; list items, buy with BioCrypt, see the payment gateway in action.</p>
           </a>
         </div>
       </div>
@@ -2151,17 +2275,17 @@ function FAQ() {
   const r = useReveal();
   const [open, setOpen] = useState<number | null>(null);
   const faqs = [
-    { q: "Why should I use zBioCoin?", a: "zBioCoin is the only cryptocurrency where your wallet is living DNA and every coin is a gene you physically own. No KYC, no sign-up, no app download \u2014 mine coins in your browser, trade them offline via mRNA files, and verify them with real biology (gel electrophoresis). There are zero fees for peer-to-peer transfers, a hard cap of 21 million coins with Bitcoin-style halving, and a payment gateway merchants can add with one script tag. If you want a currency that can\u2019t be censored, seized, or inflated \u2014 and that keeps working even if the server disappears \u2014 zBioCoin is built for you." },
-    { q: "Is zcoin.bio a real cryptocurrency?", a: "Yes. It uses SHA-256 proof-of-work (same as Bitcoin), Ed25519 asymmetric signatures (same as Solana and Stellar), and nullifier-based double-spend prevention. The biological encoding is a unique representation layer, but the underlying security is mathematically equivalent to established cryptocurrencies." },
-    { q: "How do I start mining?", a: "Create a wallet, go to the Mine page, and click 'Start Mining.' Your browser will begin proof-of-work computation in a background Web Worker. Mining runs continuously until you stop it. When a coin is found, it's automatically submitted to the network for Ed25519 signing. No downloads, no hardware \u2014 just a web browser." },
-    { q: "Can coins be double-spent?", a: "No. Four overlapping defenses prevent it: (1) SHA-256 proof-of-work, (2) Ed25519 signature verification, (3) RFLP biological fingerprint validation, and (4) nullifier-based spend tracking with duplicate serial rejection. Offline transfers carry a theoretical risk, mitigated by lineage tracking and nullifier broadcast upon reconnection." },
-    { q: "What makes zBioCoin different from Bitcoin?", a: "Bitcoin uses a blockchain. zBioCoin uses DNA-encoded wallets, Ed25519 signatures encoded as DNA, and RFLP biological fingerprints for parentage verification. Every wallet carries the Network Genome, so coins are self-validating with both mathematical and biological proof \u2014 even if the server goes offline forever. You can literally run a gel electrophoresis on your coin to prove it's genuine." },
-    { q: "Can I create my own token?", a: "Absolutely. The @zcoin/core TypeScript package is open source. Call generateNetworkKeyPair() to get an Ed25519 keypair encoded as DNA, set your difficulty, and deploy. Coins mined on your network carry your unique Ed25519 signature \u2014 they're distinct from zcoin.bio coins but use the same engine." },
-    { q: "Is there a pre-mine or ICO?", a: "No. Zero coins were pre-mined. There is no ICO, no VC funding, no token sale. Every coin in existence was mined through proof-of-work by someone contributing compute to the network. The 10% network fee is the only revenue mechanism, and it's transparent." },
-    { q: "How do offline transfers work?", a: "When you send a coin, an mRNA payload file is generated containing the coin gene, Ed25519 signature, mining proof, and ownership proofs. The recipient's wallet verifies the signature using the Network Genome \u2014 no server needed. Send via email, USB, QR code, or any medium. When either party connects, the nullifier is broadcast." },
-    { q: "What is the DNA actually encoding?", a: "The DNA uses the real human codon table (64 codons \u2192 20 amino acids). Wallet DNA is read by a ribosome function that translates codons into proteins. Coins are 180-base gene sequences yielding ~60 amino acids (259 bits of entropy). Each signed coin also carries parentage marker DNA \u2014 a separate strand with restriction enzyme sites that form a unique RFLP fingerprint. The network's Ed25519 keys are encoded as 128-base DNA strands. Every key, signature, fingerprint, and coin is pure DNA." },
-    { q: "What happens if the zcoin.bio server goes down?", a: "Your coins remain valid. Every wallet embeds the Network Genome (Ed25519 public key), and every coin carries its Ed25519 signature plus an RFLP fingerprint. Verification is a pure math + biology operation \u2014 no server needed. Run the gel electrophoresis, verify the Ed25519 signature, and trade coins peer-to-peer forever." },
-    { q: "What is RFLP and gel electrophoresis?", a: "RFLP (Restriction Fragment Length Polymorphism) is a real technique from forensic DNA analysis and paternity testing. Restriction enzymes cut DNA at specific recognition sequences (like EcoRI cuts at GAATTC). The resulting fragment lengths form a unique pattern. In zBioCoin, each signed coin carries a parentage marker DNA with restriction sites derived from the network's private key. Digesting it with the public enzyme panel reveals a gel-band pattern that must match the network's known profile \u2014 proving the coin was 'born' from this network." },
+    { q: "Why should I use BioCrypt?", a: "BioCrypt is the only cryptocurrency where your wallet is living DNA and every ZBIO is a gene you physically own. No KYC, no sign-up, no app download \u2014 mine ZBIO in your browser, trade them offline via mRNA files, and verify them with real biology (gel electrophoresis). There are zero fees for peer-to-peer transfers, a hard cap of 21 million ZBIO with Bitcoin-style halving, and a payment gateway merchants can add with one script tag. If you want a currency that can\u2019t be censored, seized, or inflated \u2014 and that keeps working even if the server disappears \u2014 BioCrypt is built for you." },
+    { q: "Is biocrypt.net a real cryptocurrency?", a: "Yes. It uses SHA-256 proof-of-work (same as Bitcoin), Ed25519 asymmetric signatures (same as Solana and Stellar), and nullifier-based double-spend prevention. The biological encoding is a unique representation layer, but the underlying security is mathematically equivalent to established cryptocurrencies." },
+    { q: "How do I start mining?", a: "Two ways: (1) Browser \u2014 create a wallet, go to the Mine page, click \u2018Start Mining.\u2019 A Web Worker runs proof-of-work in the background. (2) Native C miner \u2014 compile zcoin-miner.c with clang and run it from your terminal for orders-of-magnitude faster hashing with multi-threaded, hardware-accelerated SHA-256 on Apple Silicon. Both submit ZBIO to the network automatically." },
+    { q: "Can ZBIO be double-spent?", a: "No. Four overlapping defenses prevent it: (1) SHA-256 proof-of-work, (2) Ed25519 signature verification, (3) RFLP biological fingerprint validation, and (4) nullifier-based spend tracking with duplicate serial rejection. Offline transfers carry a theoretical risk, mitigated by lineage tracking and nullifier broadcast upon reconnection." },
+    { q: "What makes BioCrypt different from Bitcoin?", a: "Bitcoin uses a blockchain. BioCrypt uses DNA-encoded wallets, Ed25519 signatures encoded as DNA, and RFLP biological fingerprints for parentage verification. Every wallet carries the Network Genome, so every ZBIO is self-validating with both mathematical and biological proof \u2014 even if the server goes offline forever. You can literally run a gel electrophoresis on your ZBIO to prove it's genuine." },
+    { q: "Can I create my own token?", a: "Absolutely. The @biocrypt/core TypeScript package is open source. Call generateNetworkKeyPair() to get an Ed25519 keypair encoded as DNA, set your difficulty, and deploy. Each ZBIO mined on your network carries your unique Ed25519 signature \u2014 they're distinct from biocrypt.net ZBIO but use the same engine." },
+    { q: "Is there a pre-mine or ICO?", a: "No. No ZBIO was pre-mined. There is no ICO, no VC funding, no token sale. Every ZBIO in existence was mined through proof-of-work by someone contributing compute to the network. The 10% network fee is the only revenue mechanism, and it's transparent." },
+    { q: "How do offline transfers work?", a: "When you send ZBIO, an mRNA payload file is generated containing the ZBIO gene, Ed25519 signature, mining proof, and ownership proofs. The recipient's wallet verifies the signature using the Network Genome \u2014 no server needed. Send via email, USB, QR code, or any medium. When either party connects, the nullifier is broadcast." },
+    { q: "What is the DNA actually encoding?", a: "The DNA uses the real human codon table (64 codons \u2192 20 amino acids). Wallet DNA is read by a ribosome function that translates codons into proteins. Each ZBIO is a 180-base gene sequence yielding ~60 amino acids (259 bits of entropy). Each signed ZBIO also carries parentage marker DNA \u2014 a separate strand with restriction enzyme sites that form a unique RFLP fingerprint. The network's Ed25519 keys are encoded as 128-base DNA strands. Every key, signature, fingerprint, and ZBIO is pure DNA." },
+    { q: "What happens if the biocrypt.net server goes down?", a: "Your ZBIO stays valid. Every wallet embeds the Network Genome (Ed25519 public key), and every ZBIO carries its Ed25519 signature plus an RFLP fingerprint. Verification is a pure math + biology operation \u2014 no server needed. Run the gel electrophoresis, verify the Ed25519 signature, and trade ZBIO peer-to-peer forever." },
+    { q: "What is RFLP and gel electrophoresis?", a: "RFLP (Restriction Fragment Length Polymorphism) is a real technique from forensic DNA analysis and paternity testing. Restriction enzymes cut DNA at specific recognition sequences (like EcoRI cuts at GAATTC). The resulting fragment lengths form a unique pattern. In BioCrypt, each signed ZBIO carries a parentage marker DNA with restriction sites derived from the network's private key. Digesting it with the public enzyme panel reveals a gel-band pattern that must match the network's known profile \u2014 proving the ZBIO was 'born' from this network." },
   ];
   return (
     <section className="section section-alt" id="faq">
@@ -2196,7 +2320,7 @@ function CTA() {
       <SideHelix side="right" top="10%" />
       <FloatingBases count={15} />
       <div className="container" style={{ position: "relative", zIndex: 1 }}>
-        <h2>Ready to mine your first coin?</h2>
+        <h2>Ready to mine your first ZBIO?</h2>
         <p>It takes 30 seconds to create a wallet and start mining. No downloads. No signup. Just biology.</p>
         <div className="hero-actions" style={{ justifyContent: "center" }}>
           <Link to="/mine" className="btn btn-primary btn-lg btn-glow">Start Mining Now</Link>
@@ -2215,7 +2339,7 @@ function Footer() {
       <div className="container">
         <div className="footer-grid">
           <div>
-            <div className="footer-brand">&#x29D6; zcoin.bio</div>
+            <div className="footer-brand">&#x29D6; biocrypt.net</div>
             <p className="text-sm text-muted">DNA-based cryptocurrency.<br />Open source. Fair launch.</p>
           </div>
           <div>
@@ -2236,11 +2360,11 @@ function Footer() {
             <h4>Community</h4>
             <a href="https://github.com/pipikaex/biocoin" target="_blank" rel="noopener">GitHub</a>
             <a href="https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway" target="_blank" rel="noopener">Gateway SDK</a>
-            <a href="https://demo.zcoin.bio" target="_blank" rel="noopener">Demo Marketplace</a>
+            <a href="https://file.biocrypt.net" target="_blank" rel="noopener">File Marketplace</a>
           </div>
         </div>
         <div className="footer-bottom">
-          <span>&copy; {new Date().getFullYear()} zcoin.bio &mdash; All rights reserved.</span>
+          <span>&copy; {new Date().getFullYear()} biocrypt.net &mdash; All rights reserved.</span>
           <span className="text-muted text-xs">Built with DNA, powered by SHA-256 + Ed25519 + RFLP.</span>
         </div>
       </div>
@@ -2344,7 +2468,7 @@ const styles = `
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; padding: 2rem 1.5rem;
 }
-.hero-bg { position: absolute; inset: 0; z-index: 0; }
+.hero-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
 .hero-grid {
   position: absolute; inset: 0;
   background-image:
@@ -2367,20 +2491,21 @@ const styles = `
 }
 
 .hero-slide-content {
-  position: relative; z-index: 1; text-align: center; max-width: 820px;
+  position: relative; z-index: 1; text-align: center; max-width: 820px; width: 100%;
   display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  overflow: hidden; box-sizing: border-box;
 }
 .hero-badge {
   display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--primary); border: 1px solid rgba(0,229,153,0.25);
   padding: 0.35rem 1rem; border-radius: 999px;
 }
-.hero-title { font-size: 2.8rem; font-weight: 800; line-height: 1.18; }
-.hero-sub { font-size: 1.05rem; color: var(--text-muted); line-height: 1.7; max-width: 640px; }
+.hero-title { font-size: 2.8rem; font-weight: 800; line-height: 1.18; word-break: break-word; overflow-wrap: break-word; }
+.hero-sub { font-size: 1.05rem; color: var(--text-muted); line-height: 1.7; max-width: 640px; word-break: break-word; }
 .hero-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
-.hero-visual { display: flex; justify-content: center; width: 100%; }
+.hero-visual { display: flex; justify-content: center; width: 100%; overflow: hidden; max-width: 100%; }
 .hero-stats { display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
-.hero-stat { text-align: center; }
+.hero-stat { text-align: center; min-width: 0; }
 .hero-stat-val { font-family: var(--mono); font-size: 1.8rem; font-weight: 800; color: var(--primary); }
 .hero-stat-lbl { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
 .hero-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
@@ -2437,7 +2562,7 @@ const styles = `
   100% { transform: scaleX(0.4); opacity: 0.4; }
 }
 
-.slide-codons { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.slide-codons { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; max-width: 100%; }
 .slide-codon { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .slide-codon-bases { font-family: var(--mono); font-size: 1.1rem; font-weight: 700; letter-spacing: 3px; }
 .slide-codon-arrow { color: var(--text-muted); font-size: 1rem; }
@@ -2446,7 +2571,7 @@ const styles = `
   justify-content: center; font-family: var(--mono); font-size: 0.72rem; font-weight: 700; color: white;
 }
 
-.slide-blocks { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.slide-blocks { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 100%; }
 .slide-block {
   width: 52px; height: 52px; border: 2px solid var(--text-muted); border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
@@ -2454,7 +2579,7 @@ const styles = `
 }
 .slide-block.heavy { border-color: #f85149; color: #f85149; }
 
-.slide-telo { width: 100%; max-width: 600px; }
+.slide-telo { width: 100%; max-width: 600px; box-sizing: border-box; }
 .slide-telo-bar {
   display: flex; align-items: center; height: 52px; border-radius: 26px;
   border: 2px solid rgba(255,255,255,0.12); overflow: hidden; background: rgba(255,255,255,0.02);
@@ -2467,9 +2592,9 @@ const styles = `
 }
 .slide-telo-end.left { border-radius: 26px 0 0 26px; }
 .slide-telo-end.right { border-radius: 0 26px 26px 0; background: linear-gradient(270deg, var(--primary), rgba(0,229,153,0.4)); }
-.slide-telo-body { flex: 1; text-align: center; font-family: var(--mono); font-size: 0.9rem; font-weight: 700; }
+.slide-telo-body { flex: 1; text-align: center; font-family: var(--mono); font-size: 0.9rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
 
-.slide-gel { display: flex; gap: 1.5rem; justify-content: center; }
+.slide-gel { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; max-width: 100%; }
 .slide-gel-lane { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .slide-gel-label { font-size: 0.72rem; font-weight: 700; }
 .slide-gel-track {
@@ -2488,14 +2613,14 @@ const styles = `
 .slide-shield {
   display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 1rem;
   border-radius: 10px; border: 1.5px solid; background: rgba(0,0,0,0.2);
-  font-size: 0.85rem;
+  font-size: 0.85rem; min-width: 0;
 }
 .slide-shield-num {
   width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center;
   justify-content: center; font-weight: 900; font-size: 0.8rem; color: white; flex-shrink: 0;
 }
 
-.slide-mrna { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.slide-mrna { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: center; max-width: 100%; }
 .slide-mrna-icon { font-size: 2.5rem; }
 .slide-mrna-arrow { font-size: 1.8rem; color: var(--text-muted); }
 .slide-mrna-envelope {
@@ -2509,11 +2634,11 @@ const styles = `
 
 .slide-code {
   width: 100%; max-width: 520px; background: #0d1117; border: 1px solid var(--border);
-  border-radius: 10px; padding: 1rem 1.25rem; text-align: left;
+  border-radius: 10px; padding: 1rem 1.25rem; text-align: left; box-sizing: border-box; overflow: hidden;
 }
 .slide-code pre {
   font-family: var(--mono); font-size: 0.72rem; line-height: 1.7;
-  color: #c9d1d9; margin: 0; white-space: pre-wrap;
+  color: #c9d1d9; margin: 0; white-space: pre-wrap; word-break: break-all;
 }
 
 .slide-personas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; width: 100%; max-width: 600px; }
@@ -2521,6 +2646,7 @@ const styles = `
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   padding: 0.75rem 0.5rem; border: 1px solid var(--border); border-radius: 10px;
   background: rgba(255,255,255,0.02); text-align: center; font-size: 0.72rem; color: var(--text-muted);
+  min-width: 0; overflow: hidden;
 }
 .slide-persona-emoji { font-size: 1.8rem; }
 .slide-persona strong { color: var(--primary); font-size: 0.78rem; }
@@ -2529,11 +2655,11 @@ const styles = `
 .slide-eco-item {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   padding: 0.75rem 0.5rem; border: 1px solid var(--border); border-radius: 10px;
-  font-size: 0.78rem; font-weight: 600;
+  font-size: 0.78rem; font-weight: 600; min-width: 0; overflow: hidden;
 }
 .slide-eco-item span:first-child { font-size: 1.5rem; }
 
-.slide-early { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
+.slide-early { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; justify-content: center; max-width: 100%; }
 .slide-era { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .slide-era-icon { font-size: 2.5rem; }
 .slide-era strong { font-family: var(--mono); font-size: 1.1rem; font-weight: 900; }
@@ -2541,15 +2667,49 @@ const styles = `
 .slide-era-arrow { font-size: 2rem; color: var(--text-dim); }
 
 @media (max-width: 640px) {
-  .hero-title { font-size: 1.8rem; }
-  .hero { min-height: auto; padding: 4rem 1rem 3rem; }
-  .hero-arrow { width: 36px; height: 36px; font-size: 1rem; }
-  .hero-arrow-prev { left: 0.5rem; }
-  .hero-arrow-next { right: 0.5rem; }
-  .hero-stat-val { font-size: 1.3rem; }
-  .slide-personas { grid-template-columns: repeat(2, 1fr); }
-  .slide-economy { grid-template-columns: repeat(2, 1fr); }
+  .hero { min-height: 80vh; padding: 4rem 1rem 3rem; }
+  .hero-title { font-size: 1.5rem; }
+  .hero-sub { font-size: 0.92rem; }
+  .hero-arrow { width: 32px; height: 32px; font-size: 0.9rem; }
+  .hero-arrow-prev { left: 0.25rem; }
+  .hero-arrow-next { right: 0.25rem; }
+  .hero-stat-val { font-size: 1.1rem; }
+  .hero-stats { gap: 0.75rem; }
+  .hero-badges { gap: 0.35rem; }
+  .hero-pill { font-size: 0.58rem; padding: 0.2rem 0.6rem; }
+  .slide-personas { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+  .slide-persona { padding: 0.5rem 0.25rem; font-size: 0.62rem; }
+  .slide-persona-emoji { font-size: 1.3rem; }
+  .slide-economy { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+  .slide-eco-item { padding: 0.5rem 0.25rem; font-size: 0.68rem; }
+  .slide-eco-item span:first-child { font-size: 1.1rem; }
+  .slide-early { gap: 0.6rem; }
+  .slide-era-icon { font-size: 1.6rem; }
+  .slide-era strong { font-size: 0.85rem; }
+  .slide-era-arrow { font-size: 1.2rem; }
+  .slide-shields { gap: 0.4rem; }
+  .slide-shield { font-size: 0.72rem; padding: 0.5rem 0.75rem; gap: 0.5rem; }
+  .slide-shield-num { width: 24px; height: 24px; font-size: 0.65rem; }
+  .slide-codons { gap: 0.5rem; }
+  .slide-codon-bases { font-size: 0.85rem; letter-spacing: 1px; }
+  .slide-codon-amino { width: 30px; height: 30px; font-size: 0.6rem; }
+  .slide-blocks { gap: 4px; }
+  .slide-block { width: 36px; height: 36px; font-size: 0.55rem; }
+  .slide-gel { gap: 0.75rem; }
+  .slide-gel-track { width: 30px; height: 120px; }
+  .slide-telo-bar { height: 40px; }
+  .slide-telo-end { font-size: 0.5rem; padding: 0 6px; }
+  .slide-telo-body { font-size: 0.65rem; }
+  .slide-mrna { gap: 0.5rem; }
+  .slide-mrna-icon { font-size: 1.8rem; }
+  .slide-mrna-arrow { font-size: 1.2rem; }
+  .slide-mrna-envelope { padding: 0.5rem 0.75rem; }
+  .slide-code { padding: 0.75rem; }
+  .slide-code pre { font-size: 0.6rem; }
   .helix-wrap { display: none; }
+  .hero-badge { font-size: 0.6rem; padding: 0.25rem 0.7rem; }
+  .hero-dots { bottom: 1rem; }
+  .hero-counter { bottom: 1rem; right: 1rem; font-size: 0.65rem; }
 }
 
 .btn-glow { box-shadow: 0 0 30px rgba(0,229,153,0.25); }
@@ -2706,7 +2866,7 @@ const styles = `
   max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 1.25rem;
 }
 .gel-canvas {
-  width: 100%; height: 460px; border-radius: var(--radius-lg);
+  width: 100%; height: 520px; border-radius: var(--radius-lg);
   background: linear-gradient(180deg, rgba(6,9,15,0.95) 0%, rgba(10,14,22,0.98) 100%);
   border: 1px solid var(--border);
 }
@@ -2777,8 +2937,17 @@ const styles = `
   width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.08); transition: all 0.4s;
 }
+.flow-dot { cursor: pointer; }
+.flow-dot:hover { border-color: var(--fc); transform: scale(1.4); }
 .flow-dot.active { background: var(--fc); border-color: var(--fc); box-shadow: 0 0 8px var(--fc); transform: scale(1.3); }
 .flow-dot.done { background: var(--fc); border-color: var(--fc); opacity: 0.4; }
+.flow-resume-btn {
+  margin-top: 0.5rem; padding: 0.4rem 1rem; border-radius: 6px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--text-muted); font-size: 0.72rem; cursor: pointer;
+  transition: all 0.3s; width: 100%; text-align: center;
+}
+.flow-resume-btn:hover { border-color: var(--primary); color: var(--primary); }
 
 .flow-step-btn {
   display: flex; align-items: flex-start; gap: 0.75rem;
@@ -2934,6 +3103,13 @@ const styles = `
   font-size: 0.8rem; color: var(--text-muted);
 }
 
+/* ── NO KYC title ──────────────────────── */
+.no-kyc-title { font-size: 3rem; color: #f85149; font-weight: 900; }
+
+/* ── Global overflow safety ────────────── */
+.section { overflow-x: hidden; }
+.section .container { overflow: hidden; }
+
 /* ── Responsive ─────────────────────────── */
 @media (max-width: 900px) {
   .why-grid { grid-template-columns: repeat(2, 1fr); }
@@ -2941,15 +3117,25 @@ const styles = `
   .community-grid { grid-template-columns: 1fr; }
   .footer-grid { grid-template-columns: 1fr 1fr; gap: 1.5rem; }
   .side-helix { display: none; }
+  .persona-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   .section { padding: 3rem 0; }
-  .section-title { font-size: 1.8rem; }
+  .section-title { font-size: 1.6rem; word-break: break-word; }
+  .section-sub { font-size: 0.88rem; }
   .why-grid, .persona-grid { grid-template-columns: 1fr; }
   .tok-grid { grid-template-columns: repeat(2, 1fr); }
+  .tok-val { font-size: 1.5rem; }
   .footer-grid { grid-template-columns: 1fr; }
   .footer-bottom { flex-direction: column; gap: 0.5rem; text-align: center; }
   .side-helix { display: none; }
   .floating-bases { display: none; }
+  .no-kyc-title { font-size: 2rem; }
+  .code-body { font-size: 0.68rem; padding: 0.75rem; }
+  .cta-section h2 { font-size: 1.6rem; }
+  .cta-section p { font-size: 0.88rem; }
+  .security-layer { flex-direction: column; align-items: center; text-align: center; }
+  .step { gap: 0.75rem; }
+  .step-n { font-size: 1.4rem; width: 36px; }
 }
 `;

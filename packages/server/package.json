@@ -1,5 +1,5 @@
 {
-  "name": "@zcoin/server",
+  "name": "@biocrypt/server",
   "version": "0.1.0",
   "scripts": {
     "build": "nest build",
@@ -10,16 +10,18 @@
   "dependencies": {
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/platform-express": "^11.1.19",
     "@nestjs/platform-socket.io": "^11.0.0",
     "@nestjs/serve-static": "^5.0.5",
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.0.0",
-    "@zcoin/core": "*",
+    "@types/multer": "^2.1.0",
+    "@biocrypt/core": "*",
     "canvas": "^3.1.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "helmet": "^8.1.0",
+    "multer": "^2.1.1",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0"
   },

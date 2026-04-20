@@ -1,19 +1,13 @@
 import { Controller, Post, Body } from "@nestjs/common";
 import { TransferService } from "./transfer.service";
+import { TransferDto, ReceiveDto, ValidateDto, ValidateBundleDto } from "./transfer.dto";
 
 @Controller("transfer")
 export class TransferController {
   constructor(private readonly transferService: TransferService) {}
 
   @Post()
-  transfer(@Body() body: {
-    senderWalletId: string;
-    senderPrivateKeyDNA: string;
-    coinSerialHash: string;
-    recipientPublicKeyHash?: string;
-    networkSignature: string;
-    miningProof: { nonce: number; hash: string; difficulty: string };
-  }) {
+  transfer(@Body() body: TransferDto) {
     return this.transferService.transfer(
       body.senderWalletId,
       body.senderPrivateKeyDNA,
@@ -25,17 +19,17 @@ export class TransferController {
   }
 
   @Post("receive")
-  receive(@Body() body: { walletId: string; mrna: string }) {
+  receive(@Body() body: ReceiveDto) {
     return this.transferService.receive(body.walletId, body.mrna);
   }
 
   @Post("validate")
-  validate(@Body() body: { mrna: string }) {
+  validate(@Body() body: ValidateDto) {
     return this.transferService.validateOffline(body.mrna);
   }
 
   @Post("validate-bundle")
-  validateBundle(@Body() body: { data: string }) {
+  validateBundle(@Body() body: ValidateBundleDto) {
     return this.transferService.validateBundle(body.data);
   }
 }

@@ -1,14 +1,14 @@
 module.exports = {
   apps: [{
-    name: "zcoin-bio",
+    name: "biocrypt-net",
     script: "packages/server/dist/main.js",
-    cwd: "/home/dev/zcoin-bio",
+    cwd: "/home/dev/biocrypt-net",
     env: {
       PORT: 3100,
-      INITIAL_DIFFICULTY_ZEROS: "10",
+      INITIAL_DIFFICULTY_ZEROS: "9",
       DIFFICULTY_ADJUSTMENT_INTERVAL: "2016",
       TARGET_BLOCK_TIME_MS: "600000",
-      DATA_DIR: "/home/dev/zcoin-bio/data",
+      DATA_DIR: "/home/dev/biocrypt-net/data",
       NETWORK_FEE_RATE: "0.1",
       NODE_ENV: "production",
     },

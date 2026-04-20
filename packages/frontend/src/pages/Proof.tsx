@@ -4,7 +4,7 @@ import {
   sha256, ribosome, isCoinProtein, getCoinSerial,
   verifyMiningProof, verifyNetworkSignature, verifyRFLPFingerprint,
   type SignedCoin, type RFLPFingerprint,
-} from "@zcoin/core";
+} from "@biocrypt/core";
 import { useReveal } from "../hooks/useReveal";
 import { useStore } from "../store";
 import { api } from "../api";
@@ -206,7 +206,7 @@ function HeroSection() {
         </div>
         <h1 className="proof-title">Cryptographic Proof</h1>
         <p className="proof-subtitle">
-          Every zBioCoin carries four independent, mathematically verifiable proofs of authenticity.
+          Every BioCrypt coin carries four independent, mathematically verifiable proofs of authenticity.
           This page demonstrates <strong>why forging a coin is computationally impossible</strong> — and lets you try.
         </p>
       </div>
@@ -224,9 +224,9 @@ function MathSection() {
         <LockCard
           num={1} name="SHA-256 Proof-of-Work" color="#f59e0b"
           equation="H(gene || nonce) < target"
-          bits={24} ops="16,777,216"
-          explanation="Must find a nonce where the hash of the coin gene has 6+ leading zeros. Each attempt is a full SHA-256 computation. Cannot shortcut — SHA-256 is a one-way function."
-          analogy="Like trying every combination on a lock with 16 million possibilities. No pattern, no shortcut."
+          bits={36} ops="~68,719,476,736"
+          explanation="Must find a nonce where the hash of the coin gene has 9 leading hex zeros (36 bits). Each attempt is a full SHA-256 computation. Cannot shortcut — SHA-256 is a one-way function."
+          analogy="Like trying every combination on a lock with ~68.7 billion (2^36) possibilities on average. No pattern, no shortcut."
         />
         <LockCard
           num={2} name="Ed25519 Digital Signature" color="#3b82f6"
@@ -244,7 +244,7 @@ function MathSection() {
         />
         <LockCard
           num={4} name="Nullifier Double-Spend" color="#ef4444"
-          equation="N = SHA-256(serial || privKey)"
+          equation="N = SHA-256(serialHash || delimiter || SHA-256(privKeyDNA))"
           bits={256} ops="1.16 x 10^77"
           explanation="Each spend publishes a deterministic nullifier hash. The same coin always produces the same nullifier. Network rejects duplicates. Cannot produce a different nullifier for the same coin."
           analogy="Like a one-time seal that shatters. Once broken, everyone can see it was used. Cannot be resealed."
@@ -409,7 +409,7 @@ function TamperSection({ coin, activeTamper, setActiveTamper, tamperResults, rea
 function EntropySection() {
   const r = useReveal();
   const layers = [
-    { name: "SHA-256 PoW (6 zeros)", bits: 24, color: "#f59e0b" },
+    { name: "SHA-256 PoW (9 hex zeros, 36 bits)", bits: 36, color: "#f59e0b" },
     { name: "Ed25519 Signature", bits: 128, color: "#3b82f6" },
     { name: "RFLP Marker DNA", bits: 96, color: "#8b5cf6" },
     { name: "Nullifier Hash", bits: 256, color: "#ef4444" },
@@ -441,11 +441,11 @@ function EntropySection() {
       <div className="time-to-crack">
         <h3>Time to Crack at Various Speeds</h3>
         <div className="crack-grid">
-          <CrackRow attacker="Consumer GPU" speed="10^9 H/s" layer="PoW only" years={formatYears(Math.pow(2, 24) / 1e9 / 3.15e7)} />
+          <CrackRow attacker="Consumer GPU" speed="10^9 H/s" layer="PoW only" years={formatYears(Math.pow(2, 36) / 1e9 / 3.15e7)} />
           <CrackRow attacker="GPU Farm (1000x)" speed="10^12 H/s" layer="Ed25519" years={formatYears(Math.pow(2, 128) / 1e12 / 3.15e7)} />
           <CrackRow attacker="All Bitcoin miners" speed="10^20 H/s" layer="Ed25519" years={formatYears(Math.pow(2, 128) / 1e20 / 3.15e7)} />
           <CrackRow attacker="Theoretical quantum (Grover)" speed="sqrt reduction" layer="Ed25519" years={formatYears(Math.pow(2, 64) / 1e15 / 3.15e7)} />
-          <CrackRow attacker="All matter in universe as compute" speed="~10^80 ops/s" layer="Combined (504 bits)" years="10^71 years" />
+          <CrackRow attacker="All matter in universe as compute" speed="~10^80 ops/s" layer="Combined (516 bits)" years="10^71 years" />
         </div>
         <div className="crack-context">
           <div className="crack-context-item">
@@ -458,7 +458,7 @@ function EntropySection() {
           </div>
           <div className="crack-context-item">
             <div className="crack-context-val">10^{Math.floor(totalBits * 0.301)}</div>
-            <div className="crack-context-lbl">Operations to break zBioCoin</div>
+            <div className="crack-context-lbl">Operations to break BioCrypt</div>
           </div>
         </div>
       </div>
@@ -572,12 +572,12 @@ function ImpossibilitySection() {
         </div>
         <h2>Mathematically Proven Unforgeable</h2>
         <p>
-          To forge a single zBioCoin, an attacker must simultaneously: compute a valid SHA-256 proof-of-work,
+          To forge a single BioCrypt coin, an attacker must simultaneously: compute a valid SHA-256 proof-of-work,
           forge an Ed25519 signature without the private key, generate matching RFLP restriction enzyme fragments
           from unknown parent DNA, and produce a unique nullifier that hasn't been seen before.
         </p>
         <p>
-          The probability of success is approximately <strong className="mono">2^-504</strong> per attempt.
+          The probability of success is approximately <strong className="mono">2^-516</strong> per attempt.
           If every atom in the observable universe (10^80) computed one attempt per nanosecond for the entire
           age of the universe (13.8 billion years), the probability of forging even ONE coin would be
           approximately <strong className="mono">10^-54</strong> — effectively zero.
@@ -624,7 +624,7 @@ const proofStyles = `
 
 /* Lock cards */
 .locks-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: grid; grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
 }
 .lock-card {

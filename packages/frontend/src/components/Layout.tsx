@@ -3,14 +3,15 @@ import { useEffect, useState } from "react";
 import { useStore } from "../store";
 
 const PAGE_TITLES: Record<string, string> = {
-  "/": "zBioCoin — DNA-Based Cryptocurrency",
-  "/wallet": "Wallet — zBioCoin",
-  "/mine": "Mine Coins — zBioCoin",
-  "/transfer": "Transfer — zBioCoin",
-  "/network": "Network Explorer — zBioCoin",
-  "/economics": "Economics — zBioCoin",
-  "/proof": "Cryptographic Proof — zBioCoin",
-  "/how-it-works": "How It Works — zBioCoin",
+  "/": "BioCrypt — DNA-Based Cryptocurrency",
+  "/wallet": "Wallet — BioCrypt",
+  "/mine": "Mine Coins — BioCrypt",
+  "/transfer": "Transfer — BioCrypt",
+  "/network": "Network Explorer — BioCrypt",
+  "/economics": "Economics — BioCrypt",
+  "/proof": "Cryptographic Proof — BioCrypt",
+  "/how-it-works": "How It Works — BioCrypt",
+  "/organism": "Network Organism — BioCrypt",
 };
 
 export function Layout() {
@@ -22,27 +23,30 @@ export function Layout() {
   const mining = useStore((s) => s.mining);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const signedCount = coins.filter((c) => c.signed).length;
+  const coinCount = coins.length;
 
   useEffect(() => {
-    document.title = PAGE_TITLES[location.pathname] || "zBioCoin";
+    document.title = PAGE_TITLES[location.pathname] || "BioCrypt";
     setMenuOpen(false);
   }, [location.pathname]);
 
   return (
     <>
       <nav className="navbar">
+        <div className="prerelease-banner">
+          &#x26A0; PRE-PRODUCTION MODE &mdash; The network is live but the trust model is centralized. Coins have no guaranteed value. Mine at your own discretion.
+        </div>
         <div className="navbar-inner">
           <NavLink to="/" className="navbar-brand">
             <span className="brand-icon">&#x29D6;</span>
-            <span className="brand-text">zcoin<span style={{ color: 'var(--text-dim)', fontWeight: 500 }}>.bio</span></span>
+            <span className="brand-text">biocrypt<span style={{ color: 'var(--text-dim)', fontWeight: 500 }}>.net</span></span>
           </NavLink>
 
           {/* Desktop nav */}
           <div className="navbar-links navbar-desktop">
             <NavLink to="/wallet" className={navCls}>
               Wallet
-              {wallet && <span className="nav-badge">{signedCount}</span>}
+              {wallet && <span className="nav-badge">{coinCount}</span>}
             </NavLink>
             <NavLink to="/mine" className={navCls}>
               Mine
@@ -53,12 +57,13 @@ export function Layout() {
             <NavLink to="/economics" className={navCls}>Economics</NavLink>
             <NavLink to="/proof" className={navCls}>Proof</NavLink>
             <NavLink to="/how-it-works" className={navCls}>How It Works</NavLink>
+            <NavLink to="/organism" className={navCls}>Organism</NavLink>
           </div>
 
           {/* Wallet pill (desktop) */}
           {wallet && (
             <NavLink to="/wallet" className="wallet-pill wallet-pill-desktop">
-              <span className="pill-coins">{signedCount}</span>
+              <span className="pill-coins">{coinCount}</span>
               <span className="pill-label">coins</span>
             </NavLink>
           )}
@@ -77,7 +82,7 @@ export function Layout() {
         <div className={`mobile-drawer ${menuOpen ? "open" : ""}`}>
           {wallet && (
             <div className="drawer-wallet">
-              <div className="pill-coins" style={{ fontSize: "1.5rem" }}>{signedCount}</div>
+              <div className="pill-coins" style={{ fontSize: "1.5rem" }}>{coinCount}</div>
               <div className="text-muted text-xs">signed coins</div>
               <div className="mono text-xs" style={{ marginTop: "0.25rem", opacity: 0.6 }}>
                 {wallet.publicKeyHash.slice(0, 16)}...
@@ -106,6 +111,9 @@ export function Layout() {
           <NavLink to="/how-it-works" className={navCls} onClick={() => setMenuOpen(false)}>
             <span className="drawer-icon">{"\u{1F9EC}"}</span> How It Works
           </NavLink>
+          <NavLink to="/organism" className={navCls} onClick={() => setMenuOpen(false)}>
+            <span className="drawer-icon">{"\u{1F9AB}"}</span> Organism
+          </NavLink>
         </div>
       </nav>
 
@@ -132,6 +140,16 @@ function navCls({ isActive }: { isActive: boolean }) {
 }
 
 const navStyles = `
+.prerelease-banner {
+  background: #c0392b;
+  color: #fff;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 1rem;
+  text-transform: uppercase;
+}
 .navbar {
   position: sticky; top: 0; z-index: 100;
   background: rgba(6, 9, 15, 0.85);

@@ -15,8 +15,8 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@zcoin/core": ["../core/src"],
-      "@zcoin/core/*": ["../core/src/*"]
+      "@biocrypt/core": ["../core/src"],
+      "@biocrypt/core/*": ["../core/src/*"]
     }
   },
   "include": ["src"]

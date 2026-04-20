@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { createMRNA, serializeMRNA } from "@zcoin/core";
+import { createMRNA, serializeMRNA } from "@biocrypt/core";
 import { useStore } from "../store";
 
 interface PaymentInfo {
@@ -27,6 +27,7 @@ export function Pay() {
   const [done, setDone] = useState(false);
   const [selectedCoins, setSelectedCoins] = useState<string[]>([]);
   const [privateKey, setPrivateKey] = useState(wallet?.privateKeyDNA || "");
+  const [timeLeft, setTimeLeft] = useState(0);
 
   const signedCoins = coins.filter((c) => c.signed);
   const isPopup = !!window.opener;
@@ -40,6 +41,7 @@ export function Pay() {
       })
       .then((data) => {
         setPayment(data);
+        setTimeLeft(Math.max(0, Math.floor((data.expiresAt - Date.now()) / 1000)));
         setLoading(false);
       })
       .catch((e) => {
@@ -47,6 +49,17 @@ export function Pay() {
         setLoading(false);
       });
   }, [paymentId]);
+
+  useEffect(() => {
+    if (!payment) return;
+    const timer = setInterval(() => {
+      setTimeLeft(Math.max(0, Math.floor((payment.expiresAt - Date.now()) / 1000)));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [payment]);
+
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
 
   const toggleCoin = useCallback(
     (serialHash: string) => {
@@ -59,8 +72,10 @@ export function Pay() {
     [payment],
   );
 
+  const effectivePrivateKey = useMemo(() => wallet?.privateKeyDNA || privateKey, [wallet, privateKey]);
+
   const handlePay = useCallback(async () => {
-    if (!wallet || !payment || selectedCoins.length < payment.amount) return;
+    if (!wallet || !payment || selectedCoins.length < payment.amount || !effectivePrivateKey) return;
     setProcessing(true);
     setError("");
 
@@ -74,7 +89,7 @@ export function Pay() {
 
         const result = createMRNA(
           currentDna,
-          privateKey,
+          effectivePrivateKey,
           coin.serialHash,
           payment.recipientPublicKeyHash,
           coin.networkSignature!,
@@ -108,14 +123,10 @@ export function Pay() {
       setDone(true);
 
       if (window.opener) {
+        const targetOrigin = document.referrer ? new URL(document.referrer).origin : "*";
         window.opener.postMessage(
-          {
-            type: "zcoin-payment",
-            success: true,
-            paymentId: payment.paymentId,
-            txCount: mrnas.length,
-          },
-          "*",
+          { type: "biocrypt-payment", success: true, paymentId: payment.paymentId, txCount: mrnas.length },
+          targetOrigin,
         );
         setTimeout(() => window.close(), 2000);
       }
@@ -124,13 +135,14 @@ export function Pay() {
     } finally {
       setProcessing(false);
     }
-  }, [wallet, payment, selectedCoins, coins, setWallet, removeCoin]);
+  }, [wallet, payment, selectedCoins, coins, setWallet, removeCoin, effectivePrivateKey]);
 
   const handleCancel = () => {
     if (window.opener) {
+      const targetOrigin = document.referrer ? new URL(document.referrer).origin : "*";
       window.opener.postMessage(
-        { type: "zcoin-payment", success: false, paymentId: paymentId || "", error: "cancelled" },
-        "*",
+        { type: "biocrypt-payment", success: false, paymentId: paymentId || "", error: "cancelled" },
+        targetOrigin,
       );
       window.close();
     }
@@ -168,7 +180,7 @@ export function Pay() {
           <div className="pay-icon pay-icon-success">&#x2713;</div>
           <h2>Payment Complete</h2>
           <p className="text-muted">
-            {payment.amount} coin{payment.amount > 1 ? "s" : ""} sent for "{payment.description}"
+            {payment.amount} ZBIO sent for "{payment.description}"
           </p>
           {isPopup ? (
             <p className="text-xs text-muted mt-2">This window will close automatically...</p>
@@ -186,14 +198,14 @@ export function Pay() {
       <div className="pay-page">
         <div className="pay-card">
           <div className="pay-header">
-            <div className="pay-brand">&#x29D6; zBioCoin</div>
-            <div className="pay-label">Payment Request</div>
-          </div>
-          <div className="pay-amount">{payment.amount} coin{payment.amount > 1 ? "s" : ""}</div>
+          <div className="pay-brand">&#x29D6; BioCrypt</div>
+          <div className="pay-label">Payment Request</div>
+        </div>
+          <div className="pay-amount">{payment.amount} ZBIO</div>
           <p className="pay-desc">{payment.description}</p>
           <hr className="pay-divider" />
           <p className="text-muted" style={{ textAlign: "center" }}>
-            You need a zBioCoin wallet to make this payment.
+            You need a BioCrypt wallet to make this payment.
           </p>
           <div className="pay-actions">
             <Link to="/wallet" className="btn btn-primary">Create Wallet</Link>
@@ -205,25 +217,15 @@ export function Pay() {
     );
   }
 
-  const [timeLeft, setTimeLeft] = useState(Math.max(0, Math.floor((payment.expiresAt - Date.now()) / 1000)));
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(Math.max(0, Math.floor((payment.expiresAt - Date.now()) / 1000)));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [payment.expiresAt]);
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-
   return (
     <div className="pay-page">
       <div className="pay-card">
         <div className="pay-header">
-          <div className="pay-brand">&#x29D6; zBioCoin</div>
+          <div className="pay-brand">&#x29D6; BioCrypt</div>
           <div className="pay-label">Payment Request</div>
         </div>
 
-        <div className="pay-amount">{payment.amount} coin{payment.amount > 1 ? "s" : ""}</div>
+        <div className="pay-amount">{payment.amount} ZBIO</div>
         <p className="pay-desc">{payment.description}</p>
 
         <div className="pay-meta">
@@ -235,18 +237,18 @@ export function Pay() {
 
         <div className="pay-wallet-info">
           <span>Your wallet: <span className="mono">{wallet.publicKeyHash.slice(0, 12)}...</span></span>
-          <span>{signedCoins.length} coin{signedCoins.length !== 1 ? "s" : ""} available</span>
+          <span>{signedCoins.length} ZBIO available</span>
         </div>
 
         {signedCoins.length < payment.amount ? (
           <div className="pay-insufficient">
-            Not enough signed coins. You need {payment.amount} but have {signedCoins.length}.
-            <Link to="/mine" className="btn btn-sm btn-secondary mt-1">Mine More Coins</Link>
+            Not enough coins. You need {payment.amount} ZBIO but have {signedCoins.length}.
+            <Link to="/mine" className="btn btn-sm btn-secondary mt-1">Mine More</Link>
           </div>
         ) : (
           <>
             <div className="pay-coin-label">
-              Select {payment.amount} coin{payment.amount > 1 ? "s" : ""} to send:
+              Select {payment.amount} ZBIO to send:
             </div>
             <div className="pay-coin-list">
               {signedCoins.map((c) => (
@@ -270,7 +272,7 @@ export function Pay() {
 
         {!wallet.privateKeyDNA && (
           <div className="field mt-2">
-            <label className="label">{"\u{1F511}"} Private Key DNA</label>
+            <label className="label">Private Key DNA</label>
             <input className="input input-mono" value={privateKey}
               onChange={(e) => setPrivateKey(e.target.value)}
               placeholder="Paste your private key DNA" />
@@ -285,10 +287,10 @@ export function Pay() {
         <div className="pay-actions">
           <button
             className="btn btn-primary btn-lg"
-            disabled={selectedCoins.length < payment.amount || processing || !privateKey}
+            disabled={selectedCoins.length < payment.amount || processing || !effectivePrivateKey}
             onClick={handlePay}
           >
-            {processing ? "Processing..." : `Pay ${payment.amount} Coin${payment.amount > 1 ? "s" : ""}`}
+            {processing ? "Processing..." : `Pay ${payment.amount} ZBIO`}
           </button>
           {isPopup && (
             <button className="btn btn-secondary" onClick={handleCancel} disabled={processing}>

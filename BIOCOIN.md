@@ -1,4 +1,4 @@
-# Zcoin: A DNA-Based Decentralized Cryptocurrency
+# Biocrypt: A DNA-Based Decentralized Cryptocurrency
 
 **Version 2.0.0 — April 2026**
 
@@ -6,7 +6,7 @@
 
 ## Abstract
 
-Zcoin is a cryptocurrency that models digital value as biological DNA. Wallets are DNA strands. Coins are protein-coding gene sequences mined through SHA-256 proof-of-work. Every coin is signed by the network using **Ed25519 asymmetric cryptography** (encoded as DNA) and carries an **RFLP biological fingerprint** — a separate parentage marker DNA strand with restriction enzyme sites that prove the coin's origin, analogous to a DNA paternity test. Transfers happen via mRNA payloads that move gene sequences between wallets. Double-spend prevention uses nullifier tracking and duplicate serial rejection, operating without a blockchain. The system supports fully offline peer-to-peer transfers, browser-based mining, and self-validating coins that remain provably valid even if the network server goes offline permanently.
+Biocrypt is a cryptocurrency that models digital value as biological DNA. Wallets are DNA strands. Coins are protein-coding gene sequences mined through SHA-256 proof-of-work. Every coin is signed by the network using **Ed25519 asymmetric cryptography** (encoded as DNA) and carries an **RFLP biological fingerprint** — a separate parentage marker DNA strand with restriction enzyme sites that prove the coin's origin, analogous to a DNA paternity test. Transfers happen via mRNA payloads that move gene sequences between wallets. Double-spend prevention uses nullifier tracking and duplicate serial rejection, operating without a blockchain. The system supports fully offline peer-to-peer transfers, browser-based mining, and self-validating coins that remain provably valid even if the network server goes offline permanently.
 
 ---
 
@@ -14,9 +14,9 @@ Zcoin is a cryptocurrency that models digital value as biological DNA. Wallets a
 
 Traditional cryptocurrencies rely on a shared blockchain to establish consensus. This architecture has costs: energy-intensive global consensus, storage overhead, and the requirement for validators to participate in a monolithic network.
 
-Zcoin models digital value on **molecular biology**:
+Biocrypt models digital value on **molecular biology**:
 
-| Biology | Zcoin |
+| Biology | Biocrypt |
 |---------|-------|
 | DNA strand | Wallet |
 | Gene | Coin |
@@ -58,9 +58,9 @@ kronixcoin/
 │   │   ├── network/       # Network DNA identity + RFLP
 │   │   ├── registry/      # Nullifier + serial hash persistence
 │   │   └── gateway/       # Payment gateway service
-│   ├── frontend/          # React + Vite SPA (zcoin.bio)
+│   ├── frontend/          # React + Vite SPA (biocrypt.net)
 │   ├── gateway/           # Payment gateway SDK (embeddable)
-│   └── demo/              # Demo marketplace (demo.zcoin.bio)
+│   └── demo/              # Demo marketplace (demo.biocrypt.net)
 ├── docker-compose.yml
 └── BIOCOIN.md             # This document
 ```
@@ -115,7 +115,7 @@ This works **offline** — only the public Network Genome (128 bases) is needed.
 
 Restriction Fragment Length Polymorphism (RFLP) is a real technique from forensic DNA analysis and paternity testing. Restriction enzymes cut DNA at specific recognition sequences, producing fragments of characteristic lengths.
 
-In Zcoin, RFLP provides a **biological proof of parentage** — a second, independent verification layer alongside Ed25519.
+In Biocrypt, RFLP provides a **biological proof of parentage** — a second, independent verification layer alongside Ed25519.
 
 ### 4.2 Parentage Marker DNA
 
@@ -338,7 +338,7 @@ An attacker must break **ALL** of the following simultaneously:
 
 ## 10. Comparison with Existing Systems
 
-| Feature | Bitcoin | Ethereum | Zcoin |
+| Feature | Bitcoin | Ethereum | Biocrypt |
 |---------|---------|----------|-------|
 | Ledger | Blockchain | Blockchain | None (nullifiers) |
 | Mining | SHA-256 PoW | PoS | SHA-256 PoW |
@@ -378,7 +378,7 @@ An attacker must break **ALL** of the following simultaneously:
 ```bash
 # Development
 npm install
-npm run build -w @zcoin/core
+npm run build -w @biocrypt/core
 cd packages/server && npm run start:dev
 
 # Frontend
@@ -388,7 +388,7 @@ cd packages/frontend && npm run dev
 docker compose up --build
 
 # Headless miner
-ZCOIN_API=https://zcoin.bio/api node packages/server/headless-miner.js
+BIOCRYPT_API=https://biocrypt.net/api node packages/server/headless-miner.js
 ```
 
 ### 11.3 Environment Variables
@@ -412,7 +412,7 @@ ZCOIN_API=https://zcoin.bio/api node packages/server/headless-miner.js
 5. **Enzyme evolution**: Dynamic enzyme panels that evolve with the network
 6. **Multi-signature wallets**: Require multiple private keys for spending
 7. **Decentralized governance**: DNA voting weighted by coin holdings
-8. **WordPress/WooCommerce plugin**: Accept zcoin payments in e-commerce
+8. **WordPress/WooCommerce plugin**: Accept biocrypt payments in e-commerce
 
 ---
 
@@ -422,4 +422,4 @@ MIT
 
 ---
 
-*Zcoin: Where biology meets cryptography. Four layers of defense. Zero blockchain. Infinite validity.*
+*Biocrypt: Where biology meets cryptography. Four layers of defense. Zero blockchain. Infinite validity.*

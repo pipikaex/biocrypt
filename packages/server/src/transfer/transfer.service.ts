@@ -4,7 +4,7 @@ import {
   parseMRNAData,
   computeNullifier, createNullifierProof, viewWallet,
   type mRNAPayload, type TransferResult,
-} from "@zcoin/core";
+} from "@biocrypt/core";
 import { WalletService } from "../wallet/wallet.service";
 import { RegistryService } from "../registry/registry.service";
 import { NetworkService } from "../network/network.service";

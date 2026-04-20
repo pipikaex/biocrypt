@@ -8,6 +8,7 @@ import { Network } from "./pages/Network";
 import { HowItWorks } from "./pages/HowItWorks";
 import { Economics } from "./pages/Economics";
 import { Proof } from "./pages/Proof";
+import { Organism } from "./pages/Organism";
 import { Pay } from "./pages/Pay";
 import { NotFound } from "./pages/NotFound";
 
@@ -24,6 +25,7 @@ export function App() {
         <Route path="/economics" element={<Economics />} />
         <Route path="/proof" element={<Proof />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/organism" element={<Organism />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

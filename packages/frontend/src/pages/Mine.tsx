@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { DEFAULT_BODY_LENGTH } from "@zcoin/core";
+import { DEFAULT_BODY_LENGTH } from "@biocrypt/core";
 import { useStore } from "../store";
 import { api } from "../api";
 import { ProteinBar } from "../ProteinBar";
@@ -35,7 +35,7 @@ export function Mine() {
   const workerRef = useRef<Worker | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittingRef = useRef(false);
-  const submitQueueRef = useRef<{ coinGene: string; serial: string; serialHash: string; nonce: number; hash: string; difficulty: string }[]>([]);
+  const submitQueueRef = useRef<{ coinGene: string; serial: string; serialHash: string; nonce: number; hash: string; difficulty: string; bonusCoinGenes?: Array<{ coinGene: string; merkleProof: Array<{ hash: string; position: "left" | "right" }> }> }[]>([]);
 
   const signedCoins = useMemo(() => coins.filter((c) => c.signed), [coins]);
   const unsignedCoins = useMemo(() => coins.filter((c) => !c.signed), [coins]);
@@ -84,6 +84,7 @@ export function Mine() {
         type: "updateTarget",
         target: d.target,
         difficulty: d.difficulty,
+        blockReward: d.currentReward ?? 1,
       });
       return { difficulty: d.difficulty, target: d.target };
     }
@@ -119,9 +120,11 @@ export function Mine() {
           difficulty: msg.difficulty,
           minedAt: msg.minedAt,
           signed: false,
+          bonusCoinGenes: msg.bonusCoinGenes,
         };
         addCoin(coin);
-        addToast("success", `Coin mined! Serial: ${msg.serialHash.slice(0, 12)}...`);
+        const bonusLabel = msg.bonusCoinGenes?.length ? ` (+${msg.bonusCoinGenes.length} bonus)` : "";
+        addToast("success", `Coin mined${bonusLabel}! Serial: ${msg.serialHash.slice(0, 12)}...`);
 
         if (autoSubmit) {
           submitCoin(coin);
@@ -129,7 +132,7 @@ export function Mine() {
       }
     };
 
-    worker.postMessage({ type: "start", target, difficulty, bodyLength });
+    worker.postMessage({ type: "start", target, difficulty, bodyLength, blockReward: networkInfo?.currentReward ?? 1 });
     workerRef.current = worker;
     setMining({ active: true, hashrate: 0, currentNonce: 0 });
   }, [wallet, difficulty, target, bodyLength, autoSubmit]);
@@ -238,7 +241,7 @@ export function Mine() {
     <div className="page">
       <h1>Mine Coins</h1>
       <p className="text-muted mb-2" style={{ maxWidth: 600 }}>
-        Use your browser's computing power to mine new zBioCoins. Each coin requires proof-of-work
+        Use your browser's computing power to mine new BioCrypt coins. Each coin requires proof-of-work
         &mdash; finding a nonce that produces a hash below the network's difficulty target.
       </p>
 

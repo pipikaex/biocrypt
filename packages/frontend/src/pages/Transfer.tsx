@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   createMRNA, serializeMRNA, serializeBundle, parseMRNAData, applyMRNABundle,
-} from "@zcoin/core";
+  integrateCoinGene, extractCoinGene, ribosome,
+} from "@biocrypt/core";
 import { useStore, type MinedCoin } from "../store";
 import { api } from "../api";
 
@@ -22,7 +23,7 @@ export function Transfer() {
         <div className="empty-state">
           <div className="empty-icon">{"\u{1F4E8}"}</div>
           <div className="empty-title">Wallet Required</div>
-          <div className="empty-desc">Create or import a wallet to send and receive zBioCoins.</div>
+          <div className="empty-desc">Create or import a wallet to send and receive BioCrypt coins.</div>
           <Link to="/wallet" className="btn btn-primary">Go to Wallet</Link>
         </div>
         <style>{transferStyles}</style>
@@ -50,7 +51,7 @@ export function Transfer() {
       {tab === "send" ? (
         <SendFlow wallet={wallet} coins={coins} setWallet={setWallet} removeCoin={removeCoin} addToast={addToast} />
       ) : (
-        <ReceiveFlow wallet={wallet} setWallet={setWallet} addToast={addToast} />
+        <ReceiveFlow wallet={wallet} setWallet={setWallet} addToast={addToast} addCoin={useStore.getState().addCoin} />
       )}
 
       <div className="card mt-3">
@@ -155,6 +156,9 @@ function SendFlow({ wallet, coins, setWallet, removeCoin, addToast }: {
       const mrnas: ReturnType<typeof createMRNA>["mrna"][] = [];
 
       for (const coin of selectedCoins) {
+        if (!extractCoinGene(currentDna, coin.serialHash) && coin.coinGene) {
+          currentDna = integrateCoinGene(currentDna, coin.coinGene);
+        }
         const result = createMRNA(
           currentDna,
           privateKey,
@@ -195,7 +199,7 @@ function SendFlow({ wallet, coins, setWallet, removeCoin, addToast }: {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `zcoin-transfer-${selectedCoins.length > 1 ? `${selectedCoins.length}coins-` : ""}${Date.now()}.mrna`;
+    a.download = `biocrypt-transfer-${selectedCoins.length > 1 ? `${selectedCoins.length}coins-` : ""}${Date.now()}.mrna`;
     a.click();
     URL.revokeObjectURL(url);
     addToast("info", "Transfer file downloaded.");
@@ -250,6 +254,13 @@ function SendFlow({ wallet, coins, setWallet, removeCoin, addToast }: {
                   </span>
                 </div>
               </div>
+              {selectedHashes.size > 0 && (
+                <div className="send-footer">
+                  <button className="btn btn-primary btn-lg" onClick={() => setStep(2)}>
+                    Continue with {selectedHashes.size} coin{selectedHashes.size > 1 ? "s" : ""} {"\u2192"}
+                  </button>
+                </div>
+              )}
               <div className="send-coin-grid">
                 {signedCoins.map((c) => (
                   <div key={c.serialHash}
@@ -270,13 +281,6 @@ function SendFlow({ wallet, coins, setWallet, removeCoin, addToast }: {
                   </div>
                 ))}
               </div>
-              {selectedHashes.size > 0 && (
-                <div className="send-footer">
-                  <button className="btn btn-primary btn-lg" onClick={() => setStep(2)}>
-                    Continue with {selectedHashes.size} coin{selectedHashes.size > 1 ? "s" : ""} {"\u2192"}
-                  </button>
-                </div>
-              )}
             </>
           )}
         </div>
@@ -385,10 +389,11 @@ function SendFlow({ wallet, coins, setWallet, removeCoin, addToast }: {
 
 /* ─── Receive Flow ─── */
 
-function ReceiveFlow({ wallet, setWallet, addToast }: {
+function ReceiveFlow({ wallet, setWallet, addToast, addCoin }: {
   wallet: { dna: string; publicKeyHash: string };
   setWallet: (w: any) => void;
   addToast: (type: "success" | "error" | "info", msg: string) => void;
+  addCoin: (c: MinedCoin) => void;
 }) {
   const [mrnaInput, setMrnaInput] = useState("");
   const [validating, setValidating] = useState(false);
@@ -419,7 +424,7 @@ function ReceiveFlow({ wallet, setWallet, addToast }: {
           const result = await api.validateTransfer(JSON.stringify(mrna));
           results.push({ valid: result.valid, spent: result.spent });
         } catch {
-          results.push({ valid: true, spent: false });
+          results.push({ valid: false, spent: false });
         }
       }
       setValidationResults(results);
@@ -444,11 +449,51 @@ function ReceiveFlow({ wallet, setWallet, addToast }: {
     if (!mrnaInput.trim()) return;
     try {
       const mrnas = parseMRNAData(mrnaInput.trim());
-      const newDNA = applyMRNABundle(wallet.dna, mrnas);
+      const s = useStore.getState();
+      const existing = new Set([...s.coins.map((c) => c.serialHash), ...s.spentHashes]);
+
+      const seen = new Set<string>();
+      const fresh = mrnas.filter((m) => {
+        if (existing.has(m.coinSerialHash) || seen.has(m.coinSerialHash)) return false;
+        seen.add(m.coinSerialHash);
+        return true;
+      });
+      if (fresh.length === 0) {
+        addToast("error", "These coins have already been imported or spent.");
+        return;
+      }
+
+      const newDNA = applyMRNABundle(wallet.dna, fresh);
       setWallet({ ...wallet, dna: newDNA });
-      setReceivedCount(mrnas.length);
+
+      for (const mrna of fresh) {
+        let aminoAcids: string[] | undefined;
+        try {
+          const r = ribosome(mrna.coinGene);
+          if (r.proteins[0]) aminoAcids = r.proteins[0].aminoAcids;
+        } catch { /* skip */ }
+
+        addCoin({
+          coinGene: mrna.coinGene,
+          serial: "",
+          serialHash: mrna.coinSerialHash,
+          aminoAcids,
+          nonce: mrna.miningProof.nonce,
+          hash: mrna.miningProof.hash,
+          difficulty: mrna.miningProof.difficulty,
+          minedAt: mrna.createdAt || Date.now(),
+          signed: true,
+          networkSignature: mrna.networkSignature,
+          networkId: mrna.networkId,
+          networkGenome: mrna.networkGenome,
+          rflpFingerprint: mrna.rflpFingerprint,
+        });
+      }
+
+      const dupes = mrnas.length - fresh.length;
+      setReceivedCount(fresh.length);
       setReceived(true);
-      addToast("success", `${mrnas.length} coin${mrnas.length > 1 ? "s" : ""} received!`);
+      addToast("success", `${fresh.length} coin${fresh.length > 1 ? "s" : ""} received!${dupes > 0 ? ` (${dupes} duplicate${dupes > 1 ? "s" : ""} skipped)` : ""}`);
     } catch (err: any) {
       addToast("error", `Receive failed: ${err.message}`);
     }

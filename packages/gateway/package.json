@@ -1,13 +1,13 @@
 {
-  "name": "@zcoin/gateway",
+  "name": "@biocrypt/gateway",
   "version": "0.1.0",
-  "description": "Embeddable payment gateway SDK for zcoin.bio",
-  "main": "dist/zcoin-pay.js",
-  "module": "dist/zcoin-pay.esm.js",
-  "types": "dist/zcoin-pay.d.ts",
+  "description": "Embeddable payment gateway SDK for www.biocrypt.net",
+  "main": "dist/biocrypt-pay.js",
+  "module": "dist/biocrypt-pay.esm.js",
+  "types": "dist/biocrypt-pay.d.ts",
   "files": ["dist"],
   "scripts": {
-    "build": "rollup -c rollup.config.mjs && cp dist/zcoin-pay.js ../frontend/public/gateway/zcoin-pay.js",
+    "build": "rollup -c rollup.config.mjs && cp dist/biocrypt-pay.js ../frontend/public/gateway/biocrypt-pay.js",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

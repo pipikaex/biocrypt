@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { NullifierProof } from "@zcoin/core";
+import { NullifierProof } from "@biocrypt/core";
 import { RegistryService } from "../registry/registry.service";
 
 @Injectable()

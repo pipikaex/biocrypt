@@ -1,5 +1,5 @@
-# zcoin.bio — DNA-Based Cryptocurrency
-# https://zcoin.bio
+# biocrypt.net — DNA-Based Cryptocurrency
+# https://www.biocrypt.net
 
 User-agent: *
 Allow: /
@@ -7,7 +7,7 @@ Disallow: /api/
 Disallow: /video.html
 
 # Sitemap
-Sitemap: https://www.zcoin.bio/sitemap.xml
+Sitemap: https://www.biocrypt.net/sitemap.xml
 
 # Crawl-delay for respectful indexing
 User-agent: Googlebot

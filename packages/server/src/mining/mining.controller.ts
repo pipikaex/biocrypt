@@ -3,9 +3,8 @@ import { SkipThrottle } from "@nestjs/throttler";
 import { Request } from "express";
 import { MiningService } from "./mining.service";
 import { NetworkService } from "../network/network.service";
-import { SubmitCoinDto } from "./submit-coin.dto";
+import { SubmitCoinDto, MineDto } from "./submit-coin.dto";
 
-@SkipThrottle()
 @Controller("mine")
 export class MiningController {
   constructor(
@@ -13,6 +12,7 @@ export class MiningController {
     private readonly network: NetworkService,
   ) {}
 
+  @SkipThrottle()
   @Get("difficulty")
   getDifficulty(@Req() req: Request) {
     const ip = req.ip || req.socket?.remoteAddress || "unknown";
@@ -36,7 +36,7 @@ export class MiningController {
   }
 
   @Post()
-  mine(@Req() req: Request, @Body() body: { walletId?: string }) {
+  mine(@Req() req: Request, @Body() body: MineDto) {
     const ip = req.ip || req.socket?.remoteAddress || "unknown";
     this.network.recordMinerActivity(ip);
 
@@ -69,6 +69,7 @@ export class MiningController {
     return result;
   }
 
+  @SkipThrottle()
   @Get("network")
   networkInfo() {
     return this.network.getNetworkInfo();

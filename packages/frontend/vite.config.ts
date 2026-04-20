@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@zcoin/core": path.resolve(__dirname, "../core/src"),
+      "@biocrypt/core": path.resolve(__dirname, "../core/src"),
     },
   },
   server: {

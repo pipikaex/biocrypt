@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { integrateCoinGene } from "@zcoin/core";
+import { integrateCoinGene } from "@biocrypt/core";
 
 export interface LocalWallet {
   id: string;
@@ -49,9 +49,10 @@ export interface Toast {
   message: string;
 }
 
-interface ZcoinState {
+interface BiocryptState {
   wallet: LocalWallet | null;
   coins: MinedCoin[];
+  spentHashes: string[];
   mining: MiningState;
   toasts: Toast[];
 
@@ -65,21 +66,31 @@ interface ZcoinState {
   removeToast: (id: string) => void;
 }
 
-export const useStore = create<ZcoinState>()(
+export const useStore = create<BiocryptState>()(
   persist(
     (set) => ({
       wallet: null,
       coins: [],
+      spentHashes: [],
       mining: { active: false, hashrate: 0, totalMined: 0, currentNonce: 0 },
       toasts: [],
 
-      setWallet: (wallet) => set(wallet ? { wallet } : { wallet: null, coins: [], mining: { active: false, hashrate: 0, totalMined: 0, currentNonce: 0 } }),
+      setWallet: (wallet) =>
+        set((s) => {
+          if (!wallet) return { wallet: null, coins: [], spentHashes: [], mining: { active: false, hashrate: 0, totalMined: 0, currentNonce: 0 } };
+          const isSame = s.wallet && s.wallet.publicKeyHash === wallet.publicKeyHash;
+          if (isSame) return { wallet };
+          return { wallet, coins: [], spentHashes: [], mining: { active: false, hashrate: 0, totalMined: 0, currentNonce: 0 } };
+        }),
 
       addCoin: (coin) =>
-        set((s) => ({
-          coins: [...s.coins, coin],
-          mining: { ...s.mining, totalMined: s.mining.totalMined + 1 },
-        })),
+        set((s) => {
+          if (s.coins.some((c) => c.serialHash === coin.serialHash)) return s;
+          return {
+            coins: [...s.coins, coin],
+            mining: { ...s.mining, totalMined: s.mining.totalMined + 1 },
+          };
+        }),
 
       updateCoin: (serialHash, updates) =>
         set((s) => ({
@@ -89,7 +100,10 @@ export const useStore = create<ZcoinState>()(
         })),
 
       removeCoin: (serialHash) =>
-        set((s) => ({ coins: s.coins.filter((c) => c.serialHash !== serialHash) })),
+        set((s) => ({
+          coins: s.coins.filter((c) => c.serialHash !== serialHash),
+          spentHashes: s.spentHashes.includes(serialHash) ? s.spentHashes : [...s.spentHashes, serialHash],
+        })),
 
       integrateCoinIntoWalletDNA: (coinGene) =>
         set((s) => {
@@ -112,28 +126,40 @@ export const useStore = create<ZcoinState>()(
         set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
     }),
     {
-      name: "zcoin-wallet",
-      partialize: (s) => ({ wallet: s.wallet, coins: s.coins, mining: { ...s.mining, active: false, hashrate: 0 } }),
+      name: "biocrypt-wallet",
+      partialize: (s) => ({ wallet: s.wallet, coins: s.coins, spentHashes: s.spentHashes, mining: { ...s.mining, active: false, hashrate: 0 } }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+
+        let coinsFixed = 0;
+        const repairedCoins = state.coins.map((coin) => {
+          if (!coin.signed && coin.networkSignature) {
+            coinsFixed++;
+            return { ...coin, signed: true };
+          }
+          return coin;
+        });
+        if (coinsFixed > 0) {
+          useStore.setState({ coins: repairedCoins });
+        }
+
+        if (!state.wallet) return;
+        const coins = coinsFixed > 0 ? repairedCoins : state.coins;
+        let dna = state.wallet.dna;
+        let dnaRepaired = 0;
+        for (const coin of coins) {
+          if (!coin.signed || !coin.coinGene) continue;
+          if (!dna.includes(coin.coinGene.slice(0, 30))) {
+            try {
+              dna = integrateCoinGene(dna, coin.coinGene);
+              dnaRepaired++;
+            } catch { /* skip broken genes */ }
+          }
+        }
+        if (dnaRepaired > 0) {
+          useStore.setState({ wallet: { ...state.wallet, dna } });
+        }
+      },
     },
   ),
 );
-
-// On startup, repair any signed coins not yet integrated into wallet DNA
-setTimeout(() => {
-  const s = useStore.getState();
-  if (!s.wallet) return;
-  let dna = s.wallet.dna;
-  let repaired = 0;
-  for (const coin of s.coins) {
-    if (!coin.signed || !coin.coinGene) continue;
-    if (!dna.includes(coin.coinGene.slice(0, 30))) {
-      try {
-        dna = integrateCoinGene(dna, coin.coinGene);
-        repaired++;
-      } catch { /* skip broken genes */ }
-    }
-  }
-  if (repaired > 0) {
-    useStore.setState({ wallet: { ...s.wallet, dna } });
-  }
-}, 0);

@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Link, useOutletContext } from "react-router-dom";
-import { api, type Listing } from "../api";
-import type { DemoUser } from "../store";
+import { api, type Listing, formatFileSize } from "../api";
+import type { MarketUser } from "../store";
 
 interface OutletCtx {
-  user: DemoUser | null;
+  user: MarketUser | null;
   networkUrl: string;
 }
 
@@ -15,6 +15,9 @@ export function ItemDetail() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [claimingMrnas, setClaimingMrnas] = useState(false);
+  const [mrnas, setMrnas] = useState<string[] | null>(null);
   const [error, setError] = useState("");
   const [purchased, setPurchased] = useState(false);
 
@@ -32,31 +35,36 @@ export function ItemDetail() {
       const paymentRes = await api.createPayment({
         amount: listing.price,
         recipientPublicKeyHash: listing.sellerPublicKeyHash,
-        description: `Marketplace: ${listing.title}`,
+        description: `File: ${listing.title}`,
       });
 
       const paymentUrl = `${networkUrl}/pay/${paymentRes.paymentId}`;
 
       const result = await new Promise<{ success: boolean; paymentId: string }>((resolve) => {
-        const width = 480;
-        const height = 680;
+        const width = 480, height = 680;
         const left = Math.floor((screen.width - width) / 2);
         const top = Math.floor((screen.height - height) / 2);
         const popup = window.open(
-          paymentUrl,
-          "zcoin_pay",
+          paymentUrl, "biocrypt_pay",
           `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`,
         );
 
+        if (!popup) {
+          resolve({ success: false, paymentId: paymentRes.paymentId });
+          return;
+        }
+
+        const expectedOrigin = new URL(networkUrl).origin;
         const onMessage = (event: MessageEvent) => {
-          if (event.data?.type !== "zcoin-payment") return;
+          if (event.origin !== expectedOrigin) return;
+          if (event.data?.type !== "biocrypt-payment") return;
           window.removeEventListener("message", onMessage);
           clearInterval(pollTimer);
           resolve({ success: !!event.data.success, paymentId: event.data.paymentId });
         };
 
         const pollTimer = setInterval(() => {
-          if (popup && popup.closed) {
+          if (popup.closed) {
             window.removeEventListener("message", onMessage);
             clearInterval(pollTimer);
             resolve({ success: false, paymentId: paymentRes.paymentId });
@@ -82,10 +90,44 @@ export function ItemDetail() {
     }
   }, [listing, user, networkUrl]);
 
+  const handleDownload = useCallback(async () => {
+    if (!listing || !user) return;
+    setDownloading(true);
+    setError("");
+    try {
+      await api.downloadFile(listing.id, user.publicKeyHash);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setDownloading(false);
+    }
+  }, [listing, user]);
+
+  const handleClaimMrnas = useCallback(async () => {
+    if (!listing || !user) return;
+    setClaimingMrnas(true);
+    setError("");
+    try {
+      const result = await api.getSellerMrnas(listing.id, user.publicKeyHash);
+      setMrnas(result.mrnas);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setClaimingMrnas(false);
+    }
+  }, [listing, user]);
+
+  const handleCopyMrnas = () => {
+    if (mrnas) {
+      navigator.clipboard.writeText(JSON.stringify(mrnas));
+    }
+  };
+
   if (loading) return <div className="page"><p className="text-muted">Loading...</p></div>;
   if (!listing) return <div className="page"><p className="text-muted">{error || "Listing not found"}</p></div>;
 
   const isSeller = user?.publicKeyHash === listing.sellerPublicKeyHash;
+  const isBuyer = user?.publicKeyHash === listing.buyerPublicKeyHash;
 
   return (
     <div className="page" style={{ maxWidth: 700 }}>
@@ -94,20 +136,16 @@ export function ItemDetail() {
       </Link>
 
       <div className="card">
-        {listing.imageUrl && (
-          <div className="detail-img" style={{ backgroundImage: `url(${listing.imageUrl})` }} />
-        )}
-
         <div className="detail-body">
-          <div className="flex" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div className="flex" style={{ justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
             <div>
               <h1 style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>{listing.title}</h1>
               <p className="text-muted text-sm">
                 Listed by <span className="mono">{listing.sellerPublicKeyHash.slice(0, 16)}...</span>
               </p>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div className="detail-price">{listing.price} coin{listing.price > 1 ? "s" : ""}</div>
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <div className="detail-price">{listing.price} ZBIO</div>
               {listing.status === "sold" && <span className="listing-sold-badge">SOLD</span>}
             </div>
           </div>
@@ -116,26 +154,80 @@ export function ItemDetail() {
 
           <p style={{ lineHeight: 1.8, color: "var(--text-muted)" }}>{listing.description}</p>
 
+          <div className="file-info-box mt-2">
+            <div className="file-info-row">
+              <span className="text-muted">File:</span>
+              <span className="mono">{listing.fileName}</span>
+            </div>
+            <div className="file-info-row">
+              <span className="text-muted">Size:</span>
+              <span>{formatFileSize(listing.fileSize)}</span>
+            </div>
+            <div className="file-info-row">
+              <span className="text-muted">SHA-256:</span>
+              <span className="mono text-xs">{listing.fileHash?.slice(0, 32)}...</span>
+            </div>
+            {listing.downloads > 0 && (
+              <div className="file-info-row">
+                <span className="text-muted">Downloads:</span>
+                <span>{listing.downloads}</span>
+              </div>
+            )}
+          </div>
+
           <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "1.25rem 0" }} />
 
-          {purchased ? (
+          {/* Buyer purchased just now */}
+          {purchased && (
             <div className="detail-success">
               <span style={{ fontSize: "1.5rem" }}>&#x2713;</span>
               <div>
                 <b>Purchase complete!</b>
-                <p className="text-sm text-muted">The coins have been transferred to the seller.</p>
+                <p className="text-sm text-muted">You can now download the file.</p>
               </div>
             </div>
-          ) : listing.status === "sold" ? (
-            <p className="text-muted text-sm">This item has already been sold.</p>
-          ) : !user ? (
-            <p className="text-muted text-sm">
-              Connect your wallet to purchase this item.
-            </p>
-          ) : isSeller ? (
-            <p className="text-muted text-sm">This is your listing.</p>
-          ) : (
-            <div>
+          )}
+
+          {/* Buyer can download */}
+          {(isBuyer || purchased) && listing.status === "sold" && (
+            <div className="mt-2">
+              <button className="btn btn-primary btn-lg" onClick={handleDownload} disabled={downloading} style={{ width: "100%" }}>
+                {downloading ? "Downloading..." : `Download ${listing.fileName}`}
+              </button>
+            </div>
+          )}
+
+          {/* Seller: claim mRNAs */}
+          {isSeller && listing.status === "sold" && (
+            <div className="mt-2">
+              <p className="text-sm" style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
+                Your file has been sold! Claim your ZBIO:
+              </p>
+              {mrnas ? (
+                <div>
+                  <div className="mrna-box">
+                    <code className="text-xs">{JSON.stringify(mrnas).slice(0, 200)}...</code>
+                  </div>
+                  <button className="btn btn-sm btn-secondary mt-1" onClick={handleCopyMrnas}>
+                    Copy mRNA Data
+                  </button>
+                  <p className="text-xs text-muted mt-1">
+                    Paste this on{" "}
+                    <a href="https://www.biocrypt.net/transfer" target="_blank" rel="noopener">www.biocrypt.net/transfer</a>{" "}
+                    to import the coins into your wallet.
+                  </p>
+                </div>
+              ) : (
+                <button className="btn btn-primary" onClick={handleClaimMrnas} disabled={claimingMrnas}>
+                  {claimingMrnas ? "Loading..." : "Get Payment mRNAs"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Active listing: buy button */}
+          {listing.status === "active" && !isSeller && user && (
+            <div className="mt-2">
               {error && (
                 <div style={{
                   color: "var(--danger)", fontSize: "0.85rem",
@@ -143,54 +235,38 @@ export function ItemDetail() {
                   borderRadius: "var(--radius)", marginBottom: "1rem",
                 }}>{error}</div>
               )}
-              <button className="btn btn-primary btn-lg" onClick={handleBuy} disabled={buying}>
-                {buying ? "Processing..." : `Buy for ${listing.price} Coin${listing.price > 1 ? "s" : ""}`}
+              <button className="btn btn-primary btn-lg" onClick={handleBuy} disabled={buying} style={{ width: "100%" }}>
+                {buying ? "Processing..." : `Buy for ${listing.price} ZBIO`}
               </button>
-              <p className="text-xs text-muted mt-1">
-                Payment processed securely via zcoin.bio gateway
+              <p className="text-xs text-muted mt-1" style={{ textAlign: "center" }}>
+                Payment processed securely via www.biocrypt.net gateway
               </p>
             </div>
           )}
+
+          {listing.status === "sold" && !isBuyer && !isSeller && !purchased && (
+            <p className="text-muted text-sm">This file has already been sold.</p>
+          )}
+
+          {listing.status === "active" && isSeller && (
+            <p className="text-muted text-sm">This is your listing. Waiting for a buyer.</p>
+          )}
+
+          {listing.status === "active" && !user && (
+            <p className="text-muted text-sm">
+              Connect your wallet to purchase this file.
+            </p>
+          )}
+
+          {error && !buying && listing.status !== "active" && (
+            <div style={{
+              color: "var(--danger)", fontSize: "0.85rem",
+              padding: "0.5rem", background: "rgba(248,81,73,0.1)",
+              borderRadius: "var(--radius)", marginTop: "1rem",
+            }}>{error}</div>
+          )}
         </div>
       </div>
-
-      <div className="card mt-2">
-        <h3 style={{ fontSize: "0.88rem", fontWeight: 700, marginBottom: "0.5rem" }}>
-          How this works
-        </h3>
-        <ol style={{ paddingLeft: "1.25rem", fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 2 }}>
-          <li>Click "Buy" to open the zcoin.bio payment popup</li>
-          <li>Select coins from your wallet to pay</li>
-          <li>Approve the transfer (mRNA is created cryptographically)</li>
-          <li>The gateway validates your payment and marks the item as sold</li>
-          <li>Seller can download the mRNA to receive coins in their wallet</li>
-        </ol>
-      </div>
-
-      <style>{detailStyles}</style>
     </div>
   );
 }
-
-const detailStyles = `
-.detail-img {
-  height: 300px; background-size: cover; background-position: center;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  margin: -1.5rem -1.5rem 1.5rem;
-}
-.detail-body { }
-.detail-price {
-  font-size: 1.5rem; font-weight: 800; color: var(--primary);
-  font-family: var(--mono);
-}
-.detail-success {
-  display: flex; align-items: center; gap: 1rem;
-  padding: 1rem; background: rgba(0,229,153,0.08);
-  border-radius: var(--radius); color: var(--primary);
-}
-.listing-sold-badge {
-  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em;
-  background: var(--danger); color: #fff; padding: 0.15rem 0.5rem;
-  border-radius: 4px; display: inline-block; margin-top: 0.25rem;
-}
-`;

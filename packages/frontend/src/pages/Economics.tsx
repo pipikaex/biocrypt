@@ -69,7 +69,7 @@ function HeroSection() {
           })}
         </svg>
       </div>
-      <h1 className="econ-title">What Gives <span className="text-primary">zBioCoin</span> Its Value?</h1>
+      <h1 className="econ-title">What Gives <span className="text-primary">BioCrypt</span> Its Value?</h1>
       <p className="econ-subtitle">
         A 21-million hard cap enforced by biological telomere shortening. Bitcoin-style halving.
         Proof-of-work mining. Deflationary burns. Four layers of cryptographic security.
@@ -80,7 +80,7 @@ function HeroSection() {
           <div className="econ-hero-stat-lbl">Max Supply</div>
         </div>
         <div className="econ-hero-stat">
-          <div className="econ-hero-stat-val">50</div>
+          <div className="econ-hero-stat-val">50 ZBIO</div>
           <div className="econ-hero-stat-lbl">Initial Block Reward</div>
         </div>
         <div className="econ-hero-stat">
@@ -100,7 +100,7 @@ function ComparisonSection() {
   const r = useReveal();
   return (
     <section ref={r.ref} className={`econ-section ${r.visible ? "revealed" : ""}`}>
-      <h2 className="econ-section-title">Bitcoin vs zBioCoin</h2>
+      <h2 className="econ-section-title">Bitcoin vs BioCrypt</h2>
       <p className="econ-section-sub">Same economic principles. Different technology. Biological innovation.</p>
       <div className="compare-grid">
         <div className="compare-col compare-btc">
@@ -120,11 +120,11 @@ function ComparisonSection() {
           </div>
         </div>
         <div className="compare-vs">VS</div>
-        <div className="compare-col compare-zcoin">
+        <div className="compare-col compare-biocrypt">
           <div className="compare-icon">
             <svg viewBox="0 0 40 40" width="40" height="40"><circle cx="20" cy="20" r="18" fill="none" stroke="var(--primary)" strokeWidth="2"/><text x="20" y="26" textAnchor="middle" fill="var(--primary)" fontSize="16" fontWeight="bold">Z</text></svg>
           </div>
-          <h3>zBioCoin</h3>
+          <h3>BioCrypt</h3>
           <div className="compare-items">
             <CompareItem label="Store" value="DNA strands" highlight />
             <CompareItem label="Identity" value="Protein keys" highlight />
@@ -159,8 +159,8 @@ function MiningLoopSection() {
       <div className="loop-container">
         <div className="loop-ring">
           <LoopNode pos="top" icon={"\u26CF\uFE0F"} label="Miner solves PoW" detail="SHA-256 proof" delay={0} />
-          <LoopNode pos="right" icon={"\u{1F9EC}"} label="Network signs coin" detail="Ed25519 + RFLP" delay={0.3} />
-          <LoopNode pos="bottom" icon={"\u{1F4B0}"} label="Block reward earned" detail="50 coins (Era 1)" delay={0.6} />
+          <LoopNode pos="right" icon={"\u{1F9EC}"} label="Network signs each ZBIO" detail="Ed25519 + RFLP" delay={0.3} />
+          <LoopNode pos="bottom" icon={"\u{1F4B0}"} label="Block reward earned" detail="50 ZBIO (Era 1)" delay={0.6} />
           <LoopNode pos="left" icon={"\u{1F525}"} label="Transfers burn 1%" detail="Deflationary" delay={0.9} />
           <div className="loop-center">
             <div className="loop-center-val">21M</div>
@@ -227,7 +227,7 @@ function TelomereSection({ stats }: { stats: NetworkStats | null }) {
           </div>
           <div className="telomere-stat">
             <div className="telomere-stat-val">{(MAX_SUPPLY - mined).toLocaleString()}</div>
-            <div className="telomere-stat-lbl">Coins left to mine</div>
+            <div className="telomere-stat-lbl">ZBIO left to mine</div>
           </div>
         </div>
       </div>
@@ -240,12 +240,12 @@ function TelomereSection({ stats }: { stats: NetworkStats | null }) {
         <div className="telomere-explain-card">
           <div className="telomere-explain-icon">{"\u{1F480}"}</div>
           <h4>Hayflick limit = 21M</h4>
-          <p>When telomeres reach zero, no more coins can ever be created. The network has reached its biological lifespan limit.</p>
+          <p>When telomeres reach zero, no more ZBIO can ever be created. The network has reached its biological lifespan limit.</p>
         </div>
         <div className="telomere-explain-card">
           <div className="telomere-explain-icon">{"\u267E\uFE0F"}</div>
-          <h4>Coins live forever</h4>
-          <p>Existing coins remain valid and tradeable forever. Only new creation stops. Scarcity is permanent and unforgeable.</p>
+          <h4>ZBIO lasts forever</h4>
+          <p>Existing ZBIO remains valid and tradeable forever. Only new creation stops. Scarcity is permanent and unforgeable.</p>
         </div>
       </div>
     </section>
@@ -270,7 +270,7 @@ function HalvingSection({ stats }: { stats: NetworkStats | null }) {
               <div className="halving-era-name">{era.name}</div>
               <div className="halving-reward">
                 <span className="halving-reward-val">{era.reward}</span>
-                <span className="halving-reward-lbl">coins / mine</span>
+                <span className="halving-reward-lbl">ZBIO / mine</span>
               </div>
               <div className="halving-cumulative">
                 <div className="halving-bar">
@@ -289,16 +289,16 @@ function HalvingSection({ stats }: { stats: NetworkStats | null }) {
 function SecurityLayersSection() {
   const r = useReveal();
   const layers = [
-    { icon: "\u26CF\uFE0F", name: "Proof of Work", desc: "SHA-256 hash puzzle — costs real energy to mine each coin", color: "#f59e0b" },
-    { icon: "\u{1F511}", name: "Ed25519 Signatures", desc: "Network signs every coin with its secret DNA keypair", color: "#3b82f6" },
-    { icon: "\u{1F9EC}", name: "RFLP Fingerprinting", desc: "Restriction enzyme gel bands prove coin parentage visually", color: "#8b5cf6" },
-    { icon: "\u{1F6E1}\uFE0F", name: "Nullifier Registry", desc: "Deterministic hashes prevent any coin from being spent twice", color: "#ef4444" },
+    { icon: "\u26CF\uFE0F", name: "Proof of Work", desc: "SHA-256 hash puzzle — costs real energy to mine each ZBIO", color: "#f59e0b" },
+    { icon: "\u{1F511}", name: "Ed25519 Signatures", desc: "Network signs every ZBIO with its secret DNA keypair", color: "#3b82f6" },
+    { icon: "\u{1F9EC}", name: "RFLP Fingerprinting", desc: "Restriction enzyme gel bands prove ZBIO parentage visually", color: "#8b5cf6" },
+    { icon: "\u{1F6E1}\uFE0F", name: "Nullifier Registry", desc: "Deterministic hashes prevent any ZBIO from being spent twice", color: "#ef4444" },
   ];
 
   return (
     <section ref={r.ref} className={`econ-section ${r.visible ? "revealed" : ""}`}>
       <h2 className="econ-section-title">Four Layers of Defense</h2>
-      <p className="econ-section-sub">To forge a zBioCoin, an attacker must break all four independently — mathematically impossible.</p>
+      <p className="econ-section-sub">To forge a BioCrypt coin, an attacker must break all four independently — computationally infeasible.</p>
       <div className="security-stack">
         {layers.map((l, i) => (
           <div key={i} className="security-layer-card" style={{ animationDelay: `${i * 0.15}s`, borderLeftColor: l.color }}>
@@ -320,15 +320,15 @@ function ValueSection() {
   const reasons = [
     { icon: "\u{1F48E}", title: "Scarcity", desc: "21 million cap enforced by telomere biology. No inflation possible after Hayflick limit." },
     { icon: "\u{1F525}", title: "Deflationary", desc: "1% of transfers are burned, permanently reducing circulating supply over time." },
-    { icon: "\u26A1", title: "Utility", desc: "Payment gateway, marketplace integration. Use coins to buy, sell, and trade real goods." },
+    { icon: "\u26A1", title: "Utility", desc: "Payment gateway, marketplace integration. Use ZBIO to buy, sell, and trade real goods." },
     { icon: "\u{1F310}", title: "Offline-First", desc: "Verify and trade without internet. Ed25519 + RFLP work anywhere, no server needed." },
-    { icon: "\u{1F512}", title: "Unbreakable", desc: "Four independent security layers. Breaking one still leaves three protecting your coins." },
-    { icon: "\u{1F9EC}", title: "Unique Biology", desc: "Every coin has its own DNA, its own protein fingerprint, its own gel electrophoresis pattern." },
+    { icon: "\u{1F512}", title: "Unbreakable", desc: "Four independent security layers. Breaking one still leaves three protecting your ZBIO." },
+    { icon: "\u{1F9EC}", title: "Unique Biology", desc: "Every ZBIO has its own DNA, its own protein fingerprint, its own gel electrophoresis pattern." },
   ];
 
   return (
     <section ref={r.ref} className={`econ-section ${r.visible ? "revealed" : ""}`}>
-      <h2 className="econ-section-title">Why zBioCoin Has Value</h2>
+      <h2 className="econ-section-title">Why BioCrypt Has Value</h2>
       <div className="value-grid">
         {reasons.map((r, i) => (
           <div key={i} className="value-card" style={{ animationDelay: `${i * 0.1}s` }}>
@@ -349,11 +349,11 @@ function LiveStatsSection({ stats }: { stats: NetworkStats }) {
   return (
     <section ref={r.ref} className={`econ-section econ-live ${r.visible ? "revealed" : ""}`}>
       <h2 className="econ-section-title">Live Network Economics</h2>
-      <p className="econ-section-sub">Real-time data from the zBioCoin network.</p>
+      <p className="econ-section-sub">Real-time data from the BioCrypt network.</p>
       <div className="live-grid">
-        <LiveStat label="Total Mined" value={stats.totalCoins.toLocaleString()} sub={`of ${MAX_SUPPLY.toLocaleString()}`} />
-        <LiveStat label="Circulating" value={(stats.circulatingSupply ?? stats.totalCoins).toLocaleString()} sub={`${stats.burnedCoins ?? 0} burned`} />
-        <LiveStat label="Block Reward" value={`${stats.currentReward ?? "?"}`} sub={`coins per mine`} />
+        <LiveStat label="Total Mined" value={stats.totalCoins.toLocaleString()} sub={`of ${MAX_SUPPLY.toLocaleString()} ZBIO`} />
+        <LiveStat label="Circulating" value={(stats.circulatingSupply ?? stats.totalCoins).toLocaleString()} sub={`${stats.burnedCoins ?? 0} ZBIO burned`} />
+        <LiveStat label="Block Reward" value={`${stats.currentReward ?? "?"}`} sub={`ZBIO per mine`} />
         <LiveStat label="Halving Era" value={stats.halvingEraName ?? "Genesis"} sub={`Era ${(stats.halvingEra ?? 0) + 1}`} />
         <LiveStat label="Until Halving" value={(stats.coinsUntilHalving ?? 0).toLocaleString()} sub="submissions left" />
         <LiveStat label="Telomere" value={`${pct.toFixed(2)}%`} sub="remaining" />
@@ -364,7 +364,7 @@ function LiveStatsSection({ stats }: { stats: NetworkStats }) {
       <div className="live-telomere-bar">
         <div className="live-telomere-fill" style={{ width: `${pct}%` }} />
         <div className="live-telomere-text">
-          Telomere: {pct.toFixed(2)}% — {(MAX_SUPPLY - stats.totalCoins).toLocaleString()} coins remain
+          Telomere: {pct.toFixed(2)}% — {(MAX_SUPPLY - stats.totalCoins).toLocaleString()} ZBIO remain
         </div>
       </div>
     </section>

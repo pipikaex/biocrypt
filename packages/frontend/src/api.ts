@@ -94,6 +94,7 @@ export interface NetworkDnaAnalysis {
     length: number;
     rflpFragments?: number[];
     rflpMarkerCount?: number;
+    rflpMarkerDNA?: string;
   }[];
   structuralProteins: {
     index: number;
@@ -145,6 +146,7 @@ export const api = {
     nonce: number;
     hash: string;
     difficulty: string;
+    bonusCoinGenes?: Array<{ coinGene: string; merkleProof: Array<{ hash: string; position: "left" | "right" }> }>;
   }) =>
     request<SignedCoinResponse>("/mine/submit", {
       method: "POST",
@@ -153,6 +155,7 @@ export const api = {
         nonce: miningResult.nonce,
         hash: miningResult.hash,
         difficulty: miningResult.difficulty,
+        ...(miningResult.bonusCoinGenes?.length ? { bonusCoinGenes: miningResult.bonusCoinGenes } : {}),
       }),
     }),
 

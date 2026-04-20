@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { createWallet, viewWallet } from "@zcoin/core";
+import { createWallet, viewWallet, ribosome, integrateCoinGene, isCoinProtein, type Protein } from "@biocrypt/core";
 import { useStore, type LocalWallet, type MinedCoin } from "../store";
 import { DNAVisualization } from "../components/DNAVisualization";
 import { ProteinBar } from "../ProteinBar";
@@ -17,9 +17,89 @@ export function Wallet() {
   const [activeTab, setActiveTab] = useState<"coins" | "dna" | "security">("coins");
   const [keyCeremony, setKeyCeremony] = useState<string | null>(null);
   const [keySaved, setKeySaved] = useState(false);
+  const [showImportCoins, setShowImportCoins] = useState(false);
+  const [importCoinsData, setImportCoinsData] = useState("");
+  const [importResult, setImportResult] = useState<{ added: number; skipped: number; errors: number } | null>(null);
+
+  const addCoin = useStore((s) => s.addCoin);
 
   const signedCoins = useMemo(() => coins.filter((c) => c.signed), [coins]);
   const unsignedCoins = useMemo(() => coins.filter((c) => !c.signed), [coins]);
+
+  const handleImportCoins = useCallback(() => {
+    if (!importCoinsData.trim()) return;
+    const spentHashes = useStore.getState().spentHashes;
+    const existingHashes = new Set([...coins.map((c) => c.serialHash), ...spentHashes]);
+    let added = 0, skipped = 0, errors = 0;
+    const newCoins: MinedCoin[] = [];
+
+    const lines = importCoinsData.trim().split("\n");
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line.trim());
+        if (entry.unsent) { errors++; continue; }
+
+        const parseCoin = (coinObj: Record<string, unknown>, gene?: string) => {
+          const coinGene = (gene || coinObj.coinGene || "") as string;
+          if (!coinGene) return;
+          const serialHash = coinObj.serialHash as string;
+          if (!serialHash || existingHashes.has(serialHash)) { skipped++; return; }
+
+          let aminoAcids: string[] | undefined;
+          try {
+            const r = ribosome(coinGene);
+            if (r.proteins[0]) aminoAcids = r.proteins[0].aminoAcids;
+          } catch { /* skip */ }
+
+          const proof = (coinObj.miningProof || {}) as Record<string, unknown>;
+
+          const minedCoin: MinedCoin = {
+            coinGene,
+            serial: (coinObj.serial || "") as string,
+            serialHash,
+            aminoAcids,
+            nonce: (proof.nonce ?? coinObj.nonce ?? 0) as number,
+            hash: (proof.hash ?? coinObj.hash ?? "") as string,
+            difficulty: (proof.difficulty ?? coinObj.difficulty ?? "") as string,
+            minedAt: Date.now(),
+            signed: true,
+            networkSignature: coinObj.networkSignature as string | undefined,
+            networkId: coinObj.networkId as string | undefined,
+            networkGenome: coinObj.networkGenome as string | undefined,
+            rflpFingerprint: coinObj.rflpFingerprint as MinedCoin["rflpFingerprint"],
+          };
+
+          newCoins.push(minedCoin);
+          existingHashes.add(serialHash);
+          added++;
+        };
+
+        if (entry.coin) parseCoin(entry.coin);
+        if (entry.bonusCoins && Array.isArray(entry.bonusCoins)) {
+          for (const bc of entry.bonusCoins) parseCoin(bc, bc.coinGene);
+        }
+      } catch {
+        errors++;
+      }
+    }
+
+    if (newCoins.length > 0) {
+      const s = useStore.getState();
+      let dna = s.wallet?.dna ?? "";
+      for (const c of newCoins) {
+        addCoin(c);
+        try { dna = integrateCoinGene(dna, c.coinGene); } catch { /* skip */ }
+      }
+      if (s.wallet) {
+        useStore.setState({ wallet: { ...s.wallet, dna } });
+      }
+    }
+
+    setImportResult({ added, skipped, errors });
+    if (added > 0) addToast("success", `Imported ${added} coin${added > 1 ? "s" : ""} into your wallet!`);
+    else if (skipped > 0) addToast("info", "All coins already in your wallet.");
+    else addToast("error", "No valid coins found in the data.");
+  }, [importCoinsData, coins, addCoin, addToast]);
 
   const walletView = useMemo(() => {
     if (!wallet) return null;
@@ -70,7 +150,7 @@ export function Wallet() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `zcoin-wallet-${wallet.id}.json`;
+    a.download = `biocrypt-wallet-${wallet.id}.json`;
     a.click();
     URL.revokeObjectURL(url);
     addToast("info", wallet.privateKeyDNA ? "Full wallet exported (includes private key)." : "Wallet data exported (no private key).");
@@ -121,7 +201,7 @@ export function Wallet() {
             <div className="onboarding-icon">{"\u{1F9EC}"}</div>
             <h2>Your Biological Wallet</h2>
             <p className="text-muted" style={{ maxWidth: 500, margin: "0 auto 2rem", lineHeight: 1.7 }}>
-              Create a unique DNA wallet to mine, store, and transfer zBioCoins.
+              Create a unique DNA wallet to mine, store, and transfer BioCrypt coins.
               Your wallet is a living DNA strand that mutates as you earn and spend coins.
               Everything stays in your browser &mdash; your keys, your rules.
             </p>
@@ -196,7 +276,7 @@ export function Wallet() {
     );
   }
 
-  const balance = walletView?.coinCount ?? signedCoins.length;
+  const balance = coins.length;
 
   return (
     <div className="page">
@@ -239,6 +319,7 @@ export function Wallet() {
         <div className="balance-actions">
           <Link to="/mine" className="btn btn-primary">Mine More</Link>
           <Link to="/transfer" className="btn btn-secondary">Send / Receive</Link>
+          <button className="btn btn-secondary" onClick={() => { setShowImportCoins(true); setImportResult(null); setImportCoinsData(""); }}>Import Mined Coins</button>
           <button className="btn btn-secondary" onClick={handleExport}>Export Wallet</button>
         </div>
       </div>
@@ -275,6 +356,59 @@ export function Wallet() {
         />
       )}
 
+      {showImportCoins && (
+        <div className="ceremony-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowImportCoins(false); }}>
+          <div className="ceremony-modal">
+            <div style={{ fontSize: "2.5rem", textAlign: "center", marginBottom: "0.75rem" }}>{"\u26CF\uFE0F"}</div>
+            <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>Import Mined Coins</h2>
+            <p className="text-muted text-sm" style={{ textAlign: "center", marginBottom: "1.5rem", lineHeight: 1.7 }}>
+              Paste the contents of <code style={{ background: "var(--bg-surface)", padding: "0.15rem 0.4rem", borderRadius: 4, fontSize: "0.8rem" }}>biocrypt-mined.jsonl</code> from
+              your headless miner, or upload the file directly. Each line is a signed coin response from the network.
+            </p>
+
+            <div className="field" style={{ marginBottom: "0.75rem" }}>
+              <label className="label" style={{ fontSize: "0.8rem" }}>Upload .jsonl file</label>
+              <input type="file" accept=".jsonl,.json,.txt" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => { setImportCoinsData(reader.result as string); setImportResult(null); };
+                reader.readAsText(file);
+              }} style={{ color: "var(--text-muted)", fontSize: "0.85rem" }} />
+            </div>
+
+            <div className="field" style={{ marginBottom: "1rem" }}>
+              <label className="label" style={{ fontSize: "0.8rem" }}>Or paste JSONL data</label>
+              <textarea className="textarea" value={importCoinsData}
+                onChange={(e) => { setImportCoinsData(e.target.value); setImportResult(null); }}
+                placeholder={'{"coin":{"serialHash":"...","networkSignature":"...",...},"blockReward":50,...}\n{"coin":{...},...}'}
+                style={{ minHeight: 120, fontFamily: "var(--mono)", fontSize: "0.72rem" }} />
+            </div>
+
+            {importResult && (
+              <div style={{ padding: "0.75rem 1rem", borderRadius: "var(--radius)", marginBottom: "1rem",
+                background: importResult.added > 0 ? "rgba(0,229,153,0.08)" : "rgba(210,153,34,0.08)",
+                border: `1px solid ${importResult.added > 0 ? "rgba(0,229,153,0.2)" : "rgba(210,153,34,0.2)"}`,
+                fontSize: "0.85rem" }}>
+                <strong>{importResult.added}</strong> coin{importResult.added !== 1 ? "s" : ""} imported
+                {importResult.skipped > 0 && <> &middot; <strong>{importResult.skipped}</strong> already in wallet</>}
+                {importResult.errors > 0 && <> &middot; <strong>{importResult.errors}</strong> error{importResult.errors !== 1 ? "s" : ""}</>}
+              </div>
+            )}
+
+            <div className="flex gap-1 justify-center">
+              <button className="btn btn-primary" onClick={handleImportCoins}
+                disabled={!importCoinsData.trim()}>
+                Import Coins
+              </button>
+              <button className="btn btn-secondary" onClick={() => setShowImportCoins(false)}>
+                {importResult && importResult.added > 0 ? "Done" : "Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {keyCeremony && (
         <div className="ceremony-overlay">
           <div className="ceremony-modal">
@@ -299,7 +433,7 @@ export function Wallet() {
                 const blob = new Blob([keyCeremony], { type: "text/plain" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
-                a.href = url; a.download = `zcoin-private-key-${wallet!.id}.txt`; a.click();
+                a.href = url; a.download = `biocrypt-private-key-${wallet!.id}.txt`; a.click();
                 URL.revokeObjectURL(url);
                 setKeySaved(true);
                 addToast("info", "Private key downloaded.");
@@ -318,7 +452,7 @@ export function Wallet() {
                 const blob = new Blob([data], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
-                a.href = url; a.download = `zcoin-wallet-${wallet.id}.json`; a.click();
+                a.href = url; a.download = `biocrypt-wallet-${wallet.id}.json`; a.click();
                 URL.revokeObjectURL(url);
                 setKeySaved(true);
                 addToast("info", "Full wallet backup downloaded.");
@@ -356,7 +490,7 @@ function CoinsTab({ signedCoins, unsignedCoins }: { signedCoins: MinedCoin[]; un
         <div className="empty-icon">{"\u26CF\uFE0F"}</div>
         <div className="empty-title">No coins yet</div>
         <div className="empty-desc">
-          Start mining to earn your first zBioCoin. Each coin is a unique protein encoded in your DNA wallet.
+          Start mining to earn your first BioCrypt coin. Each coin is a unique protein encoded in your DNA wallet.
         </div>
         <Link to="/mine" className="btn btn-primary">Start Mining</Link>
       </div>
@@ -447,6 +581,7 @@ function DnaTab({ wallet, walletView }: { wallet: { dna: string; id: string }; w
           )}
         </div>
       </div>
+      <WalletOrganism dna={wallet.dna} />
       <div className="card">
         <h3>How Your DNA Works</h3>
         <div className="dna-explainer-grid">
@@ -473,6 +608,136 @@ function DnaTab({ wallet, walletView }: { wallet: { dna: string; id: string }; w
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+const AMINO_COLORS: Record<string, string> = {
+  Met: "#22c55e", Gly: "#a855f7", Trp: "#ec4899", Cys: "#eab308",
+  Phe: "#f97316", Leu: "#3b82f6", Ile: "#06b6d4", Val: "#14b8a6",
+  Ser: "#ef4444", Pro: "#8b5cf6", Thr: "#10b981", Ala: "#6366f1",
+  Tyr: "#f59e0b", His: "#d946ef", Gln: "#0ea5e9", Asn: "#84cc16",
+  Lys: "#f43f5e", Asp: "#fb923c", Glu: "#38bdf8", Arg: "#c084fc",
+};
+const AA_FALLBACK = "#334155";
+
+function WalletOrganism({ dna }: { dna: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [selected, setSelected] = useState<{ protein: Protein; isCoin: boolean } | null>(null);
+
+  const result = useMemo(() => {
+    try { return ribosome(dna); }
+    catch { return null; }
+  }, [dna]);
+
+  const blocks = useMemo(() => {
+    if (!result) return [];
+    return result.proteins.map((p) => ({ protein: p, isCoin: isCoinProtein(p) }));
+  }, [result]);
+
+  const stats = useMemo(() => {
+    if (!blocks.length) return null;
+    const coins = blocks.filter((b) => b.isCoin).length;
+    return { coins, structural: blocks.length - coins, total: blocks.length, acids: blocks.reduce((s, b) => s + b.protein.aminoAcids.length, 0) };
+  }, [blocks]);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !blocks.length) return;
+    const SQ = 3, GAP = 1, PGAP = 2;
+    const dpr = window.devicePixelRatio || 1;
+    const cw = canvas.parentElement?.clientWidth || 800;
+    const cols = Math.floor(cw / (SQ + GAP));
+
+    type Cell = { color: string; pi: number } | { gap: true };
+    const cells: Cell[] = [];
+    for (let pi = 0; pi < blocks.length; pi++) {
+      if (pi > 0) for (let g = 0; g < PGAP; g++) cells.push({ gap: true } as Cell);
+      for (const aa of blocks[pi].protein.aminoAcids) cells.push({ color: AMINO_COLORS[aa] || AA_FALLBACK, pi });
+    }
+
+    const rows = Math.ceil(cells.length / cols);
+    const w = cols * (SQ + GAP), h = rows * (SQ + GAP);
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    canvas.style.width = w + "px"; canvas.style.height = h + "px";
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h);
+
+    const selIdx = selected ? blocks.indexOf(selected) : -1;
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i];
+      const x = (i % cols) * (SQ + GAP), y = Math.floor(i / cols) * (SQ + GAP);
+      if ("gap" in cell) { ctx.fillStyle = "#1e293b"; ctx.globalAlpha = 0.3; ctx.fillRect(x, y, SQ, SQ); ctx.globalAlpha = 1; }
+      else {
+        ctx.fillStyle = cell.color;
+        ctx.globalAlpha = (selIdx >= 0 && cell.pi !== selIdx) ? 0.25 : 1;
+        ctx.fillRect(x, y, SQ, SQ); ctx.globalAlpha = 1;
+        if (cell.pi === selIdx) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 0.5; ctx.strokeRect(x - 0.5, y - 0.5, SQ + 1, SQ + 1); }
+      }
+    }
+    (canvas as any).__cells = cells;
+    (canvas as any).__cols = cols;
+  }, [blocks, selected]);
+
+  useEffect(() => { draw(); }, [draw]);
+  useEffect(() => { const h = () => draw(); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, [draw]);
+
+  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const cells: any[] = (canvas as any).__cells;
+    const cols: number = (canvas as any).__cols;
+    if (!cells || !cols) return;
+    const rect = canvas.getBoundingClientRect();
+    const idx = Math.floor((e.clientY - rect.top) / 4) * cols + Math.floor((e.clientX - rect.left) / 4);
+    if (idx >= 0 && idx < cells.length && !("gap" in cells[idx])) {
+      const pi = cells[idx].pi;
+      setSelected((prev) => (prev && blocks.indexOf(prev) === pi ? null : blocks[pi]));
+    }
+  }, [blocks]);
+
+  if (!blocks.length) return null;
+
+  return (
+    <div className="card mb-2">
+      <h3>Wallet Organism</h3>
+      <p className="text-muted text-sm mb-2">
+        Your wallet's DNA as a living organism — every protein synthesized by the ribosome, shown as colored amino acid squares.
+      </p>
+      {stats && (
+        <div className="wo-stats">
+          <span className="wo-stat"><strong>{stats.total}</strong> proteins</span>
+          <span className="wo-stat" style={{ color: "#22c55e" }}><strong>{stats.coins}</strong> coins</span>
+          <span className="wo-stat" style={{ color: "#a855f7" }}><strong>{stats.structural}</strong> structural</span>
+          <span className="wo-stat"><strong>{stats.acids.toLocaleString()}</strong> amino acids</span>
+        </div>
+      )}
+      <div className="wo-canvas-wrap">
+        <canvas ref={canvasRef} onClick={handleClick} style={{ cursor: "crosshair", imageRendering: "pixelated" }} />
+      </div>
+      {selected && (
+        <div className="wo-detail">
+          <div className="flex justify-between items-center">
+            <span className="text-sm">
+              <strong>Protein #{selected.protein.index + 1}</strong>
+              <span className={`badge ml-1 ${selected.isCoin ? "badge-primary" : "badge-secondary"}`}>
+                {selected.isCoin ? "Coin" : "Structural"}
+              </span>
+            </span>
+            <button className="btn btn-sm btn-secondary" onClick={() => setSelected(null)}>Close</button>
+          </div>
+          <div className="text-xs text-muted mt-05">
+            {selected.protein.aminoAcids.length} amino acids &middot;
+            Position {selected.protein.startIndex.toLocaleString()} — {selected.protein.stopIndex.toLocaleString()}
+          </div>
+          <div className="wo-detail-bar mt-05">
+            {selected.protein.aminoAcids.map((aa, i) => (
+              <span key={i} style={{ display: "inline-block", width: Math.max(2, Math.min(6, Math.floor(500 / selected.protein.aminoAcids.length))), height: 14, backgroundColor: AMINO_COLORS[aa] || AA_FALLBACK }} title={aa} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -511,7 +776,7 @@ function SecurityTab({ wallet, showPrivate, setShowPrivate, addToast, handleExpo
                     const blob = new Blob([wallet.privateKeyDNA!], { type: "text/plain" });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
-                    a.href = url; a.download = `zcoin-private-key-${wallet.id}.txt`; a.click();
+                    a.href = url; a.download = `biocrypt-private-key-${wallet.id}.txt`; a.click();
                     URL.revokeObjectURL(url);
                     addToast("info", "Private key downloaded.");
                   }}>Download .txt</button>
@@ -681,5 +946,23 @@ const walletStyles = `
   .coin-grid { grid-template-columns: 1fr; }
   .onboarding-grid { grid-template-columns: 1fr; }
   .ceremony-modal { padding: 1.25rem; }
+}
+.wo-stats {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+}
+.wo-stat strong { font-family: var(--mono); }
+.wo-canvas-wrap {
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.5rem; overflow: hidden; margin-bottom: 0.5rem;
+}
+.wo-canvas-wrap canvas { display: block; width: 100%; }
+.wo-detail {
+  padding: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-top: 0.5rem;
+}
+.wo-detail-bar {
+  display: flex; flex-wrap: wrap;
+  padding: 0.35rem; background: var(--bg-card); border-radius: var(--radius);
 }
 `;

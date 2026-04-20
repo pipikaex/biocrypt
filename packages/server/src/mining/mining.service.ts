@@ -3,8 +3,10 @@ import {
   mineCoin, signCoinWithNetwork, integrateCoinIntoWallet,
   verifyMiningProofWithTarget, ribosome, sha256,
   DEFAULT_BODY_LENGTH,
+  decodeMerkleRootFromDNA, verifyMerkleProof,
   type MiningResult, type SignedCoin, type RFLPFingerprint,
-} from "@zcoin/core";
+  type MerkleProofStep,
+} from "@biocrypt/core";
 import { NetworkService } from "../network/network.service";
 import { WalletService } from "../wallet/wallet.service";
 
@@ -40,10 +42,15 @@ export class MiningService {
     nonce: number;
     hash: string;
     difficulty: string;
+    bonusCoinGenes?: Array<{
+      coinGene: string;
+      merkleProof: MerkleProofStep[];
+    }>;
   }): {
     coin: {
       serial: string;
       serialHash: string;
+      coinGene: string;
       networkId: string;
       networkSignature: string;
       networkGenome: string;
@@ -64,6 +71,7 @@ export class MiningService {
       networkGenome: string;
       rflpFingerprint?: RFLPFingerprint;
     }>;
+    merkleVerified: boolean;
     feeCoinMinted: boolean;
     difficultyAdjusted: boolean;
     currentDifficulty: string;
@@ -74,11 +82,11 @@ export class MiningService {
   } {
     if (this.network.isSupplyExhausted()) {
       throw new BadRequestException(
-        "Supply exhausted: all 21,000,000 zcoin have been mined. The network telomeres have reached zero length (Hayflick limit).",
+        "Supply exhausted: all 21,000,000 biocrypt have been mined. The network telomeres have reached zero length (Hayflick limit).",
       );
     }
 
-    if (!submission.coinGene || submission.coinGene.length > 2000) {
+    if (!submission.coinGene || submission.coinGene.length > 4000) {
       throw new BadRequestException("Invalid coin gene length");
     }
 
@@ -123,7 +131,8 @@ export class MiningService {
     const signed = this.signCoin(miningResult);
     this.network.registerSignedSerial(serialHash);
     this.network.incrementSignedCoins();
-    this.network.integrateCoinIntoNetworkDNA(submission.coinGene);
+
+    const allCoinGenes: string[] = [submission.coinGene];
 
     const bonusCoins: Array<{
       coinGene: string;
@@ -139,47 +148,116 @@ export class MiningService {
       rflpFingerprint?: RFLPFingerprint;
     }> = [];
 
-    for (let i = 1; i < actualReward; i++) {
-      try {
-        const bonusGene = this.generateBonusCoinGene(serialHash, i);
-        const bonusResult = ribosome(bonusGene);
-        const bonusProtein = bonusResult.proteins[0];
-        if (!bonusProtein) continue;
-        const bonusSerial = bonusProtein.aminoAcids.slice(4).join("-");
-        const bonusSerialHash = sha256(bonusSerial);
-        if (this.network.isSerialAlreadySigned(bonusSerialHash)) continue;
+    let merkleVerified = false;
 
-        const bonusMR: MiningResult = {
-          coinGene: bonusGene,
-          protein: bonusProtein,
-          serial: bonusSerial,
-          serialHash: bonusSerialHash,
-          nonce: submission.nonce,
-          hash: sha256(bonusGene + "|" + submission.nonce),
-          difficulty: submission.difficulty,
-          minedAt: Date.now(),
-        };
-        const bonusSigned = this.signCoin(bonusMR);
-        this.network.registerSignedSerial(bonusSerialHash);
-        this.network.incrementSignedCoins();
-        this.network.integrateCoinIntoNetworkDNA(bonusGene);
-        bonusCoins.push({
-          coinGene: bonusGene,
-          serial: bonusSigned.serial,
-          serialHash: bonusSigned.serialHash,
-          aminoAcids: bonusProtein.aminoAcids,
-          nonce: submission.nonce,
-          hash: sha256(bonusGene + "|" + submission.nonce),
-          difficulty: submission.difficulty,
-          networkId: bonusSigned.networkId,
-          networkSignature: bonusSigned.networkSignature,
-          networkGenome: bonusSigned.networkGenome,
-          rflpFingerprint: bonusSigned.rflpFingerprint,
-        });
-      } catch {
-        // bonus coin generation is best-effort
+    if (submission.bonusCoinGenes && submission.bonusCoinGenes.length > 0) {
+      const embeddedRoot = decodeMerkleRootFromDNA(submission.coinGene);
+      if (!embeddedRoot) {
+        throw new BadRequestException("Primary coin claims bonus coins but contains no Merkle root marker");
+      }
+
+      if (submission.bonusCoinGenes.length > actualReward - 1) {
+        throw new BadRequestException(`Too many bonus coins: ${submission.bonusCoinGenes.length} submitted, max ${actualReward - 1} allowed`);
+      }
+
+      const maxBonus = Math.min(submission.bonusCoinGenes.length, actualReward - 1);
+
+      for (let i = 0; i < maxBonus; i++) {
+        const bonus = submission.bonusCoinGenes[i];
+        if (!bonus.coinGene || bonus.coinGene.length > 2000) continue;
+
+        const bonusLeafHash = sha256(bonus.coinGene);
+        if (!verifyMerkleProof(bonusLeafHash, bonus.merkleProof, embeddedRoot)) {
+          throw new BadRequestException(
+            `Invalid Merkle proof for bonus coin ${i}: coin is not part of the committed block`,
+          );
+        }
+
+        try {
+          const bonusResult = ribosome(bonus.coinGene);
+          const bonusProtein = bonusResult.proteins[0];
+          if (!bonusProtein) continue;
+          const bonusSerial = bonusProtein.aminoAcids.slice(4).join("-");
+          const bonusSerialHash = sha256(bonusSerial);
+          if (this.network.isSerialAlreadySigned(bonusSerialHash)) continue;
+
+          const bonusMR: MiningResult = {
+            coinGene: bonus.coinGene,
+            protein: bonusProtein,
+            serial: bonusSerial,
+            serialHash: bonusSerialHash,
+            nonce: submission.nonce,
+            hash: sha256(bonus.coinGene + "|" + submission.nonce),
+            difficulty: submission.difficulty,
+            minedAt: Date.now(),
+          };
+          const bonusSigned = this.signCoin(bonusMR);
+          this.network.registerSignedSerial(bonusSerialHash);
+          this.network.incrementSignedCoins();
+          allCoinGenes.push(bonus.coinGene);
+          bonusCoins.push({
+            coinGene: bonus.coinGene,
+            serial: bonusSigned.serial,
+            serialHash: bonusSigned.serialHash,
+            aminoAcids: bonusProtein.aminoAcids,
+            nonce: submission.nonce,
+            hash: sha256(bonus.coinGene + "|" + submission.nonce),
+            difficulty: submission.difficulty,
+            networkId: bonusSigned.networkId,
+            networkSignature: bonusSigned.networkSignature,
+            networkGenome: bonusSigned.networkGenome,
+            rflpFingerprint: bonusSigned.rflpFingerprint,
+          });
+        } catch (e) {
+          console.error(`Bonus coin ${i} processing failed:`, e);
+        }
+      }
+      merkleVerified = true;
+    } else {
+      for (let i = 1; i < actualReward; i++) {
+        try {
+          const bonusGene = this.generateLegacyBonusCoinGene(serialHash, i);
+          const bonusResult = ribosome(bonusGene);
+          const bonusProtein = bonusResult.proteins[0];
+          if (!bonusProtein) continue;
+          const bonusSerial = bonusProtein.aminoAcids.slice(4).join("-");
+          const bonusSerialHash = sha256(bonusSerial);
+          if (this.network.isSerialAlreadySigned(bonusSerialHash)) continue;
+
+          const bonusMR: MiningResult = {
+            coinGene: bonusGene,
+            protein: bonusProtein,
+            serial: bonusSerial,
+            serialHash: bonusSerialHash,
+            nonce: submission.nonce,
+            hash: sha256(bonusGene + "|" + submission.nonce),
+            difficulty: submission.difficulty,
+            minedAt: Date.now(),
+          };
+          const bonusSigned = this.signCoin(bonusMR);
+          this.network.registerSignedSerial(bonusSerialHash);
+          this.network.incrementSignedCoins();
+          allCoinGenes.push(bonusGene);
+          bonusCoins.push({
+            coinGene: bonusGene,
+            serial: bonusSigned.serial,
+            serialHash: bonusSigned.serialHash,
+            aminoAcids: bonusProtein.aminoAcids,
+            nonce: submission.nonce,
+            hash: sha256(bonusGene + "|" + submission.nonce),
+            difficulty: submission.difficulty,
+            networkId: bonusSigned.networkId,
+            networkSignature: bonusSigned.networkSignature,
+            networkGenome: bonusSigned.networkGenome,
+            rflpFingerprint: bonusSigned.rflpFingerprint,
+          });
+        } catch (e) {
+          console.error(`Legacy bonus coin ${i} failed:`, e);
+        }
       }
     }
+
+    this.network.integrateCoinsIntoNetworkDNA(allCoinGenes);
 
     const adjustment = this.network.recordSubmission();
 
@@ -188,13 +266,16 @@ export class MiningService {
       try {
         this.network.mintNetworkFeeCoin(this);
         feeCoinMinted = true;
-      } catch {}
+      } catch (e) {
+        console.error("Fee coin minting failed:", e);
+      }
     }
 
     return {
       coin: {
         serial: signed.serial,
         serialHash: signed.serialHash,
+        coinGene: signed.coinGene,
         networkId: signed.networkId,
         networkSignature: signed.networkSignature,
         networkGenome: signed.networkGenome,
@@ -203,6 +284,7 @@ export class MiningService {
       },
       blockReward: actualReward,
       bonusCoins,
+      merkleVerified,
       feeCoinMinted,
       difficultyAdjusted: adjustment.adjusted,
       currentDifficulty: this.network.getDifficultyPrefix(),
@@ -213,7 +295,7 @@ export class MiningService {
     };
   }
 
-  private generateBonusCoinGene(parentSerialHash: string, index: number): string {
+  private generateLegacyBonusCoinGene(parentSerialHash: string, index: number): string {
     const COIN_HEADER = "ATGGGGTGGTGC";
     const BASES_ARR = ["T", "A", "C", "G"];
     const STOP = new Set(["TAA", "TAG", "TGA"]);

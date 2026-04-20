@@ -1,16 +1,16 @@
 import typescript from "@rollup/plugin-typescript";
 
 export default {
-  input: "src/zcoin-pay.ts",
+  input: "src/biocrypt-pay.ts",
   output: [
     {
-      file: "dist/zcoin-pay.js",
+      file: "dist/biocrypt-pay.js",
       format: "umd",
-      name: "ZcoinPayModule",
+      name: "BiocryptPayModule",
       exports: "named",
     },
     {
-      file: "dist/zcoin-pay.esm.js",
+      file: "dist/biocrypt-pay.esm.js",
       format: "es",
     },
   ],

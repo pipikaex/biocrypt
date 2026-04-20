@@ -18,6 +18,14 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Native miner build artifacts & runtime
+zcoin-miner
+zcoin-mined.jsonl
+zcoin-mined.mp3
+zcoin-mined.aiff
+zcoin-mined.m4a
+zcoin-mined.wav
+
 # Environment
 .env
 .env.*

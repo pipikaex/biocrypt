@@ -165,12 +165,10 @@ export function validateMRNA(mrna: mRNAPayload, networkGenome?: string): void {
     throw new Error("Coin serial hash mismatch");
   }
 
-  if (!verifyMiningProof(mrna.coinGene, mrna.miningProof.nonce, mrna.miningProof.difficulty)) {
-    throw new Error("Invalid mining proof — coin was not properly mined");
-  }
-
   const genome = networkGenome || mrna.networkGenome;
-  if (genome && mrna.networkSignature) {
+  const hasValidNetSig = !!(genome && mrna.networkSignature);
+
+  if (hasValidNetSig) {
     const coin: SignedCoin = {
       coinGene: mrna.coinGene,
       serial,
@@ -183,6 +181,13 @@ export function validateMRNA(mrna: mRNAPayload, networkGenome?: string): void {
     };
     if (!verifyNetworkSignature(coin, genome)) {
       throw new Error("Invalid network signature — coin is not from this network");
+    }
+  } else {
+    if (!mrna.miningProof.difficulty || mrna.miningProof.difficulty.length < 6) {
+      throw new Error("Invalid mining proof — difficulty too low or missing");
+    }
+    if (!verifyMiningProof(mrna.coinGene, mrna.miningProof.nonce, mrna.miningProof.difficulty)) {
+      throw new Error("Invalid mining proof — coin was not properly mined");
     }
   }
 

@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
-import { NullifierRegistry, NullifierProof } from "@zcoin/core";
+import { NullifierRegistry, NullifierProof } from "@biocrypt/core";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -15,14 +15,20 @@ export class RegistryService implements OnModuleInit {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     if (fs.existsSync(REGISTRY_FILE)) {
-      const data = JSON.parse(fs.readFileSync(REGISTRY_FILE, "utf-8"));
-      this.registry.import(data);
-      console.log(`Nullifier registry loaded: ${this.registry.size} entries`);
+      try {
+        const data = JSON.parse(fs.readFileSync(REGISTRY_FILE, "utf-8"));
+        this.registry.import(data);
+        console.log(`Nullifier registry loaded: ${this.registry.size} entries`);
+      } catch (e) {
+        console.error("Failed to load nullifier registry, starting fresh:", e);
+      }
     }
   }
 
   private persist() {
-    fs.writeFileSync(REGISTRY_FILE, JSON.stringify(this.registry.export()));
+    const tmp = REGISTRY_FILE + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(this.registry.export()));
+    fs.renameSync(tmp, REGISTRY_FILE);
   }
 
   registerNullifier(proof: NullifierProof, sourceNode: string): boolean {

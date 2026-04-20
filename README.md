@@ -1,4 +1,4 @@
-# zcoin.bio
+# biocrypt.net
 
 DNA-based cryptocurrency where coins are genes, wallets are DNA strands, and mining is protein synthesis. Secured by Ed25519 signatures + RFLP biological fingerprinting — four layers of defense, zero blockchain.
 
@@ -9,7 +9,7 @@ DNA-based cryptocurrency where coins are genes, wallets are DNA strands, and min
 npm install
 
 # Build the core library
-npm run build -w @zcoin/core
+npm run build -w @biocrypt/core
 
 # Start the API server (port 3000)
 cd packages/server && npm run start:dev &
@@ -33,11 +33,11 @@ Open http://localhost (port 80, nginx reverse proxy).
 
 ```
 packages/
-  core/       @zcoin/core — DNA engine, ribosome, wallet, miner, transfer, Ed25519, RFLP
-  server/     @zcoin/server — NestJS API + coin signing + RFLP generation
-  frontend/   @zcoin/frontend — React + Vite SPA (zcoin.bio)
-  gateway/    @zcoin/gateway — Payment gateway SDK (embeddable)
-  demo/       @zcoin/demo — Demo marketplace (demo.zcoin.bio)
+  core/       @biocrypt/core — DNA engine, ribosome, wallet, miner, transfer, Ed25519, RFLP
+  server/     @biocrypt/server — NestJS API + coin signing + RFLP generation
+  frontend/   @biocrypt/frontend — React + Vite SPA (biocrypt.net)
+  gateway/    @biocrypt/gateway — Payment gateway SDK (embeddable)
+  demo/       @biocrypt/demo — Demo marketplace (demo.biocrypt.net)
 ```
 
 ## How It Works
@@ -90,7 +90,7 @@ All endpoints are prefixed with `/api/`.
 ## Headless Miner
 
 ```bash
-ZCOIN_API=https://zcoin.bio/api node packages/server/headless-miner.js
+BIOCRYPT_API=https://biocrypt.net/api node packages/server/headless-miner.js
 ```
 
 ## Architecture

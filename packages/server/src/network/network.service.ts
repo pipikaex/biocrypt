@@ -6,14 +6,14 @@ import {
   generateNetworkKeyPair, derivePublicKeyDNA,
   DEFAULT_BODY_LENGTH,
   generateNetworkFingerprint, generateCoinRFLP, type RFLPFingerprint,
-} from "@zcoin/core";
+} from "@biocrypt/core";
 import * as fs from "fs";
 import * as path from "path";
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const NETWORK_FILE = path.join(DATA_DIR, "network.json");
 
-const INITIAL_LEADING_ZEROS = parseInt(process.env.INITIAL_DIFFICULTY_ZEROS || "5", 10);
+const INITIAL_LEADING_ZEROS = parseInt(process.env.INITIAL_DIFFICULTY_ZEROS || "9", 10);
 const ADJUSTMENT_INTERVAL = parseInt(process.env.DIFFICULTY_ADJUSTMENT_INTERVAL || "2016", 10);
 const TARGET_BLOCK_TIME_MS = parseInt(process.env.TARGET_BLOCK_TIME_MS || "60000", 10);
 const MAX_ADJUSTMENT_FACTOR = 2;
@@ -63,14 +63,24 @@ export class NetworkService implements OnModuleInit {
     }
 
     if (fs.existsSync(NETWORK_FILE)) {
-      const data = JSON.parse(fs.readFileSync(NETWORK_FILE, "utf-8"));
+      let data: any;
+      try {
+        data = JSON.parse(fs.readFileSync(NETWORK_FILE, "utf-8"));
+      } catch (e) {
+        console.error("CRITICAL: network.json is corrupt, starting fresh network:", e);
+        data = null;
+      }
+      if (!data) {
+        this.createFreshNetwork();
+        return;
+      }
       this.networkDNA = data.networkDNA;
       this.networkId = data.networkId;
       this.networkWalletDNA = data.networkWalletDNA || data.networkDNA;
       this.feeCoinCount = data.feeCoinCount || 0;
       this.signedCoinCount = data.signedCoinCount || 0;
       this.burnedCoins = data.burnedCoins || 0;
-      this.totalMinedCoins = data.totalMinedCoins || (this.feeCoinCount + this.signedCoinCount);
+      this.totalMinedCoins = data.totalMinedCoins ?? (this.feeCoinCount + this.signedCoinCount);
       this.difficultyTarget = data.difficultyTarget || leadingZerosToTarget(INITIAL_LEADING_ZEROS);
       this.epochStartTime = data.epochStartTime || Date.now();
       this.epochSubmissions = data.epochSubmissions || 0;
@@ -84,7 +94,7 @@ export class NetworkService implements OnModuleInit {
         const keyPair = generateNetworkKeyPair();
         this.networkPrivateKeyDNA = keyPair.privateKeyDNA;
         this.networkGenome = keyPair.publicKeyDNA;
-        this.networkId = "zcoin-" + sha256(this.networkGenome).slice(0, 12);
+        this.networkId = "biocrypt-" + sha256(this.networkGenome).slice(0, 12);
         this.persist();
         console.log(`Network upgraded with Ed25519 keypair: ${this.networkId}`);
       }
@@ -95,25 +105,30 @@ export class NetworkService implements OnModuleInit {
 
       console.log(`Network loaded: ${this.networkId} (difficulty: ${this.getDifficultyPrefix()}, submissions: ${this.totalSubmissions}, signed: ${this.signedSerialHashes.size})`);
     } else {
-      this.networkDNA = generateDNA(6000);
-      this.networkWalletDNA = generateDNA(6000);
-
-      const keyPair = generateNetworkKeyPair();
-      this.networkPrivateKeyDNA = keyPair.privateKeyDNA;
-      this.networkGenome = keyPair.publicKeyDNA;
-      this.networkId = "zcoin-" + sha256(this.networkGenome).slice(0, 12);
-
-      this.signedCoinCount = 0;
-      this.burnedCoins = 0;
-      this.totalMinedCoins = 0;
-      this.telomereRepeats = TELOMERE_INITIAL_REPEATS;
-      this.difficultyTarget = leadingZerosToTarget(INITIAL_LEADING_ZEROS);
-      this.epochStartTime = Date.now();
-      this.epochSubmissions = 0;
-      this.totalSubmissions = 0;
-      this.persist();
-      console.log(`Network created: ${this.networkId} (difficulty: ${this.getDifficultyPrefix()}, supply cap: ${MAX_SUPPLY.toLocaleString()}, reward: ${INITIAL_REWARD})`);
+      this.createFreshNetwork();
     }
+  }
+
+  private createFreshNetwork() {
+    this.networkDNA = generateDNA(6000);
+    this.networkWalletDNA = generateDNA(6000);
+
+    const keyPair = generateNetworkKeyPair();
+    this.networkPrivateKeyDNA = keyPair.privateKeyDNA;
+    this.networkGenome = keyPair.publicKeyDNA;
+    this.networkId = "biocrypt-" + sha256(this.networkGenome).slice(0, 12);
+
+    this.signedCoinCount = 0;
+    this.burnedCoins = 0;
+    this.totalMinedCoins = 0;
+    this.telomereRepeats = TELOMERE_INITIAL_REPEATS;
+    this.difficultyTarget = leadingZerosToTarget(INITIAL_LEADING_ZEROS);
+    this.epochStartTime = Date.now();
+    this.epochSubmissions = 0;
+    this.totalSubmissions = 0;
+    this.signedSerialHashes = new Set();
+    this.persist();
+    console.log(`Network created: ${this.networkId} (difficulty: ${this.getDifficultyPrefix()}, supply cap: ${MAX_SUPPLY.toLocaleString()}, reward: ${INITIAL_REWARD})`);
   }
 
   private persist() {
@@ -212,6 +227,13 @@ export class NetworkService implements OnModuleInit {
     this.persist();
   }
 
+  integrateCoinsIntoNetworkDNA(coinGenes: string[]): void {
+    for (const gene of coinGenes) {
+      this.networkDNA = integrateCoinGene(this.networkDNA, gene);
+    }
+    this.persist();
+  }
+
   getSignedCoinCount(): number {
     return this.signedCoinCount;
   }
@@ -251,8 +273,7 @@ export class NetworkService implements OnModuleInit {
 
   getCurrentBlockReward(): number {
     const era = this.getHalvingEra();
-    const reward = Math.floor(INITIAL_REWARD / Math.pow(2, era));
-    return Math.max(reward, 1);
+    return Math.floor(INITIAL_REWARD / Math.pow(2, era));
   }
 
   getCoinsUntilHalving(): number {
@@ -314,12 +335,14 @@ export class NetworkService implements OnModuleInit {
   }
 
   mintNetworkFeeCoin(_miningService?: any): void {
+    if (this.isSupplyExhausted()) return;
     const feeGene = this.generateFeeCoinGene();
     this.networkWalletDNA = integrateCoinGene(this.networkWalletDNA, feeGene);
     this.networkDNA = integrateCoinGene(this.networkDNA, feeGene);
     this.feeCoinCount++;
+    this.totalMinedCoins++;
     this.persist();
-    console.log(`Network fee coin minted (#${this.feeCoinCount})`);
+    console.log(`Network fee coin minted (#${this.feeCoinCount}, total: ${this.totalMinedCoins})`);
   }
 
   private generateFeeCoinGene(): string {
@@ -378,6 +401,7 @@ export class NetworkService implements OnModuleInit {
       length: number;
       rflpFragments: number[];
       rflpMarkerCount: number;
+      rflpMarkerDNA: string;
     }[] = [];
     const structuralProteins: {
       index: number;
@@ -402,6 +426,7 @@ export class NetworkService implements OnModuleInit {
           length: p.length,
           rflpFragments: rflp.fragments,
           rflpMarkerCount: rflp.markerCount,
+          rflpMarkerDNA: rflp.markerDNA,
         });
       } else {
         const analysis = analyzeProtein(p);

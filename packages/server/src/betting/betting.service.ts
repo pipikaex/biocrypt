@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from "@nestjs/common";
 import {
   createWallet, viewWallet, createMRNA, applyMRNA,
   deserializeMRNA, sha256, createNullifierProof,
-} from "@zcoin/core";
+} from "@biocrypt/core";
 import { WalletService } from "../wallet/wallet.service";
 import { RegistryService } from "../registry/registry.service";
 import { NetworkService } from "../network/network.service";

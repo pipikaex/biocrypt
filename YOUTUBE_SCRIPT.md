@@ -1,6 +1,6 @@
-# Zcoin — YouTube Promotional Video Script
+# Biocrypt — YouTube Promotional Video Script
 
-**Video Title:** "What If Cryptocurrency Was Alive? | Zcoin — 21 Million DNA Coins, Zero Blockchain"
+**Video Title:** "What If Cryptocurrency Was Alive? | Biocrypt — 21 Million DNA Coins, Zero Blockchain"
 
 **Target Length:** 5:00 — 5:30
 
@@ -21,7 +21,7 @@
 
 > "What if your wallet had DNA... your coins were proteins... and every coin carried a biological fingerprint that proves where it was born?"
 
-**[Visual: Zcoin logo reveal with a pulse of green light. Tagline: "21 Million. DNA-Encoded. Unforgeable."]**
+**[Visual: Biocrypt logo reveal with a pulse of green light. Tagline: "21 Million. DNA-Encoded. Unforgeable."]**
 
 ---
 
@@ -44,12 +44,12 @@
 
 ---
 
-## INTRODUCING ZCOIN (0:50 — 2:00)
+## INTRODUCING BIOCRYPT (0:50 — 2:00)
 
-**[Visual: Screen recording — zcoin.bio loads. The hero section appears with the DNA helix animation.]**
+**[Visual: Screen recording — biocrypt.net loads. The hero section appears with the DNA helix animation.]**
 
 > **Narrator (V/O):**
-> "Meet Zcoin. A cryptocurrency that's alive."
+> "Meet Biocrypt. A cryptocurrency that's alive."
 
 **[Visual: Screen recording — clicking "Create Wallet." DNA strand generates. Key Ceremony modal appears.]**
 
@@ -150,22 +150,22 @@
 **[Visual: Quick cuts of the live app — Mining page with hashrate, Economics page with telomere bar, Proof page with tamper experiment, Network page with gel bands.]**
 
 > **Narrator (V/O):**
-> "Zcoin is live right now. Open source. No ICO. No pre-mine. Zero blockchain. Twenty-one million hard cap."
+> "Biocrypt is live right now. Open source. No ICO. No pre-mine. Zero blockchain. Twenty-one million hard cap."
 
-**[Visual: URL bar typing zcoin.bio]**
+**[Visual: URL bar typing biocrypt.net]**
 
 > "Create a wallet in two seconds. Mine your first coins. Watch the telomere shorten and the gel bands appear. Visit the Proof page and try to forge a coin yourself — watch every layer catch you."
 
-> "Visit zcoin.bio. Join the organism."
+> "Visit biocrypt.net. Join the organism."
 
 ---
 
 ## CLOSING (4:45 — 5:00)
 
-**[Visual: DNA helix fading into the Zcoin logo. Cinematic music crescendo.]**
+**[Visual: DNA helix fading into the Biocrypt logo. Cinematic music crescendo.]**
 
 > **Narrator (V/O):**
-> "Bitcoin reimagined the economy. Zcoin reimagines it... through the lens of life itself."
+> "Bitcoin reimagined the economy. Biocrypt reimagines it... through the lens of life itself."
 
 **[Visual: Logo centered. Tagline beneath:]**
 
@@ -211,7 +211,7 @@
 3. Chromosome with shrinking telomeres — text: "When Telomeres Hit 0, Mining Stops Forever"
 
 ### Video Tags:
-cryptocurrency, bitcoin alternative, new crypto 2026, dna cryptocurrency, biological cryptocurrency, no blockchain, zcoin, proof of work, sha-256, ed25519, rflp, restriction enzyme, gel electrophoresis, offline crypto, peer to peer, open source crypto, mine crypto browser, telomere, 21 million, halving, hayflick limit, protein synthesis, dna wallet, cryptographic proof
+cryptocurrency, bitcoin alternative, new crypto 2026, dna cryptocurrency, biological cryptocurrency, no blockchain, biocrypt, proof of work, sha-256, ed25519, rflp, restriction enzyme, gel electrophoresis, offline crypto, peer to peer, open source crypto, mine crypto browser, telomere, 21 million, halving, hayflick limit, protein synthesis, dna wallet, cryptographic proof
 
 ### Platforms:
 - YouTube (main upload, record from video.html)

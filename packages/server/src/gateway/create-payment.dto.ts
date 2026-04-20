@@ -1,16 +1,20 @@
-import { IsString, IsNumber, IsNotEmpty, Min, IsOptional, IsObject } from "class-validator";
+import { IsString, IsNumber, IsNotEmpty, IsInt, Min, Max, MaxLength, IsOptional, IsObject } from "class-validator";
 
 export class CreatePaymentDto {
   @IsNumber()
+  @IsInt()
   @Min(1)
+  @Max(10000)
   amount: number;
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(128)
   recipientPublicKeyHash: string;
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(500)
   description: string;
 
   @IsObject()

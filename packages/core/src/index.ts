@@ -7,3 +7,4 @@ export { NullifierRegistry, createNullifierProof, verifyNullifierProof, type Nul
 export * from "./stego";
 export * from "./ed25519-dna";
 export * from "./rflp";
+export * from "./merkle";

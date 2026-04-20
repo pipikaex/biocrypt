@@ -246,16 +246,11 @@ export function getCoinSerial(protein: Protein): string {
 }
 
 /**
- * Integrate a coin gene into wallet DNA at a valid insertion point.
+ * Integrate a coin gene into wallet/network DNA.
+ * Appends a STOP codon (TAA) before the gene to terminate any open reading
+ * frame, then appends the coin gene. This prevents an unclosed ORF at the
+ * end of the existing DNA from absorbing the new gene into its protein.
  */
 export function integrateCoinGene(walletDNA: string, coinGene: string): string {
-  const insertionPoints = findInsertionPoints(walletDNA);
-  if (insertionPoints.length === 0) {
-    // Append at end if no stop codons found
-    return walletDNA + coinGene;
-  }
-  // Pick a deterministic insertion point based on the gene hash
-  const geneHash = sha256(coinGene);
-  const idx = parseInt(geneHash.slice(0, 8), 16) % insertionPoints.length;
-  return mutateInsert(walletDNA, insertionPoints[idx], coinGene);
+  return walletDNA + "TAA" + coinGene;
 }

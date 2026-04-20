@@ -2,7 +2,7 @@ const BASE = "/api";
 
 async function request<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: opts?.body instanceof FormData ? {} : { "Content-Type": "application/json" },
     ...opts,
   });
   if (!res.ok) {
@@ -17,14 +17,26 @@ export interface Listing {
   title: string;
   description: string;
   price: number;
-  imageUrl: string;
   sellerPublicKeyHash: string;
   status: "active" | "sold" | "cancelled";
   buyerPublicKeyHash: string | null;
-  paymentId: string | null;
+  fileName: string;
+  fileSize: number;
+  fileHash: string;
+  fileMime?: string;
   createdAt: number;
   soldAt: number | null;
+  downloads: number;
 }
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
+}
+
+export { formatFileSize };
 
 export const api = {
   getListings: (status?: string) =>
@@ -33,16 +45,10 @@ export const api = {
   getListing: (id: string) =>
     request<Listing>(`/marketplace/listings/${id}`),
 
-  createListing: (data: {
-    title: string;
-    description: string;
-    price: number;
-    imageUrl?: string;
-    sellerPublicKeyHash: string;
-  }) =>
+  createListing: (data: FormData) =>
     request<Listing>("/marketplace/listings", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: data,
     }),
 
   purchaseListing: (id: string, paymentId: string, buyerPublicKeyHash: string) =>
@@ -60,4 +66,34 @@ export const api = {
       "/gateway/payments",
       { method: "POST", body: JSON.stringify(data) },
     ),
+
+  downloadFile: async (id: string, buyerPublicKeyHash: string): Promise<void> => {
+    const res = await fetch(`${BASE}/marketplace/listings/${id}/download`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ buyerPublicKeyHash }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ message: "Download failed" }));
+      throw new Error(body.message || "Download failed");
+    }
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?(.+?)"?$/);
+    const fileName = match ? decodeURIComponent(match[1]) : "download";
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  getSellerMrnas: (id: string, sellerPublicKeyHash: string) =>
+    request<{ mrnas: string[] }>(`/marketplace/listings/${id}/mrnas`, {
+      method: "POST",
+      body: JSON.stringify({ sellerPublicKeyHash }),
+    }),
 };

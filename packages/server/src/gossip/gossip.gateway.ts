@@ -5,7 +5,7 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { GossipService } from "./gossip.service";
-import { NullifierProof } from "@zcoin/core";
+import { NullifierProof } from "@biocrypt/core";
 
 @WebSocketGateway({ namespace: "/gossip", cors: true })
 export class GossipGateway implements OnGatewayConnection, OnGatewayDisconnect {

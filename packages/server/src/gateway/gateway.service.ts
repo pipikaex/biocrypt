@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, BadRequestException, NotFoundException } from "@nestjs/common";
-import { validateMRNA, deserializeMRNA, type mRNAPayload } from "@zcoin/core";
+import { validateMRNA, deserializeMRNA, type mRNAPayload } from "@biocrypt/core";
 import { RegistryService } from "../registry/registry.service";
 import { NetworkService } from "../network/network.service";
 import * as fs from "fs";
@@ -113,7 +113,8 @@ export class GatewayService implements OnModuleInit {
       );
     }
 
-    for (const mrna of validatedMrnas) {
+    const accepted = validatedMrnas.slice(0, payment.amount);
+    for (const mrna of accepted) {
       this.registry.markCoinSpent(mrna.coinSerialHash, "gateway");
     }
 
