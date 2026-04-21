@@ -136,8 +136,8 @@ function ComparisonSection() {
             <CompareItem label="Supply Cap" value="21M ZBIO" />
             <CompareItem label="Halving" value="Every 210K subs" />
             <CompareItem label="Transfers" value="Peer-to-peer mRNA" highlight />
-            <CompareItem label="Offline?" value="Yes (Ed25519+RFLP)" highlight />
-            <CompareItem label="Visual Proof" value="Gel electrophoresis" highlight />
+            <CompareItem label="Offline?" value="Yes (Ed25519 + pinned fingerprint)" highlight />
+            <CompareItem label="Visual Proof" value="Ribosome + miner signature" highlight />
           </div>
         </div>
       </div>
@@ -163,7 +163,7 @@ function MiningLoopSection() {
       <div className="loop-container">
         <div className="loop-ring">
           <LoopNode pos="top" icon={"\u26CF\uFE0F"} label="Miner solves PoW" detail="SHA-256 proof" delay={0} />
-          <LoopNode pos="right" icon={"\u{1F9EC}"} label="Network signs each ZBIO" detail="Ed25519 + RFLP" delay={0.3} />
+          <LoopNode pos="right" icon={"\u{1F9EC}"} label="Miner signs each ZBIO" detail="Ed25519 miner key" delay={0.3} />
           <LoopNode pos="bottom" icon={"\u{1F4B0}"} label="Block reward earned" detail="50 ZBIO (Era 1)" delay={0.6} />
           <LoopNode pos="left" icon={"\u{1F525}"} label="Transfers burn 1%" detail="Deflationary" delay={0.9} />
           <div className="loop-center">
@@ -294,8 +294,8 @@ function SecurityLayersSection() {
   const r = useReveal();
   const layers = [
     { icon: "\u26CF\uFE0F", name: "Proof of Work", desc: "SHA-256 hash puzzle — costs real energy to mine each ZBIO", color: "#f59e0b" },
-    { icon: "\u{1F511}", name: "Ed25519 Signatures", desc: "Network signs every ZBIO with its secret DNA keypair", color: "#3b82f6" },
-    { icon: "\u{1F9EC}", name: "RFLP Fingerprinting", desc: "Restriction enzyme gel bands prove ZBIO parentage visually", color: "#8b5cf6" },
+    { icon: "\u{1F511}", name: "Ed25519 Miner Signatures", desc: "Every ZBIO is signed by the wallet that mined it &mdash; no central signer", color: "#3b82f6" },
+    { icon: "\u{1F9EC}", name: "Genesis Fingerprint Lock", desc: "Each coin is pinned to the frozen v1 genesis genome fingerprint", color: "#8b5cf6" },
     { icon: "\u{1F6E1}\uFE0F", name: "Nullifier Registry", desc: "Deterministic hashes prevent any ZBIO from being spent twice", color: "#ef4444" },
   ];
 
@@ -325,7 +325,7 @@ function ValueSection() {
     { icon: "\u{1F48E}", title: "Scarcity", desc: "21 million cap enforced by telomere biology. No inflation possible after Hayflick limit." },
     { icon: "\u{1F525}", title: "Deflationary", desc: "1% of transfers are burned, permanently reducing circulating supply over time." },
     { icon: "\u26A1", title: "Utility", desc: "Payment gateway, marketplace integration. Use ZBIO to buy, sell, and trade real goods." },
-    { icon: "\u{1F310}", title: "Offline-First", desc: "Verify and trade without internet. Ed25519 + RFLP work anywhere, no server needed." },
+    { icon: "\u{1F310}", title: "Offline-First", desc: "Verify and trade without internet. Ed25519 + pinned genesis fingerprint work anywhere, no server needed." },
     { icon: "\u{1F512}", title: "Unbreakable", desc: "Four independent security layers. Breaking one still leaves three protecting your ZBIO." },
     { icon: "\u{1F9EC}", title: "Unique Biology", desc: "Every ZBIO has its own DNA, its own protein fingerprint, its own gel electrophoresis pattern." },
   ];

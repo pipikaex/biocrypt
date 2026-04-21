@@ -37,9 +37,6 @@ export function Layout() {
   return (
     <>
       <nav className="navbar">
-        <div className="prerelease-banner">
-          &#x26A0; PRE-PRODUCTION MODE &mdash; The network is live but the trust model is centralized. Coins have no guaranteed value. Mine at your own discretion.
-        </div>
         <div className="navbar-inner">
           <NavLink to="/" className="navbar-brand">
             <span className="brand-icon">&#x29D6;</span>
@@ -156,16 +153,6 @@ function navCls({ isActive }: { isActive: boolean }) {
 }
 
 const navStyles = `
-.prerelease-banner {
-  background: #c0392b;
-  color: #fff;
-  text-align: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 0.35rem 1rem;
-  text-transform: uppercase;
-}
 .navbar {
   position: sticky; top: 0; z-index: 100;
   background: rgba(6, 9, 15, 0.85);

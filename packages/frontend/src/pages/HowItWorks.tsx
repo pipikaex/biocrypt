@@ -196,23 +196,25 @@ export function HowItWorks() {
           <div className="hiw-split">
             <div className="hiw-text">
               <div className="hiw-step-badge" style={{ background: "#a855f7" }}>Step 3</div>
-              <h2>Network Signing &mdash; Ed25519 as DNA</h2>
+              <h2>Miner Signing &mdash; Ed25519 as DNA</h2>
               <p>
-                The BioCrypt network has an <strong>Ed25519 keypair encoded as DNA</strong>. The private key 
-                (128 bases) is the "reproductive DNA" &mdash; only the server has it. The public key 
-                (128 bases) is the "Network Genome" &mdash; shared with every wallet.
+                In v1 there is no central network key. Each miner wallet has its own
+                <strong> Ed25519 keypair encoded as DNA</strong> (128 bases each). The miner
+                signs every coin they produce with their own private key and embeds their
+                public key directly in the coin. The network's identity is not a signer at all
+                &mdash; it is a public <strong>genesis genome fingerprint</strong> pinned into every coin.
               </p>
               <ol className="hiw-list">
-                <li><strong>Verifies</strong> your DNA256 proof-of-work + rejects duplicate coin serial hashes</li>
-                <li><strong>Signs</strong> with Ed25519: <code>Ed25519.sign(serialHash + networkId, privateKeyDNA)</code></li>
-                <li><strong>Records</strong> the minted coin on the public <Link to="/tracker">Coin Tracker</Link> &mdash; auditable forever</li>
-                <li><strong>Returns</strong> the signed coin; your wallet folds it into its own DNA as a 64-base rotating receipt</li>
+                <li><strong>Mines</strong> a valid DNA256 proof-of-work (16+ leading T bases)</li>
+                <li><strong>Signs</strong> with its own Ed25519 wallet key: <code>Ed25519.sign(serialHash + genesisFingerprint + minerPubKey, minerPrivKey)</code></li>
+                <li><strong>Broadcasts</strong> the signed coin over WebSocket to any tracker in the mesh &mdash; trackers gossip to peers</li>
+                <li><strong>Keeps</strong> the coin; the miner's wallet folds it into its own DNA as a 64-base rotating receipt</li>
               </ol>
               <p>
                 Independent proofs travel with every coin: the DNA256 proof-of-work (rebuildable from
-                gene + nonce) and a 256-base Ed25519 signature. Any wallet can verify both offline using the Network 
-                Genome. <strong>No server needed.</strong> If the server disappears, your coins remain 
-                provably valid and tradeable forever.
+                gene + nonce), a 256-base Ed25519 miner signature, and the frozen genesis fingerprint.
+                Any wallet can verify all three offline. <strong>No server, no authority needed.</strong>
+                If every tracker in the world disappears, the coins you already hold remain provably valid forever.
               </p>
             </div>
             <div className="hiw-visual">
@@ -221,17 +223,17 @@ export function HowItWorks() {
                   <div className="hiw-node-icon">{"\u26CF\uFE0F"}</div>
                   <div className="hiw-node-label">Your Miner</div>
                 </div>
-                <div className="hiw-diagram-arrow">{"\u2192"} submit coin</div>
+                <div className="hiw-diagram-arrow">{"\u2192"} sign + mint</div>
                 <div className="hiw-diagram-node hiw-node-network">
                   <div className="hiw-node-icon">{"\u{1F9EC}"}</div>
-                  <div className="hiw-node-label">Network</div>
-                  <div className="hiw-node-sub">Verify PoW + Ed25519 Sign + Mutate DNA</div>
+                  <div className="hiw-node-label">Miner Wallet</div>
+                  <div className="hiw-node-sub">Embeds pubkey + Ed25519 signs</div>
                 </div>
-                <div className="hiw-diagram-arrow">{"\u2192"} signed coin + genome</div>
+                <div className="hiw-diagram-arrow">{"\u2192"} broadcast coin</div>
                 <div className="hiw-diagram-node hiw-node-wallet">
                   <div className="hiw-node-icon">{"\u{1F4B3}"}</div>
-                  <div className="hiw-node-label">Your Wallet</div>
-                  <div className="hiw-node-sub">Coin verifiable offline forever</div>
+                  <div className="hiw-node-label">Tracker Mesh</div>
+                  <div className="hiw-node-sub">Anyone can run one; coin verifiable offline forever</div>
                 </div>
               </div>
               <div className="hiw-card-dark" style={{ marginTop: "1.25rem" }}>
@@ -241,13 +243,13 @@ export function HowItWorks() {
                     <span className="text-muted">1. DNA256 PoW:</span> <span className="mono" style={{ color: "#f59e0b" }}>256-base strand with leading-T target &mdash; computational proof</span>
                   </div>
                   <div className="hiw-pow-line">
-                    <span className="text-muted">2. Ed25519 Signature:</span> <span className="mono" style={{ color: "#22c55e" }}>256-base DNA &mdash; network authority proof (256-bit security)</span>
+                    <span className="text-muted">2. Ed25519 Miner Signature:</span> <span className="mono" style={{ color: "#22c55e" }}>256-base DNA signed by the miner's own wallet key (256-bit security)</span>
                   </div>
                   <div className="hiw-pow-line">
-                    <span className="text-muted">3. Coin Tracker record:</span> <span className="mono" style={{ color: "#a855f7" }}>Public append-only mint ledger &mdash; auditable supply</span>
+                    <span className="text-muted">3. Tracker Mesh record:</span> <span className="mono" style={{ color: "#a855f7" }}>Decentralized WebSocket relay &mdash; anyone can run one</span>
                   </div>
                   <div className="hiw-pow-line">
-                    <span className="text-muted">Verification:</span> <span className="mono">Offline with Network Genome &mdash; like a forensic paternity test</span>
+                    <span className="text-muted">Verification:</span> <span className="mono">Offline against the frozen v1 genesis fingerprint &mdash; no authority needed</span>
                   </div>
                 </div>
               </div>
@@ -285,8 +287,9 @@ export function HowItWorks() {
               </ol>
               <p>
                 The recipient <strong>decrypts</strong> the envelope with their wallet&rsquo;s X25519 key and
-                folds the gene into their own DNA ledger. Only they can read it &mdash; yet anyone with the
-                Network Genome can still verify signatures, proofs-of-work, and nullifiers.
+                folds the gene into their own DNA ledger. Only they can read the payload &mdash; yet anyone
+                holding the v1 genesis fingerprint (it's frozen in @biocrypt/core, so everyone has it)
+                can still verify the miner signature, the proof-of-work, and the nullifier.
               </p>
               <p className="hiw-highlight">
                 Same primitives as BioCrypt Chat. Works completely offline: send by email, USB, QR, or Bluetooth.
@@ -347,7 +350,7 @@ export function HowItWorks() {
                 </li>
                 <li>
                   <strong>Ed25519 signature verification:</strong> Every mRNA transfer validates the coin's
-                  network signature using the Ed25519 public key. Forged signatures fail instantly.
+                  miner signature against the public key embedded in the coin. Forged signatures fail instantly.
                 </li>
                 <li>
                   <strong>DNA256 proof-of-work enforcement:</strong> Every transfer rebuilds the coin&rsquo;s
@@ -392,7 +395,7 @@ export function HowItWorks() {
                   </div>
                   <div className="hiw-prop">
                     <span className="hiw-prop-icon">{"\u26A1"}</span>
-                    <span>Offline verification with Network Genome</span>
+                    <span>Offline verification with pinned genesis fingerprint</span>
                   </div>
                 </div>
               </div>
@@ -422,9 +425,9 @@ export function HowItWorks() {
                 <tr><td>Proof-of-Work</td><td>SHA-256 leading hex zeros</td><td>Various</td><td className="hiw-table-highlight">DNA256 leading-T (same SHA-256 engine, nucleotide target)</td></tr>
                 <tr><td>Signing</td><td>ECDSA</td><td>Various</td><td className="hiw-table-highlight">Ed25519 encoded as DNA</td></tr>
                 <tr><td>Encrypted transfers</td><td>No</td><td>No</td><td className="hiw-table-highlight">X25519 + XSalsa20-Poly1305 DNA envelopes</td></tr>
-                <tr><td>Ledger</td><td>Blockchain</td><td>Blockchain/DAG</td><td className="hiw-table-highlight">No chain &mdash; nullifier registry + Coin Tracker</td></tr>
+                <tr><td>Ledger</td><td>Blockchain</td><td>Blockchain/DAG</td><td className="hiw-table-highlight">No chain &mdash; nullifier gossip over decentralized tracker mesh</td></tr>
                 <tr><td>Offline transfers</td><td>No</td><td>No</td><td className="hiw-table-highlight">Yes &mdash; encrypted envelopes</td></tr>
-                <tr><td>Offline verification</td><td>No (needs nodes)</td><td>No</td><td className="hiw-table-highlight">Yes &mdash; Network Genome in every wallet</td></tr>
+                <tr><td>Offline verification</td><td>No (needs nodes)</td><td>No</td><td className="hiw-table-highlight">Yes &mdash; genesis fingerprint pinned in every wallet</td></tr>
                 <tr><td>Storage</td><td>Every node stores all txns</td><td>Full chain</td><td className="hiw-table-highlight">Only nullifiers + network DNA + mint tracker</td></tr>
                 <tr><td>Coin identity</td><td>UTXO hash</td><td>Token ID</td><td className="hiw-table-highlight">180-base gene &rarr; protein fingerprint (259 bits)</td></tr>
                 <tr><td>Wallet format</td><td>Seed phrase</td><td>Seed phrase</td><td className="hiw-table-highlight">Seed-derived DNA strand + rotating coin ledger</td></tr>

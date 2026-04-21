@@ -2,55 +2,40 @@ import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   sha256, ribosome, isCoinProtein, getCoinSerial,
-  verifyMiningProof, verifyNetworkSignature, verifyRFLPFingerprint,
-  verifyDna256MiningProof, powLayerDna256, countLeadingTs,
-  type SignedCoin, type RFLPFingerprint,
+  powLayerDna256, countLeadingTs, verifyWithDNA,
+  GENESIS_GENOME_FINGERPRINT, V1_MIN_LEADING_TS,
+  coinV1SigningMessage, type CoinV1,
 } from "@biocrypt/core";
 import { useReveal } from "../hooks/useReveal";
 import { useStore } from "../store";
 
-interface CoinForProof {
-  coinGene: string;
-  serial: string;
-  serialHash: string;
-  nonce: number;
-  hash: string;
-  difficulty: string;
-  networkSignature: string;
-  networkId: string;
-  networkGenome: string;
-  rflpFingerprint?: RFLPFingerprint;
-}
-
 type VerifyResult = { layer: string; icon: string; pass: boolean; detail: string; time?: string };
 
-function verifyCoinLayers(coin: CoinForProof | null): VerifyResult[] {
+function verifyCoinLayers(coin: CoinV1 | null): VerifyResult[] {
   if (!coin) return [];
   const results: VerifyResult[] = [];
 
+  // Layer 1: DNA256 proof-of-work
   const t0 = performance.now();
   const strand = (() => {
-    try { return powLayerDna256(coin.coinGene, coin.nonce); }
+    try { return powLayerDna256(coin.coinGene, coin.miningProof.nonce); }
     catch { return ""; }
   })();
   const leadingTs = strand ? countLeadingTs(strand) : 0;
-  const dnaPass = strand ? verifyDna256MiningProof(coin.coinGene, coin.nonce, leadingTs) : false;
-  const legacyPass = !dnaPass &&
-    verifyMiningProof(coin.coinGene, coin.nonce, coin.difficulty);
-  const powPass = dnaPass || legacyPass;
+  const powPass = leadingTs >= coin.miningProof.leadingTs
+    && coin.miningProof.leadingTs >= V1_MIN_LEADING_TS;
   const t1 = performance.now();
   results.push({
-    layer: dnaPass ? "Proof of Work (DNA256)" : "Proof of Work (SHA-256)",
+    layer: "Proof of Work (DNA256)",
     icon: "\u26CF\uFE0F",
     pass: powPass,
-    detail: dnaPass
-      ? `DNA256 strand has ${leadingTs} leading "T" bases: ${strand.slice(0, 24)}...`
-      : legacyPass
-      ? `SHA-256(gene|${coin.nonce}) = ${coin.hash.slice(0, 20)}... starts with "${coin.difficulty}"`
-      : `Hash does not match any accepted target (DNA256 or legacy "${coin.difficulty}")`,
+    detail: powPass
+      ? `DNA256 strand has ${leadingTs} leading "T" bases (target ${coin.miningProof.leadingTs}): ${strand.slice(0, 24)}...`
+      : `Strand only has ${leadingTs} leading Ts; ${coin.miningProof.leadingTs} required`,
     time: `${(t1 - t0).toFixed(2)}ms`,
   });
 
+  // Layer 2: ribosome / protein translation
   const proteinResult = ribosome(coin.coinGene);
   const protein = proteinResult.proteins[0];
   const isCoin = protein ? isCoinProtein(protein) : false;
@@ -65,49 +50,41 @@ function verifyCoinLayers(coin: CoinForProof | null): VerifyResult[] {
       : `Gene does not produce valid coin protein or serial mismatch`,
   });
 
+  // Layer 3: Ed25519 miner signature
   const t2 = performance.now();
-  const fakeCoin: SignedCoin = {
-    coinGene: coin.coinGene,
-    serial: coin.serial,
-    serialHash: coin.serialHash,
-    miningProof: { nonce: coin.nonce, hash: coin.hash, difficulty: coin.difficulty },
-    networkSignature: coin.networkSignature,
-    networkId: coin.networkId,
-    networkGenome: coin.networkGenome,
-    signedAt: Date.now(),
-  };
-  const sigPass = verifyNetworkSignature(fakeCoin, coin.networkGenome);
+  const msg = coinV1SigningMessage(
+    coin.serialHash,
+    coin.networkGenomeFingerprint,
+    coin.minerPubKeyDNA,
+  );
+  const sigPass = verifyWithDNA(msg, coin.minerSignatureDNA, coin.minerPubKeyDNA);
   const t3 = performance.now();
   results.push({
-    layer: "Ed25519 Network Signature",
+    layer: "Ed25519 Miner Signature",
     icon: "\u{1F511}",
     pass: sigPass,
     detail: sigPass
-      ? `Ed25519 signature verified against network genome ${coin.networkGenome.slice(0, 20)}...`
-      : `Signature INVALID — does not match network public key`,
+      ? `Miner signature verified against pubkey ${coin.minerPubKeyDNA.slice(0, 20)}...`
+      : `Signature INVALID — does not match miner public key`,
     time: `${(t3 - t2).toFixed(2)}ms`,
   });
 
-  if (coin.rflpFingerprint) {
-    const t4 = performance.now();
-    const rflpPass = verifyRFLPFingerprint(coin.rflpFingerprint);
-    const t5 = performance.now();
-    results.push({
-      layer: "RFLP Gel Electrophoresis",
-      icon: "\u{1F52C}",
-      pass: rflpPass,
-      detail: rflpPass
-        ? `${coin.rflpFingerprint.fragments.length} gel bands match re-digestion of marker DNA (${coin.rflpFingerprint.markerDNA.length} bases)`
-        : `Gel band pattern does NOT match marker DNA digest`,
-      time: `${(t5 - t4).toFixed(2)}ms`,
-    });
-  }
+  // Layer 4: genesis fingerprint pinning
+  const fpPass = coin.networkGenomeFingerprint === GENESIS_GENOME_FINGERPRINT;
+  results.push({
+    layer: "Genesis Fingerprint Lock",
+    icon: "\u{1F9EC}",
+    pass: fpPass,
+    detail: fpPass
+      ? `Coin pinned to v1 genesis fingerprint ${GENESIS_GENOME_FINGERPRINT.slice(0, 16)}...`
+      : `Coin carries WRONG fingerprint — not a v1 BioCrypt coin`,
+  });
 
   return results;
 }
 
-function tamperCoin(coin: CoinForProof, tamperType: string): CoinForProof {
-  const c = { ...coin, rflpFingerprint: coin.rflpFingerprint ? { ...coin.rflpFingerprint } : undefined };
+function tamperCoin(coin: CoinV1, tamperType: string): CoinV1 {
+  const c: CoinV1 = JSON.parse(JSON.stringify(coin));
   switch (tamperType) {
     case "gene": {
       const bases = c.coinGene.split("");
@@ -117,28 +94,26 @@ function tamperCoin(coin: CoinForProof, tamperType: string): CoinForProof {
       break;
     }
     case "nonce":
-      c.nonce = c.nonce + 1;
+      c.miningProof.nonce = c.miningProof.nonce + 1;
       break;
     case "signature": {
-      const sigBases = c.networkSignature.split("");
+      const sigBases = c.minerSignatureDNA.split("");
       sigBases[10] = sigBases[10] === "A" ? "G" : "A";
-      c.networkSignature = sigBases.join("");
+      c.minerSignatureDNA = sigBases.join("");
       break;
     }
-    case "rflp":
-      if (c.rflpFingerprint) {
-        c.rflpFingerprint = {
-          ...c.rflpFingerprint,
-          markerDNA: "T" + c.rflpFingerprint.markerDNA.slice(1),
-          fragments: c.rflpFingerprint.fragments.map((f, i) => i === 0 ? f + 7 : f),
-        };
-      }
+    case "pubkey": {
+      const pkBases = c.minerPubKeyDNA.split("");
+      pkBases[5] = pkBases[5] === "A" ? "C" : "A";
+      c.minerPubKeyDNA = pkBases.join("");
       break;
+    }
     case "serial":
       c.serialHash = sha256("FAKE-SERIAL-" + Date.now());
       break;
-    case "network":
-      c.networkGenome = c.networkGenome.split("").reverse().join("");
+    case "fingerprint":
+      c.networkGenomeFingerprint = c.networkGenomeFingerprint
+        .split("").reverse().join("");
       break;
   }
   return c;
@@ -146,27 +121,33 @@ function tamperCoin(coin: CoinForProof, tamperType: string): CoinForProof {
 
 export function Proof() {
   const storeCoins = useStore((s) => s.coins);
-  const [coin, setCoin] = useState<CoinForProof | null>(null);
+  const [coin, setCoin] = useState<CoinV1 | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTamper, setActiveTamper] = useState<string | null>(null);
 
   useEffect(() => {
-    const signedCoin = storeCoins.find((c) => c.signed && c.networkSignature && c.coinGene);
-    if (signedCoin) {
+    const v1Coin = storeCoins.find(
+      (c) =>
+        c.protocolVersion === 1
+        && c.minerSignatureDNA
+        && c.minerPubKeyDNA
+        && c.networkGenomeFingerprint,
+    );
+    if (v1Coin) {
       setCoin({
-        coinGene: signedCoin.coinGene,
-        serial: signedCoin.serial || "",
-        serialHash: signedCoin.serialHash,
-        nonce: signedCoin.nonce,
-        hash: signedCoin.hash,
-        difficulty: signedCoin.difficulty,
-        networkSignature: signedCoin.networkSignature!,
-        networkId: signedCoin.networkId!,
-        networkGenome: signedCoin.networkGenome!,
-        rflpFingerprint: signedCoin.rflpFingerprint,
+        protocolVersion: 1,
+        networkGenomeFingerprint: v1Coin.networkGenomeFingerprint!,
+        coinGene: v1Coin.coinGene,
+        serial: v1Coin.serial || "",
+        serialHash: v1Coin.serialHash,
+        miningProof: {
+          nonce: v1Coin.nonce,
+          leadingTs: v1Coin.leadingTs ?? V1_MIN_LEADING_TS,
+        },
+        minerPubKeyDNA: v1Coin.minerPubKeyDNA!,
+        minerSignatureDNA: v1Coin.minerSignatureDNA!,
+        minedAt: v1Coin.minedAt,
       });
-      setLoading(false);
-      return;
     }
     setLoading(false);
   }, [storeCoins]);
@@ -216,7 +197,7 @@ function HeroSection() {
         </div>
         <h1 className="proof-title">Cryptographic Proof</h1>
         <p className="proof-subtitle">
-          Every BioCrypt coin carries four independent, mathematically verifiable proofs of authenticity.
+          Every BioCrypt v1 coin carries four independent, mathematically verifiable proofs of authenticity.
           This page demonstrates <strong>why forging a coin is computationally impossible</strong> — and lets you try.
         </p>
       </div>
@@ -229,40 +210,43 @@ function MathSection() {
   return (
     <section ref={r.ref} className={`proof-section ${r.visible ? "revealed" : ""}`}>
       <h2 className="proof-section-title">The Four Locks</h2>
-      <p className="proof-section-sub">A forger must break ALL four simultaneously. Breaking one leaves three intact.</p>
+      <p className="proof-section-sub">
+        A forger must break ALL four simultaneously. Breaking one leaves three intact.
+        No single party — including the BioCrypt project — can produce a valid coin without doing the full work.
+      </p>
       <div className="locks-grid">
         <LockCard
           num={1} name="DNA256 Proof-of-Work" color="#f59e0b"
-          equation="countLeadingTs(DNA256(gene || nonce)) >= target"
-          bits={36} ops="~68,719,476,736"
+          equation="countLeadingTs(DNA256(gene || nonce)) >= 16"
+          bits={32} ops="~4.3 x 10^9"
           explanation={
             "Must find a nonce such that DNA256(gene || nonce) — a domain-separated " +
             "SHA-256 digest encoded as a 256-nucleotide TACG strand — begins with at " +
-            "least the current target number of 'T' bases. Each attempt is a fresh " +
-            "hash + codec; the one-way property of SHA-256 makes it non-invertible."
+            "least 16 leading 'T' bases. Each attempt is a fresh hash + codec; the " +
+            "one-way property of SHA-256 makes it non-invertible."
           }
-          analogy="Instead of counting hex zeros, we count leading T bases in the DNA — same math, DNA-native display."
+          analogy="Instead of counting hex zeros like Bitcoin, we count leading T bases in the DNA — same math, DNA-native display."
         />
         <LockCard
-          num={2} name="Ed25519 Digital Signature" color="#3b82f6"
-          equation="Verify(pub, sig, msg) = true"
+          num={2} name="Ed25519 Miner Signature" color="#3b82f6"
+          equation="Verify(minerPubKey, sig, serialHash|fp|pubKey) = true"
           bits={128} ops="3.4 x 10^38"
-          explanation="The network signs each coin with its secret 256-bit Ed25519 key encoded as DNA. Forging a signature requires inverting elliptic curve discrete logarithm — proven computationally infeasible."
-          analogy="Like forging a handwritten signature using only a photocopy. The math makes it provably impossible."
+          explanation="The miner signs each coin with their own Ed25519 wallet key encoded as DNA, and embeds their public key directly in the coin. No central party can sign for a miner. Forging requires inverting elliptic curve discrete logarithm — proven computationally infeasible."
+          analogy="Every coin is signed by the specific wallet that mined it. Each wallet is its own sovereign signer."
         />
         <LockCard
-          num={3} name="RFLP Gel Fingerprint" color="#8b5cf6"
-          equation="Digest(markerDNA) = storedFragments"
-          bits={96} ops="7.9 x 10^28"
-          explanation="A separate 'parentage marker DNA' is generated from the network's private key + coin serial. Restriction enzymes cut it at specific sites producing unique gel band patterns. Re-digesting must match exactly."
-          analogy="Like a DNA paternity test. The gel bands are a unique biological fingerprint that can't be faked without knowing the parent's DNA."
-        />
-        <LockCard
-          num={4} name="Nullifier Double-Spend" color="#ef4444"
-          equation="N = SHA-256(serialHash || delimiter || SHA-256(privKeyDNA))"
+          num={3} name="Genesis Fingerprint Lock" color="#8b5cf6"
+          equation="coin.fingerprint == SHA256(GENESIS_GENOME)"
           bits={256} ops="1.16 x 10^77"
-          explanation="Each spend publishes a deterministic nullifier hash. The same coin always produces the same nullifier. Network rejects duplicates. Cannot produce a different nullifier for the same coin."
-          analogy="Like a one-time seal that shatters. Once broken, everyone can see it was used. Cannot be resealed."
+          explanation="Every v1 coin must carry the frozen genesis genome fingerprint. Since no private key exists for this published genome, no party can re-seal a coin to a different network. Pinning is implicit: if the fingerprint doesn't match, verifyCoinV1 rejects unconditionally."
+          analogy="Like a paternity lock. The whole network agrees on one published DNA; coins mined on a fake network simply aren't BioCrypt coins."
+        />
+        <LockCard
+          num={4} name="Nullifier Double-Spend Shield" color="#ef4444"
+          equation="N = SHA-256(serialHash || SHA-256(senderPrivKeyDNA))"
+          bits={256} ops="1.16 x 10^77"
+          explanation="Each spend publishes a deterministic nullifier hash. The same coin + same sender always produces the same nullifier. Trackers reject duplicates. You can't produce a different nullifier for the same coin without the sender's private key."
+          analogy="Like a one-time seal that shatters. Once broken, every tracker in the mesh sees it was used. Cannot be resealed."
         />
       </div>
     </section>
@@ -299,7 +283,7 @@ function LockCard({ num, name, color, equation, bits, ops, explanation, analogy 
   );
 }
 
-function LiveVerifySection({ coin, results }: { coin: CoinForProof; results: VerifyResult[] }) {
+function LiveVerifySection({ coin, results }: { coin: CoinV1; results: VerifyResult[] }) {
   const r = useReveal();
   return (
     <section ref={r.ref} className={`proof-section proof-live ${r.visible ? "revealed" : ""}`}>
@@ -309,7 +293,7 @@ function LiveVerifySection({ coin, results }: { coin: CoinForProof; results: Ver
       </p>
       <div className="coin-card">
         <div className="coin-card-header">
-          <span className="badge badge-primary">Genuine Coin</span>
+          <span className="badge badge-primary">Genuine Coin · v{coin.protocolVersion}</span>
           <span className="mono text-xs">{coin.serialHash.slice(0, 24)}...</span>
         </div>
         {coin.coinGene && (
@@ -345,7 +329,7 @@ function NoLocalCoinSection({ loading }: { loading: boolean }) {
         <h3>{loading ? "Loading coin data..." : "Mine a Coin to See Live Verification"}</h3>
         <p className="text-muted">
           {loading ? "Checking your wallet for signed coins..." :
-            "The live verification demo requires a signed coin in your wallet. Mine one to see all four layers verified in real-time."}
+            "The live verification demo requires a v1 signed coin in your wallet. Mine one to see all four layers verified in real-time."}
         </p>
         {!loading && <Link to="/mine" className="btn btn-primary">Start Mining</Link>}
       </div>
@@ -354,16 +338,16 @@ function NoLocalCoinSection({ loading }: { loading: boolean }) {
 }
 
 const TAMPER_OPTIONS = [
-  { id: "gene", label: "Mutate coin gene", desc: "Change 1 base in the DNA", icon: "\u{1F9EC}", breaks: [0, 1] },
+  { id: "gene", label: "Mutate coin gene", desc: "Change 1 base in the DNA", icon: "\u{1F9EC}", breaks: [0, 1, 2] },
   { id: "nonce", label: "Change nonce", desc: "Increment nonce by 1", icon: "#\uFE0F\u20E3", breaks: [0] },
-  { id: "signature", label: "Alter signature", desc: "Change 1 base in Ed25519 sig", icon: "\u{1F511}", breaks: [2] },
-  { id: "rflp", label: "Fake RFLP bands", desc: "Modify marker DNA + fragments", icon: "\u{1F52C}", breaks: [3] },
+  { id: "signature", label: "Alter miner sig", desc: "Change 1 base in Ed25519 sig", icon: "\u{1F511}", breaks: [2] },
+  { id: "pubkey", label: "Swap miner key", desc: "Alter embedded miner pubkey", icon: "\u{1F510}", breaks: [2] },
   { id: "serial", label: "Swap serial hash", desc: "Replace with random hash", icon: "\u{1F3F7}\uFE0F", breaks: [1, 2] },
-  { id: "network", label: "Wrong network key", desc: "Reverse the genome", icon: "\u{1F30D}", breaks: [2] },
+  { id: "fingerprint", label: "Fake genesis", desc: "Reverse the genome fingerprint", icon: "\u{1F9EC}", breaks: [2, 3] },
 ];
 
 function TamperSection({ coin, activeTamper, setActiveTamper, tamperResults, realResults }: {
-  coin: CoinForProof;
+  coin: CoinV1;
   activeTamper: string | null;
   setActiveTamper: (t: string | null) => void;
   tamperResults: VerifyResult[];
@@ -424,9 +408,9 @@ function TamperSection({ coin, activeTamper, setActiveTamper, tamperResults, rea
 function EntropySection() {
   const r = useReveal();
   const layers = [
-    { name: "DNA256 PoW (leading T bases, 36+ bits)", bits: 36, color: "#f59e0b" },
-    { name: "Ed25519 Signature", bits: 128, color: "#3b82f6" },
-    { name: "RFLP Marker DNA", bits: 96, color: "#8b5cf6" },
+    { name: "DNA256 PoW (16 leading Ts)", bits: 32, color: "#f59e0b" },
+    { name: "Ed25519 Miner Signature", bits: 128, color: "#3b82f6" },
+    { name: "Genesis Fingerprint (SHA-256)", bits: 256, color: "#8b5cf6" },
     { name: "Nullifier Hash", bits: 256, color: "#ef4444" },
   ];
   const totalBits = layers.reduce((s, l) => s + l.bits, 0);
@@ -456,11 +440,11 @@ function EntropySection() {
       <div className="time-to-crack">
         <h3>Time to Crack at Various Speeds</h3>
         <div className="crack-grid">
-          <CrackRow attacker="Consumer GPU" speed="10^9 H/s" layer="PoW only" years={formatYears(Math.pow(2, 36) / 1e9 / 3.15e7)} />
+          <CrackRow attacker="Consumer GPU" speed="10^9 H/s" layer="PoW only" years={formatYears(Math.pow(2, 32) / 1e9 / 3.15e7)} />
           <CrackRow attacker="GPU Farm (1000x)" speed="10^12 H/s" layer="Ed25519" years={formatYears(Math.pow(2, 128) / 1e12 / 3.15e7)} />
           <CrackRow attacker="All Bitcoin miners" speed="10^20 H/s" layer="Ed25519" years={formatYears(Math.pow(2, 128) / 1e20 / 3.15e7)} />
           <CrackRow attacker="Theoretical quantum (Grover)" speed="sqrt reduction" layer="Ed25519" years={formatYears(Math.pow(2, 64) / 1e15 / 3.15e7)} />
-          <CrackRow attacker="All matter in universe as compute" speed="~10^80 ops/s" layer="Combined (516 bits)" years="10^71 years" />
+          <CrackRow attacker="All matter in universe as compute" speed="~10^80 ops/s" layer={`Combined (${totalBits} bits)`} years="10^71 years" />
         </div>
         <div className="crack-context">
           <div className="crack-context-item">
@@ -509,38 +493,38 @@ function AttackTreeSection() {
   const attacks = [
     {
       name: "Forge a coin from scratch",
-      layers: ["Must compute valid PoW", "Must produce Ed25519 sig without private key", "Must create matching RFLP marker DNA", "Coin serial must be unique"],
+      layers: ["Must compute valid 16-T DNA256 PoW", "Must produce Ed25519 sig without any known miner's private key", "Fingerprint must equal GENESIS_GENOME_FINGERPRINT", "Serial hash must match ribosome output"],
       verdict: "Requires breaking elliptic curve discrete log. Proven infeasible.",
       impossible: true,
     },
     {
       name: "Clone an existing coin",
-      layers: ["PoW would match (copied)", "Signature would match (copied)", "RFLP would match (copied)", "Nullifier will MATCH the original — detected as double-spend"],
-      verdict: "Nullifier system detects the duplicate instantly. Clone is rejected.",
+      layers: ["PoW would match (copied)", "Signature would match (copied)", "Fingerprint would match (copied)", "But the nullifier on spend will collide and get rejected mesh-wide"],
+      verdict: "Nullifier gossip detects the duplicate instantly. Clone is rejected everywhere.",
       impossible: true,
     },
     {
-      name: "Mine on a fake network, sign there",
-      layers: ["PoW valid (computed honestly)", "Signature uses WRONG private key", "RFLP uses WRONG key DNA", "Coin rejects: genome mismatch"],
-      verdict: "Different network = different DNA = different signatures. Immune system rejects foreign coins.",
+      name: "Mine on a fake network, call it BioCrypt",
+      layers: ["PoW valid (computed honestly against your own seed)", "Miner signature valid (own key)", "Fingerprint does NOT match GENESIS_GENOME_FINGERPRINT", "Every v1 tracker and wallet rejects it unconditionally"],
+      verdict: "Different genesis seed = different fingerprint = not a BioCrypt coin. Pinning is unforgeable.",
       impossible: true,
     },
     {
       name: "Modify coin gene after signing",
-      layers: ["PoW breaks (hash changes)", "Serial changes — sig won't verify", "RFLP was for original serial", "Every layer cascade-fails"],
+      layers: ["PoW breaks (hash changes)", "Serial hash changes — signature won't verify", "Ribosome output diverges", "Every layer cascade-fails"],
       verdict: "Even a single base change invalidates the entire proof chain.",
       impossible: true,
     },
     {
-      name: "Reverse-engineer private key from signature",
-      layers: ["Ed25519 uses Curve25519", "Computing private from public = discrete log", "Best known: O(2^128) operations", "Quantum: O(2^64) — still infeasible for decades"],
+      name: "Reverse-engineer miner private key from public key",
+      layers: ["Ed25519 uses Curve25519", "Computing private from public = discrete log", "Best known: O(2^128) operations", "Quantum (Shor): feasible only with large fault-tolerant QC, still decades away"],
       verdict: "Same hardness as breaking all of modern cryptography.",
       impossible: true,
     },
     {
-      name: "Brute-force RFLP marker DNA",
-      layers: ["Must match all enzyme cut sites", "Cut sites determined by private key", "180 bases = 4^180 possibilities", "Would also need matching Ed25519 sig"],
-      verdict: "4^180 > 10^108 combinations. Universe doesn't have enough atoms.",
+      name: "Spend someone else's coin",
+      layers: ["Envelope is nacl.box encrypted to recipient's X25519 key", "Nullifier = SHA-256(serialHash || SHA-256(senderPrivKey))", "Without the current owner's private key you cannot produce a valid nullifier or transfer signature", "Tracker rejects unsigned / wrong-signature spends"],
+      verdict: "Ownership is mathematically bound to the Ed25519 private key. No key = no spend.",
       impossible: true,
     },
   ];
@@ -587,15 +571,16 @@ function ImpossibilitySection() {
         </div>
         <h2>Mathematically Proven Unforgeable</h2>
         <p>
-          To forge a single BioCrypt coin, an attacker must simultaneously: compute a valid DNA256 proof-of-work,
-          forge an Ed25519 signature without the private key, generate matching RFLP restriction enzyme fragments
-          from unknown parent DNA, and produce a unique nullifier that hasn't been seen before.
+          To forge a single BioCrypt v1 coin, an attacker must simultaneously: compute a valid DNA256
+          proof-of-work with 16 leading T bases, forge an Ed25519 signature without any miner's
+          private key, produce the frozen genesis fingerprint (SHA-256 preimage), and then avoid a
+          nullifier collision on spend.
         </p>
         <p>
-          The probability of success is approximately <strong className="mono">2^-516</strong> per attempt.
-          If every atom in the observable universe (10^80) computed one attempt per nanosecond for the entire
-          age of the universe (13.8 billion years), the probability of forging even ONE coin would be
-          approximately <strong className="mono">10^-54</strong> — effectively zero.
+          The probability of success is approximately <strong className="mono">2^-672</strong> per attempt.
+          If every atom in the observable universe (10^80) computed one attempt per nanosecond for
+          the entire age of the universe (13.8 billion years), the probability of forging even ONE
+          coin would be approximately <strong className="mono">10^-100</strong> — effectively zero.
         </p>
         <div className="impossibility-cta">
           <Link to="/mine" className="btn btn-primary btn-glow">Start Mining Real Coins</Link>

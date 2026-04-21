@@ -585,8 +585,8 @@ function WhySection() {
   const cards = [
     { icon: "&#x1F9EC;", title: "Mine in your browser", desc: "No GPU rigs, no electricity bills. Open a tab and your browser's CPU does the work. Anyone with a web browser can earn ZBIO." },
     { icon: "&#x26D3;&#xFE0F;", title: "No blockchain", desc: "Faster, lighter, more private. Nullifier-based double-spend prevention, the public minted-coin tracker, and offline Ed25519 verification \u2014 no blockchain ledger." },
-    { icon: "&#x1F510;", title: "DNA256 + X25519 + Ed25519", desc: "DNA256 proof-of-work, X25519 encrypted envelopes for private transfers, Ed25519 network signatures. Three independent layers \u2014 biological, cryptographic, and computational." },
-    { icon: "&#x1F4E1;", title: "Offline everything", desc: "Sign, transfer, and verify ZBIO without internet. Every wallet carries the Network Genome and its own rotating DNA ledger \u2014 ribosome-ready validation, no server required." },
+    { icon: "&#x1F510;", title: "DNA256 + X25519 + Ed25519", desc: "DNA256 proof-of-work, X25519 encrypted envelopes for private transfers, Ed25519 miner signatures. Three independent layers \u2014 biological, cryptographic, and computational \u2014 with no central signer." },
+    { icon: "&#x1F4E1;", title: "Offline everything", desc: "Sign, transfer, and verify ZBIO without internet. Every wallet carries the v1 genesis genome fingerprint and its own rotating DNA ledger \u2014 ribosome-ready validation, no server required." },
     { icon: "&#x1F9EC;", title: "Wallets that remember", desc: "Each received ZBIO is folded into your wallet's own DNA as a compressed 64-base receipt. Your transaction history lives inside the genome \u2014 double-spends mutate themselves out." },
     { icon: "&#x1F680;", title: "Build your own", desc: "Fork the network, create your own ZBIO network with custom DNA. Our TypeScript SDK makes it trivial to launch a new biological token." },
   ];
@@ -1203,7 +1203,7 @@ const FLOW_STEPS: FlowStep[] = [
   },
   {
     id: "receive", icon: "📥", label: "06", title: "Receive & Verify",
-    desc: "The recipient decrypts the envelope with their X25519 key, verifies the Ed25519 network signature against the embedded Network Genome, and checks the nullifier \u2014 all offline. The coin is then folded into their own wallet DNA.",
+    desc: "The recipient decrypts the envelope with their X25519 key, verifies the sender's Ed25519 transfer signature and the coin's miner signature against the genesis genome fingerprint, and checks the nullifier \u2014 all offline. The coin is then folded into their own wallet DNA.",
     color: "#22c55e",
   },
   {
@@ -1418,7 +1418,7 @@ function FlowAnimation() {
       ctx.font = `${baseFont - 1}px sans-serif`;
       ctx.fillText("Ed25519", netX, cy - 12);
 
-      // Signature + RFLP appearing
+      // Miner signature appearing
       if (t > 0.5) {
         const sigT = _clamp01((t - 0.5) * 2);
         ctx.globalAlpha = _easeOut(sigT);
@@ -2295,24 +2295,25 @@ function BuildYourOwn() {
             <span className="code-title">Launch your network</span>
           </div>
           <pre className="code-body">{`import {
-  generateNetworkKeyPair, sha256,
-  mineCoinDna256, signCoinWithNetwork,
-  verifyNetworkSignature, verifyDna256MiningProof
+  createWallet, mineAndSignCoinV1, verifyCoinV1,
 } from "@biocrypt/core";
 
-// Generate Ed25519 keypair encoded as DNA
-const { publicKeyDNA, privateKeyDNA } = generateNetworkKeyPair();
-const networkId = sha256(publicKeyDNA).slice(0, 16);
+// Create a miner wallet locally (no server involved)
+const wallet = createWallet();
 
-// Mine ZBIO with DNA256 proof-of-work (look for leading T bases)
-const coin = mineCoinDna256({ leadingTs: 16 });
-const signed = signCoinWithNetwork(
-  coin, privateKeyDNA, networkId, publicKeyDNA
-);
+// Mine + sign a v1 coin: DNA256 PoW with 16 leading T bases,
+// signed with the miner's own Ed25519 key
+const coin = mineAndSignCoinV1({
+  minerPrivateKeyDNA: wallet.privateKeyDNA,
+  leadingTs: 16,
+});
 
-// Anyone can verify the DNA256 PoW + network signature offline
-console.log(verifyDna256MiningProof(signed)); // true
-console.log(verifyNetworkSignature(signed, publicKeyDNA)); // true`}</pre>
+// Anyone, anywhere, can verify it offline — no network service
+console.log(verifyCoinV1(coin)); // { ok: true }
+
+// Broadcast to any tracker in the mesh
+// (npx @biocrypt/tracker to run your own)
+// await trackerClient.sendMint(coin);`}</pre>
         </div>
         <div style={{ textAlign: "center", marginTop: "2rem" }}>
           <a href="https://github.com/pipikaex/biocrypt" target="_blank" rel="noopener" className="btn btn-secondary btn-lg">
@@ -2407,15 +2408,15 @@ function FAQ() {
     { q: "Why should I use BioCrypt?", a: "BioCrypt is the only cryptocurrency where your wallet is living DNA and every ZBIO is a gene you physically own. No KYC, no sign-up, no app download \u2014 mine ZBIO in your browser, trade them offline via mRNA files, and verify them with real biology (gel electrophoresis). There are zero fees for peer-to-peer transfers, a hard cap of 21 million ZBIO with Bitcoin-style halving, and a payment gateway merchants can add with one script tag. If you want a currency that can\u2019t be censored, seized, or inflated \u2014 and that keeps working even if the server disappears \u2014 BioCrypt is built for you." },
     { q: "Is biocrypt.net a real cryptocurrency?", a: "Yes. It uses DNA256 proof-of-work (SHA-256 digests rendered as a 256-base TACG strand with a leading-T target), Ed25519 asymmetric signatures (same as Solana and Stellar) for identity, and X25519 + XSalsa20-Poly1305 envelopes for encrypted transfers \u2014 the exact primitives used in Signal and WireGuard. The biological encoding is a unique representation layer, but the underlying security is mathematically equivalent to established cryptocurrencies." },
     { q: "How do I start mining?", a: "Two ways: (1) Browser \u2014 create a wallet, go to the Mine page, click \u2018Start Mining.\u2019 A Web Worker runs DNA256 proof-of-work in the background. (2) Native C miner \u2014 compile zcoin-miner-v1.c with clang and run it from your terminal for orders-of-magnitude faster hashing with multi-threaded, hardware-accelerated SHA-256 (the core of the DNA256 codec). Both submit ZBIO to the network automatically." },
-    { q: "Can ZBIO be double-spent?", a: "No. Four overlapping defenses prevent it: (1) DNA256 proof-of-work, (2) Ed25519 signature verification, (3) the rotating DNA ledger inside each wallet binding coins to a specific genome, and (4) nullifier-based spend tracking plus the public Coin Tracker. Offline transfers carry a theoretical risk, mitigated by lineage tracking and nullifier broadcast upon reconnection." },
-    { q: "What makes BioCrypt different from Bitcoin?", a: "Bitcoin uses a blockchain. BioCrypt uses DNA-encoded wallets, DNA256 proof-of-work, encrypted DNA envelopes, and a rotating DNA ledger that stores your transaction history inside the wallet's own genome. Every wallet carries the Network Genome, so every ZBIO is self-validating \u2014 even if the server goes offline forever." },
-    { q: "Can I create my own token?", a: "Absolutely. The @biocrypt/core TypeScript package is open source. Call generateNetworkKeyPair() to get an Ed25519 keypair encoded as DNA, set your DNA256 difficulty (leading-T target), and deploy. Each ZBIO mined on your network carries your unique Ed25519 signature \u2014 they're distinct from biocrypt.net ZBIO but use the same engine." },
+    { q: "Can ZBIO be double-spent?", a: "No. Four overlapping defenses prevent it: (1) DNA256 proof-of-work pinned to the v1 genesis genome fingerprint, (2) Ed25519 miner-signature verification embedded in every coin, (3) the rotating DNA ledger inside each wallet binding coins to a specific owner, and (4) nullifier-based spend tracking gossiped through the decentralized tracker mesh. Offline transfers carry a theoretical risk, mitigated by nullifier broadcast upon reconnection." },
+    { q: "What makes BioCrypt different from Bitcoin?", a: "Bitcoin uses a blockchain. BioCrypt uses DNA-encoded wallets, DNA256 proof-of-work, encrypted DNA envelopes, and a rotating DNA ledger that stores your transaction history inside the wallet's own genome. Every wallet carries the v1 genesis genome fingerprint, every coin is signed by its miner, and every ZBIO is self-validating \u2014 anyone can run a tracker, anyone can verify coins offline, no party has special privileges." },
+    { q: "Can I create my own token?", a: "Absolutely. @biocrypt/core, @biocrypt/tracker, and @biocrypt/gateway are all open-source on npm. Fork the repo, pick your own genesis seed material, set your DNA256 difficulty (leading-T target), and run your own tracker mesh with `npx @biocrypt/tracker`. Each miner on your network signs coins with their own Ed25519 wallet \u2014 a fully independent decentralized network using the same engine." },
     { q: "Is there a pre-mine or ICO?", a: "No. No ZBIO was pre-mined. There is no ICO, no VC funding, no token sale. Every ZBIO in existence was mined through DNA256 proof-of-work by someone contributing compute to the network. The 10% network fee is the only revenue mechanism, and it's fully visible on the Coin Tracker." },
     { q: "How do encrypted transfers work?", a: "When you send ZBIO, the payload is sealed into a DNA envelope: your wallet generates an ephemeral X25519 keypair, derives a shared secret with the recipient\u2019s public key, and encrypts the mRNA with XSalsa20-Poly1305. The whole envelope (recipient key, ephemeral key, nonce, ciphertext) is encoded as a TACG strand. Only the recipient\u2019s wallet can decrypt it \u2014 yet anyone can still verify signatures and nullifiers offline." },
-    { q: "How do offline transfers work?", a: "An OfflineTransfer bundle carries the encrypted DNA envelope, nullifier commitment, Ed25519 network signature, and DNA256 proof. Send it via email, USB, QR code, Bluetooth \u2014 anything. The recipient validates everything locally: signature, proof-of-work, nullifier-not-seen. When either party reconnects, the nullifier is broadcast to finalize the spend." },
+    { q: "How do offline transfers work?", a: "An OfflineTransfer bundle carries the encrypted DNA envelope, nullifier commitment, Ed25519 transfer signature from the sender, and the coin's miner signature + DNA256 proof. Send it via email, USB, QR code, Bluetooth \u2014 anything. The recipient validates everything locally: miner signature, transfer signature, proof-of-work, nullifier-not-seen. When either party reconnects, the nullifier is broadcast to any tracker in the mesh to finalize the spend." },
     { q: "What is the DNA actually encoding?", a: "The DNA uses the real human codon table (64 codons \u2192 20 amino acids). Wallet DNA is read by a ribosome function that translates codons into proteins. Each ZBIO is a 180-base gene sequence yielding ~60 amino acids. Each received coin is folded into your wallet as a 64-base rotating receipt (rotation index + XOR-folded serial hash + checksum). The network\u2019s Ed25519 and X25519 keys are encoded as DNA strands. Every key, signature, envelope, and ZBIO is pure DNA." },
-    { q: "What happens if the biocrypt.net server goes down?", a: "Your ZBIO stays valid. Every wallet embeds the Network Genome (Ed25519 public key) and its own rotating DNA ledger of owned coins. Every ZBIO carries its Ed25519 signature plus a verifiable DNA256 proof. Verification is a pure math + biology operation \u2014 no server needed. Sign, send, and receive peer-to-peer forever." },
-    { q: "What is the Coin Tracker?", a: "The Coin Tracker is the public mint ledger at /tracker. Every time a coin is signed by the network \u2014 whether browser-mined, native-mined, or a bonus \u2014 a record is appended with its serial hash, miner tag, source, leading-T count, and timestamp. When a coin is spent, it\u2019s marked spent. It is the definitive, auditable list of every ZBIO that has ever existed." },
+    { q: "What happens if biocrypt.net goes down?", a: "Your ZBIO stays valid. Every wallet embeds the v1 genesis genome fingerprint and its own rotating DNA ledger of owned coins. Every ZBIO carries its miner's Ed25519 signature plus a verifiable DNA256 proof. Verification is a pure math + biology operation \u2014 no server needed. And the tracker is decentralized: anyone can run `npx @biocrypt/tracker` and keep the network running. Sign, send, and receive peer-to-peer forever." },
+    { q: "What is the Coin Tracker?", a: "The Coin Tracker is a decentralized WebSocket relay mesh. Anyone can run one with `npx @biocrypt/tracker`. Every time a miner signs a coin, it's submitted to any tracker in the mesh and gossiped to peers. Spends, encrypted envelopes, and nullifiers flow through the same mesh. The live feed at /tracker reflects this public, auditable stream of every ZBIO mint and spend." },
   ];
   return (
     <section className="section section-alt" id="faq">
