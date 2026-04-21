@@ -33,7 +33,7 @@ const wallet = generateNetworkKeyPair();
 
 ## Docs
 
-See [PROTOCOL.md](https://github.com/zbiocrypt/biocrypt/blob/main/PROTOCOL.md) for the v1 wire format.
+See [PROTOCOL.md](https://github.com/pipikaex/biocrypt/blob/main/PROTOCOL.md) for the v1 wire format.
 
 ## License
 
