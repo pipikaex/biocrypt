@@ -11,7 +11,7 @@
 //   biocrypt-mine --wallet ~/.biocrypt/miner-wallet.json
 //   biocrypt-mine --local-only                  (sign candidates, log but do not submit)
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createConnection } from "node:net";
 import { connect as tlsConnect } from "node:tls";
 import crypto from "node:crypto";
@@ -84,14 +84,50 @@ const LOG_PATH = args.log || null;
 function findMinerBin() {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const candidates = [
+    path.join(here, "zcoin-miner-v1"),
     path.join(here, "..", "..", "..", "zcoin-miner-v1"),
     path.join(process.cwd(), "zcoin-miner-v1"),
+    path.join(os.homedir(), ".biocrypt", "zcoin-miner-v1"),
+    path.join(os.homedir(), ".local", "bin", "zcoin-miner-v1"),
+    "/opt/homebrew/bin/zcoin-miner-v1",
     "/usr/local/bin/zcoin-miner-v1",
+    "/usr/bin/zcoin-miner-v1",
   ];
   for (const c of candidates) {
     try { if (fs.statSync(c).isFile()) return c; } catch { /* */ }
   }
+  // Nothing pre-built found: try to auto-compile from the shipped C source.
+  const built = tryAutoCompile(here);
+  if (built) return built;
   return "zcoin-miner-v1";
+}
+
+function tryAutoCompile(here) {
+  const sourceCandidates = [
+    path.join(here, "zcoin-miner-v1.c"),
+    path.join(here, "..", "..", "..", "zcoin-miner-v1.c"),
+    path.join(process.cwd(), "zcoin-miner-v1.c"),
+  ];
+  const source = sourceCandidates.find((p) => { try { return fs.statSync(p).isFile(); } catch { return false; } });
+  if (!source) return null;
+  const compilers = ["clang", "cc", "gcc"];
+  const compiler = compilers.find((c) => spawnSync("which", [c], { stdio: "ignore" }).status === 0);
+  if (!compiler) {
+    console.error("[miner] no C compiler found (clang/cc/gcc). Install Xcode CLT (macOS) or build-essential (Linux), then re-run biocrypt-mine.");
+    return null;
+  }
+  const destDir = path.join(os.homedir(), ".biocrypt");
+  try { fs.mkdirSync(destDir, { recursive: true }); } catch { /* */ }
+  const dest = path.join(destDir, "zcoin-miner-v1");
+  console.log(`[miner] no prebuilt zcoin-miner-v1 on PATH — compiling from ${source}`);
+  const res = spawnSync(compiler, ["-O3", "-o", dest, source], { stdio: "inherit" });
+  if (res.status !== 0) {
+    console.error(`[miner] ${compiler} failed to build zcoin-miner-v1 (exit ${res.status})`);
+    return null;
+  }
+  try { fs.chmodSync(dest, 0o755); } catch { /* */ }
+  console.log(`[miner] built zcoin-miner-v1 -> ${dest}`);
+  return dest;
 }
 
 function loadOrCreateWallet() {
@@ -377,6 +413,18 @@ function startMiner() {
   if (args.threads) argsV.push("--threads", String(args.threads));
   const child = spawn(MINER_BIN, argsV, {
     stdio: ["pipe", "pipe", "inherit"],
+  });
+  child.on("error", (err) => {
+    if (err && err.code === "ENOENT") {
+      console.error(`\n[miner] could not launch zcoin-miner-v1 at "${MINER_BIN}".`);
+      console.error("[miner] Build it once with:");
+      console.error("        clang -O3 -o zcoin-miner-v1 zcoin-miner-v1.c");
+      console.error("        sudo mv zcoin-miner-v1 /usr/local/bin/   # or /opt/homebrew/bin on Apple Silicon");
+      console.error("[miner] Or pass a custom path with --miner /path/to/zcoin-miner-v1");
+      process.exit(127);
+    }
+    console.error(`[miner] spawn error: ${err?.message || err}`);
+    process.exit(1);
   });
   child.on("exit", (code) => {
     console.log(`\n  [miner] exited (code ${code})`);

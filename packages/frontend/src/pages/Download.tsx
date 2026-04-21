@@ -102,67 +102,77 @@ export function Download() {
         )}
       </section>
 
-      <section className="card" style={{ marginBottom: "1.5rem" }}>
-        <h2 style={{ marginTop: 0 }}>1. Grab the binary <span style={{ fontSize: "0.85rem", fontWeight: 400, color: "var(--text-muted)" }}>(macOS)</span></h2>
+      <section className="card card-glow" style={{ marginBottom: "1.5rem" }}>
+        <h2 style={{ marginTop: 0 }}>1. One-line install <span style={{ fontSize: "0.85rem", fontWeight: 400, color: "var(--text-muted)" }}>(recommended)</span></h2>
         <p style={{ color: "var(--text-muted)" }}>
-          Universal Mach-O &mdash; runs on Apple Silicon and Intel. Pure PoW hot loop;
-          no network code.
+          The <code>@biocrypt/tracker</code> npm package ships both the miner wrapper
+          and the native C source. On first run it auto-compiles the PoW binary with
+          your system <code>clang</code>/<code>cc</code>/<code>gcc</code> and drops it
+          at <code>~/.biocrypt/zcoin-miner-v1</code>. Node.js 20+ and a C compiler
+          (Xcode CLT on macOS, <code>build-essential</code> on Linux) are the only
+          prerequisites.
         </p>
-        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: "1.25rem" }}>
-          <a className="btn btn-primary" href="/downloads/zcoin-miner-v1" download>
-            Download zcoin-miner-v1 (universal)
-          </a>
-          <a className="btn btn-secondary" href="/downloads/zcoin-miner-v1-arm64" download>
-            arm64
-          </a>
-          <a className="btn btn-secondary" href="/downloads/zcoin-miner-v1-x86_64" download>
-            x86_64
-          </a>
+        <pre className="mono" style={codeStyle}>
+{`npm install --global @biocrypt/tracker
+biocrypt-mine --tracker ${TRACKER_WS}`}
+        </pre>
+        <p style={{ color: "var(--text-muted)", marginTop: "1.25rem", fontSize: "0.85rem" }}>
+          First run creates <code>~/.biocrypt/miner-wallet.json</code> &mdash; this
+          file <strong>is</strong> your mining identity. Back it up.
+        </p>
+      </section>
+
+      <section className="card" style={{ marginBottom: "1.5rem" }}>
+        <h2 style={{ marginTop: 0 }}>2. Manual build <span style={{ fontSize: "0.85rem", fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span></h2>
+        <p style={{ color: "var(--text-muted)" }}>
+          Prefer to inspect or pre-build the miner? It&apos;s &lt;300 lines of C with
+          zero deps beyond <code>CommonCrypto</code>/<code>OpenSSL</code>. The wrapper
+          auto-discovers the binary in <code>./</code>, <code>~/.biocrypt/</code>,
+          <code>~/.local/bin/</code>, <code>/opt/homebrew/bin/</code>,
+          <code>/usr/local/bin/</code>, and <code>/usr/bin/</code>.
+        </p>
+        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: "1rem" }}>
           <a className="btn btn-secondary" href="/downloads/zcoin-miner-v1.c" download>
             source (.c)
           </a>
+          <a className="btn btn-secondary" href="/downloads/zcoin-miner-v1-arm64" download>
+            prebuilt arm64
+          </a>
+          <a className="btn btn-secondary" href="/downloads/zcoin-miner-v1-x86_64" download>
+            prebuilt x86_64
+          </a>
+          <a className="btn btn-secondary" href="/downloads/zcoin-miner-v1" download>
+            universal macOS
+          </a>
         </div>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginTop: "1.25rem" }}>
-          Prefer to build from source:
-        </p>
-        <pre className="mono" style={codeStyle}>
-{`curl -O https://www.biocrypt.net/downloads/zcoin-miner-v1.c
-clang -O3 -o zcoin-miner-v1 zcoin-miner-v1.c
-chmod +x zcoin-miner-v1`}
+        <pre className="mono" style={{ ...codeStyle, marginTop: "1.25rem" }}>
+{`# Build from source
+curl -O https://www.biocrypt.net/downloads/zcoin-miner-v1.c
+clang -O3 -o zcoin-miner-v1 zcoin-miner-v1.c     # macOS / Linux
+chmod +x zcoin-miner-v1
+
+# Install to PATH
+sudo mv zcoin-miner-v1 /opt/homebrew/bin/        # Apple Silicon
+sudo mv zcoin-miner-v1 /usr/local/bin/           # Intel mac / Linux`}
         </pre>
       </section>
 
       <section className="card" style={{ marginBottom: "1.5rem" }}>
-        <h2 style={{ marginTop: 0 }}>2. Install the Node wrapper</h2>
-        <p style={{ color: "var(--text-muted)" }}>
-          The wrapper creates a miner wallet on first run, signs every PoW hit
-          with your Ed25519 key, and streams mints over WebSocket. Node.js 20+.
-        </p>
-        <pre className="mono" style={codeStyle}>
-{`# From npm (includes the tracker server too):
-npm install --global @biocrypt/tracker
-
-# Or grab the single-file script directly:
-curl -O https://www.biocrypt.net/downloads/biocrypt-mine.mjs`}
-        </pre>
-      </section>
-
-      <section className="card card-glow" style={{ marginBottom: "1.5rem" }}>
         <h2 style={{ marginTop: 0 }}>3. Mine</h2>
         <pre className="mono" style={codeStyle}>
-{`# Put zcoin-miner-v1 on your PATH, then:
-biocrypt-mine --tracker ${TRACKER_WS}
+{`biocrypt-mine --tracker ${TRACKER_WS}
 
-# Or run the wrapper script directly:
+# Or run the single-file wrapper directly:
+curl -O https://www.biocrypt.net/downloads/biocrypt-mine.mjs
 node biocrypt-mine.mjs --tracker ${TRACKER_WS}
 
-# A chime plays every time the tracker accepts a coin.
-# Disable with --no-sound, or play on PoW found instead:
-biocrypt-mine --sound-on candidate
-biocrypt-mine --no-sound
+# Sound effect options (chime on mined coin):
+biocrypt-mine --sound-on candidate    # play on PoW hit (default)
+biocrypt-mine --sound-on accept       # play on tracker ack
+biocrypt-mine --no-sound              # silent
 
-# First run creates your wallet at ~/.biocrypt/miner-wallet.json
-# This file IS your mining identity. Back it up.`}
+# Custom wallet / threads / difficulty:
+biocrypt-mine --wallet ~/keys/my-miner.json --threads 8 --leading-ts 16`}
         </pre>
         <p style={{ color: "var(--text-muted)", marginTop: "1.25rem", fontSize: "0.85rem" }}>
           Expected output:
