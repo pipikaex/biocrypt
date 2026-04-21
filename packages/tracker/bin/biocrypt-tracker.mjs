@@ -41,7 +41,7 @@ Options:
       --host <h>         Listen host (default: 0.0.0.0)
   -d, --data <path>      JSON persistence file (default: ./tracker-data/tracker.json)
       --peer <ws-url>    Peer tracker URL to gossip with (repeatable)
-      --leading-ts <n>   PoW floor (default: 16, v1 genesis)
+      --leading-ts <n>   PoW floor (default: 18, v1 genesis)
   -q, --quiet            Silence per-connection logs
   -h, --help             Show this help
 

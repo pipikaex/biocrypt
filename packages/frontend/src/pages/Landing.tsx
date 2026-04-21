@@ -2061,15 +2061,15 @@ function SecuritySection() {
         <div className="security-gel-explainer">
           <div className="gel-ascii">
             <div className="gel-ascii-header">DNA256 Proof-of-Work &mdash; Leading T target</div>
-            <pre>{`  Target: 16 leading T bases       (harder as network grows)
+            <pre>{`  Target: 18 leading T bases       (harder as network grows)
 
   Miner tries nonces, computing a 256-base DNA strand each time:
 
-  attempt 1:   ACGGCTAACG\u2026              \u2717  starts with A
-  attempt 2:   TGCAAGCGTA\u2026              \u2717  only 1 leading T
-  attempt 3:   TTTTACGCAA\u2026              \u2717  4 leading Ts
+  attempt 1:   ACGGCTAACG\u2026                \u2717  starts with A
+  attempt 2:   TGCAAGCGTA\u2026                \u2717  only 1 leading T
+  attempt 3:   TTTTACGCAA\u2026                \u2717  4 leading Ts
   \u2026
-  attempt N:   TTTTTTTTTTTTTTTTGCAAT\u2026  \u2713  16 leading Ts \u2014 accepted
+  attempt N:   TTTTTTTTTTTTTTTTTTGCAAT\u2026  \u2713  18 leading Ts \u2014 accepted
 
   Verify offline: rebuild the DNA256 strand from the coin gene + nonce,
   count the T prefix. No server needed, no lookups, pure biology-math.`}</pre>
@@ -2301,11 +2301,11 @@ function BuildYourOwn() {
 // Create a miner wallet locally (no server involved)
 const wallet = createWallet();
 
-// Mine + sign a v1 coin: DNA256 PoW with 16 leading T bases,
+// Mine + sign a v1 coin: DNA256 PoW with 18 leading T bases,
 // signed with the miner's own Ed25519 key
 const coin = mineAndSignCoinV1({
   minerPrivateKeyDNA: wallet.privateKeyDNA,
-  leadingTs: 16,
+  leadingTs: 18,
 });
 
 // Anyone, anywhere, can verify it offline — no network service

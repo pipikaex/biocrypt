@@ -45,20 +45,20 @@ export const GENESIS_NETWORK_ID = "biocrypt-0eafe2a27869";
 
 /**
  * Initial DNA256 proof-of-work difficulty for v1 — number of leading 'T'
- * bases required on the 256-base PoW strand. 16 Ts = 32 leading zero bits =
- * equivalent to 8 leading hex zeros in a SHA-256 hex prefix.
+ * bases required on the 256-base PoW strand. 18 Ts = 36 leading zero bits =
+ * equivalent to 9 leading hex zeros in a SHA-256 hex prefix.
  *
  * Can retarget upward via the difficulty adjustment rules but never below
  * this floor.
  */
-export const GENESIS_LEADING_TS = 16 as const;
+export const GENESIS_LEADING_TS = 18 as const;
 
 /**
  * Minimum DNA256 leading-T count that any coin must clear to be accepted by
  * a v1 verifier, regardless of network difficulty state. Locks the protocol
- * floor — old coins mined at the genesis difficulty remain valid forever.
+ * floor — any coin mined below this threshold is permanently invalid.
  */
-export const V1_MIN_LEADING_TS = 16 as const;
+export const V1_MIN_LEADING_TS = 18 as const;
 
 /**
  * Canonical timestamp (UTC) of the BioCrypt v1 genesis — April 7, 2026.

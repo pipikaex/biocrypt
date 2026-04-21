@@ -177,7 +177,7 @@ export function HowItWorks() {
                     <span className="text-muted">DNA256:</span> <span className="mono"><span style={{ color: "#22c55e" }}>TTTTTTTTTTTTTT</span>GCATGCAACGGT...</span>
                   </div>
                   <div className="hiw-pow-line">
-                    <span className="text-muted">target:</span> <span className="mono">16 leading T bases</span>
+                    <span className="text-muted">target:</span> <span className="mono">18 leading T bases</span>
                   </div>
                 </div>
                 <div className="hiw-arrow-down">{"\u2193"}</div>

@@ -1,6 +1,6 @@
 {
   "name": "@biocrypt/core",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "BioCrypt v1 core primitives — DNA256 hashing, ribosome protein synthesis, Ed25519 coin signing, mRNA transfer envelopes.",
   "license": "MIT",
   "author": "BioCrypt Contributors",

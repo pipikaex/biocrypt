@@ -11,9 +11,9 @@
  *   clang -O3 -o zcoin-miner-v1 zcoin-miner-v1.c
  *
  * Usage:
- *   ./zcoin-miner-v1                       (defaults: 16 leading Ts, ncpu-1 threads)
- *   ./zcoin-miner-v1 --leading-ts 16 --threads 8
- *   ./zcoin-miner-v1 -t 16 -j 8
+ *   ./zcoin-miner-v1                       (defaults: 18 leading Ts, ncpu-1 threads)
+ *   ./zcoin-miner-v1 --leading-ts 18 --threads 8
+ *   ./zcoin-miner-v1 -t 18 -j 8
  *
  * Output lines (one per valid PoW solution):
  *   {"type":"candidate","gene":"ATG...TAA","nonce":12345,"leadingTs":17,"mask":"T"}
@@ -81,7 +81,7 @@ static const int BVAL[] = {
 /* Fixed display mask (first 32 bytes of sha256("gemix/dna256/display-mix/v1")). */
 static unsigned char g_mask32[32];
 
-static _Atomic int g_leading_ts = 16;
+static _Atomic int g_leading_ts = 18;
 static _Atomic long g_hashes = 0;
 static _Atomic int  g_coins  = 0;
 static volatile sig_atomic_t g_run = 1;
@@ -287,7 +287,7 @@ int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IOLBF, 0);
     int ncpu = (int)sysconf(_SC_NPROCESSORS_ONLN);
     int nthreads = ncpu > 2 ? ncpu - 1 : 1;
-    int leading_ts = 16;
+    int leading_ts = 18;
 
     for (int i = 1; i < argc; i++) {
         if ((!strcmp(argv[i], "--leading-ts") || !strcmp(argv[i], "-t")) && i + 1 < argc) {
@@ -304,7 +304,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (leading_ts < 1) leading_ts = 16;
+    if (leading_ts < 1) leading_ts = 18;
     if (nthreads < 1) nthreads = 1;
     atomic_store(&g_leading_ts, leading_ts);
 

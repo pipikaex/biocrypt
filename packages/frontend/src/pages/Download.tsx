@@ -51,7 +51,7 @@ export function Download() {
     };
   }, []);
 
-  const leadingTs = genome?.leadingTs ?? 16;
+  const leadingTs = genome?.leadingTs ?? 18;
   const fpShort = genome?.genomeFingerprint
     ? `${genome.genomeFingerprint.slice(0, 12)}...`
     : "...";
@@ -172,7 +172,7 @@ biocrypt-mine --sound-on accept       # play on tracker ack
 biocrypt-mine --no-sound              # silent
 
 # Custom wallet / threads / difficulty:
-biocrypt-mine --wallet ~/keys/my-miner.json --threads 8 --leading-ts 16`}
+biocrypt-mine --wallet ~/keys/my-miner.json --threads 8 --leading-ts 18`}
         </pre>
         <p style={{ color: "var(--text-muted)", marginTop: "1.25rem", fontSize: "0.85rem" }}>
           Expected output:

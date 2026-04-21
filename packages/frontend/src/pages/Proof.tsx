@@ -222,7 +222,7 @@ function MathSection() {
           explanation={
             "Must find a nonce such that DNA256(gene || nonce) — a domain-separated " +
             "SHA-256 digest encoded as a 256-nucleotide TACG strand — begins with at " +
-            "least 16 leading 'T' bases. Each attempt is a fresh hash + codec; the " +
+            "least 18 leading 'T' bases. Each attempt is a fresh hash + codec; the " +
             "one-way property of SHA-256 makes it non-invertible."
           }
           analogy="Instead of counting hex zeros like Bitcoin, we count leading T bases in the DNA — same math, DNA-native display."
@@ -408,7 +408,7 @@ function TamperSection({ coin, activeTamper, setActiveTamper, tamperResults, rea
 function EntropySection() {
   const r = useReveal();
   const layers = [
-    { name: "DNA256 PoW (16 leading Ts)", bits: 32, color: "#f59e0b" },
+    { name: "DNA256 PoW (18 leading Ts)", bits: 36, color: "#f59e0b" },
     { name: "Ed25519 Miner Signature", bits: 128, color: "#3b82f6" },
     { name: "Genesis Fingerprint (SHA-256)", bits: 256, color: "#8b5cf6" },
     { name: "Nullifier Hash", bits: 256, color: "#ef4444" },
@@ -572,7 +572,7 @@ function ImpossibilitySection() {
         <h2>Mathematically Proven Unforgeable</h2>
         <p>
           To forge a single BioCrypt v1 coin, an attacker must simultaneously: compute a valid DNA256
-          proof-of-work with 16 leading T bases, forge an Ed25519 signature without any miner's
+          proof-of-work with 18 leading T bases, forge an Ed25519 signature without any miner's
           private key, produce the frozen genesis fingerprint (SHA-256 preimage), and then avoid a
           nullifier collision on spend.
         </p>

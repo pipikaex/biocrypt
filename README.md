@@ -11,7 +11,7 @@ signer, and no admin wallet.
   — [`@biocrypt/core`](https://www.npmjs.com/package/@biocrypt/core),
   [`@biocrypt/tracker`](https://www.npmjs.com/package/@biocrypt/tracker),
   [`@biocrypt/gateway`](https://www.npmjs.com/package/@biocrypt/gateway)
-- **Max supply:** 21,000,000 ZBIO · **PoW difficulty (v1 genesis):** 16 leading T's
+- **Max supply:** 21,000,000 ZBIO · **PoW difficulty (v1 genesis):** 18 leading T's
 
 ---
 

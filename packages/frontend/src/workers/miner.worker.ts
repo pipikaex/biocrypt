@@ -297,7 +297,7 @@ self.onmessage = (e: MessageEvent<InMsg>) => {
     currentBlockReward = msg.blockReward ?? 1;
     currentTarget = msg.target;
     currentDifficulty = msg.difficulty;
-    currentLeadingTs = msg.leadingTs ?? 16;
+    currentLeadingTs = msg.leadingTs ?? 18;
     mineLoop(currentLeadingTs, msg.bodyLength ?? DEFAULT_BODY_LENGTH);
   } else if (msg.type === "stop") {
     running = false;
