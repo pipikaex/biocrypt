@@ -17,6 +17,7 @@ import {
   type TrackerGenome,
 } from "../trackerClient";
 import { deriveMinerKey } from "../minerKey";
+import { playSfx, isSfxMuted, setSfxMuted, SFX } from "../sfx";
 
 export function Mine() {
   const wallet = useStore((s) => s.wallet);
@@ -38,6 +39,15 @@ export function Mine() {
   const [trackerStatus, setTrackerStatus] = useState<"offline" | "connecting" | "online">("offline");
   const [miningTime, setMiningTime] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [muted, setMuted] = useState<boolean>(() => isSfxMuted());
+
+  const toggleMute = useCallback(() => {
+    setMuted((prev) => {
+      const next = !prev;
+      setSfxMuted(next);
+      return next;
+    });
+  }, []);
 
   const workerRef = useRef<Worker | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -261,6 +271,7 @@ export function Mine() {
           source: "browser" as const,
         };
         addCoin(coin);
+        playSfx(SFX.coinMined, 0.6);
         addToast("success", `PoW found. Serial ${msg.serialHash.slice(0, 12)}...`);
 
         if (autoSubmit) {
@@ -460,6 +471,15 @@ export function Mine() {
                 />
                 <span className="text-sm">Auto-submit to tracker</span>
               </label>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                onClick={toggleMute}
+                title={muted ? "Unmute coin-mined sound" : "Mute coin-mined sound"}
+                aria-label={muted ? "Unmute coin-mined sound" : "Mute coin-mined sound"}
+              >
+                {muted ? "\u{1F507} Sound off" : "\u{1F50A} Sound on"}
+              </button>
             </div>
 
             {showSettings && (
