@@ -20,6 +20,7 @@ import path from "node:path";
 import os from "node:os";
 import readline from "node:readline";
 import { fileURLToPath } from "node:url";
+import https from "node:https";
 
 import {
   generateNetworkKeyPair, derivePublicKeyDNA,
@@ -40,6 +41,10 @@ function parseArgs(argv) {
     else if (a === "--label" || a === "-l") out.label = argv[++i];
     else if (a === "--local-only") out.localOnly = true;
     else if (a === "--log" || a === "-L") out.log = argv[++i];
+    else if (a === "--no-sound") out.noSound = true;
+    else if (a === "--sound") out.noSound = false;
+    else if (a === "--sound-file") out.soundFile = argv[++i];
+    else if (a === "--sound-on") out.soundOn = argv[++i]; // "candidate" | "accept" (default)
     else if (a === "--help" || a === "-h") out.help = true;
   }
   return out;
@@ -61,6 +66,9 @@ Options:
   -l, --label <label>          Human-readable miner label
       --local-only             Sign candidates but don't submit (offline test)
   -L, --log <path>             Append signed coins to this JSONL file
+      --no-sound               Disable coin-mined sound effect
+      --sound-file <path>      Override sound file (default: ./coin-mined.mp3)
+      --sound-on <event>       Play on "candidate" (fast) or "accept" (default)
   -h, --help                   Show this help
 `);
   process.exit(0);
@@ -252,6 +260,98 @@ class WsClient {
   close() { try { this.sock.end(); } catch {} this.closed = true; }
 }
 
+// ── Sound effect ─────────────────────────────────────────────────────────
+//
+// Plays a short chime when a coin is mined. Cross-platform best-effort: uses
+// afplay on macOS, paplay/aplay/mpg123/ffplay on Linux, PowerShell on Windows.
+// Disabled with --no-sound. Sound file resolved from:
+//   1. --sound-file <path>
+//   2. ./coin-mined.mp3 next to this script
+//   3. ./coin-mined.mp3 in the current working directory
+//   4. auto-download https://biocrypt.net/sfx/coin-mined.mp3 once to ~/.biocrypt/
+
+const SFX_ON = !args.noSound;
+const SFX_EVENT = (args.soundOn === "candidate") ? "candidate" : "accept";
+
+function resolveSoundFile() {
+  if (args.soundFile) {
+    return fs.existsSync(args.soundFile) ? args.soundFile : null;
+  }
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.join(here, "coin-mined.mp3"),
+    path.join(process.cwd(), "coin-mined.mp3"),
+    path.join(os.homedir(), ".biocrypt", "coin-mined.mp3"),
+  ];
+  for (const c of candidates) {
+    try { if (fs.statSync(c).isFile()) return c; } catch { /* */ }
+  }
+  return null;
+}
+
+function downloadSoundFile(cb) {
+  const dest = path.join(os.homedir(), ".biocrypt", "coin-mined.mp3");
+  try { fs.mkdirSync(path.dirname(dest), { recursive: true }); } catch {}
+  const url = "https://biocrypt.net/sfx/coin-mined.mp3";
+  const file = fs.createWriteStream(dest);
+  https.get(url, (res) => {
+    if (res.statusCode !== 200) {
+      try { fs.unlinkSync(dest); } catch {}
+      return cb(null);
+    }
+    res.pipe(file);
+    file.on("finish", () => file.close(() => cb(dest)));
+  }).on("error", () => {
+    try { fs.unlinkSync(dest); } catch {}
+    cb(null);
+  });
+}
+
+let soundFilePath = SFX_ON ? resolveSoundFile() : null;
+if (SFX_ON && !soundFilePath) {
+  downloadSoundFile((p) => {
+    if (p) {
+      soundFilePath = p;
+      console.log(`  [sfx] downloaded sound to ${p}`);
+    } else {
+      console.log(`  [sfx] no sound file found and download failed; continuing silently`);
+    }
+  });
+}
+
+function playSoundCommand() {
+  if (!soundFilePath) return null;
+  if (process.platform === "darwin") return ["afplay", [soundFilePath]];
+  if (process.platform === "linux") {
+    for (const bin of ["paplay", "mpg123", "ffplay", "aplay"]) {
+      const extra = bin === "ffplay" ? ["-autoexit", "-nodisp", "-loglevel", "quiet", soundFilePath]
+                   : bin === "mpg123" ? ["-q", soundFilePath]
+                   : [soundFilePath];
+      return [bin, extra];
+    }
+  }
+  if (process.platform === "win32") {
+    return ["powershell", ["-NoProfile", "-Command",
+      `Add-Type -AssemblyName PresentationCore; ` +
+      `$p = New-Object System.Windows.Media.MediaPlayer; ` +
+      `$p.Open([uri]'${soundFilePath.replace(/\\/g, "/")}'); ` +
+      `$p.Play(); Start-Sleep -Seconds 3`,
+    ]];
+  }
+  return null;
+}
+
+function playCoinSound() {
+  if (!SFX_ON || !soundFilePath) return;
+  const cmd = playSoundCommand();
+  if (!cmd) return;
+  try {
+    const child = spawn(cmd[0], cmd[1], { stdio: "ignore", detached: true });
+    child.unref();
+    child.on("error", () => { /* player binary missing — stay quiet */ });
+  } catch { /* noop */ }
+}
+
 // ── Main ────────────────────────────────────────────────────────────────
 
 const wallet = loadOrCreateWallet();
@@ -261,7 +361,8 @@ console.log(`\n  BioCrypt v1 miner`);
 console.log(`  tracker : ${TRACKER_URL}`);
 console.log(`  wallet  : ${WALLET_PATH}`);
 console.log(`  id      : ${wallet.walletId}`);
-console.log(`  binary  : ${MINER_BIN}\n`);
+console.log(`  binary  : ${MINER_BIN}`);
+console.log(`  sound   : ${SFX_ON ? `on (${SFX_EVENT})` : "off"}${soundFilePath ? "  " + soundFilePath : ""}\n`);
 
 let currentLeadingTs = args.leadingTs ?? GENESIS_LEADING_TS;
 let genomeFingerprint = GENESIS_GENOME_FINGERPRINT;
@@ -321,8 +422,11 @@ function handleCandidate(cand, child) {
     try { fs.appendFileSync(LOG_PATH, JSON.stringify(coin) + "\n"); } catch {}
   }
 
+  if (SFX_EVENT === "candidate") playCoinSound();
+
   if (args.localOnly) {
     console.log(`  ✓ signed  seq=${cand.seq}  serial=${serialHash.slice(0, 12)}  lts=${cand.leadingTs}  (local-only)`);
+    if (SFX_EVENT === "accept") playCoinSound(); // no tracker round-trip in local mode
     return;
   }
 
@@ -369,6 +473,7 @@ if (ws) {
       case "mint-ack":
         coinsSubmitted++;
         console.log(`  ★ accepted  serial=${(msg.serialHash || "").slice(0, 12)}  mintSeq=${msg.mintSeq}  (total ${coinsSubmitted})`);
+        if (SFX_EVENT === "accept") playCoinSound();
         break;
       case "mint-reject":
         coinsRejected++;

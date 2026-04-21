@@ -156,6 +156,11 @@ biocrypt-mine --tracker ${TRACKER_WS}
 # Or run the wrapper script directly:
 node biocrypt-mine.mjs --tracker ${TRACKER_WS}
 
+# A chime plays every time the tracker accepts a coin.
+# Disable with --no-sound, or play on PoW found instead:
+biocrypt-mine --sound-on candidate
+biocrypt-mine --no-sound
+
 # First run creates your wallet at ~/.biocrypt/miner-wallet.json
 # This file IS your mining identity. Back it up.`}
         </pre>
