@@ -94,6 +94,23 @@ export function deriveEncryptionPublicKeyDNA(privateKeyDNA: string): string {
   return bytesToDNABox(pair.publicKey);
 }
 
+/**
+ * Derive an X25519 encryption keypair from any stable secret DNA string
+ * (e.g. an Ed25519 signing privateKeyDNA). Used to migrate wallets that
+ * were minted before encryption keys were persisted.
+ *
+ * The input is hashed to 32 bytes; the hash is used as the X25519 secret
+ * directly. Given the same input, the output is identical forever.
+ */
+export function encryptionKeyPairFromSecret(secret: string): EncryptionKeyPair {
+  const hashHex = sha256("biocrypt|enc-seed|" + secret);
+  const seed = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) {
+    seed[i] = parseInt(hashHex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return encryptionKeyPairFromSeed(seed);
+}
+
 /* ── Envelope ──────────────────────────────────────────────────────── */
 
 export interface DNAEnvelope {

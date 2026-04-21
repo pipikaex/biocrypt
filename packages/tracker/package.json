@@ -1,7 +1,7 @@
 {
   "name": "@biocrypt/tracker",
-  "version": "0.1.4",
-  "description": "Zero-dep WebSocket tracker for BioCrypt v1 — relays mints, spends and encrypted envelopes; run your own with `npx @biocrypt/tracker`.",
+  "version": "0.4.3",
+  "description": "Zero-dep WebSocket tracker for BioCrypt v1.1 — relays mints (incl. 50-coin batch-mint), spends and encrypted envelopes; also ships `biocrypt-mine` and `biocrypt-transfer` CLIs.",
   "license": "MIT",
   "author": "BioCrypt Contributors",
   "homepage": "https://www.biocrypt.net/download",
@@ -27,7 +27,8 @@
   "types": "dist/index.d.ts",
   "bin": {
     "biocrypt-tracker": "bin/biocrypt-tracker.mjs",
-    "biocrypt-mine": "bin/biocrypt-mine.mjs"
+    "biocrypt-mine": "bin/biocrypt-mine.mjs",
+    "biocrypt-transfer": "bin/biocrypt-transfer.mjs"
   },
   "files": [
     "bin",
@@ -45,7 +46,7 @@
     "prepublishOnly": "tsc"
   },
   "dependencies": {
-    "@biocrypt/core": "^0.1.0"
+    "@biocrypt/core": "^0.3.0"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

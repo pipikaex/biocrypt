@@ -19,6 +19,8 @@ import {
 import { TrackerState, type TrackedMint, type TrackedSpend } from "./state.js";
 import {
   verifyCoinV1,
+  verifyBatchV1,
+  isBatchChild,
   GENESIS_GENOME_FINGERPRINT,
   GENESIS_LEADING_TS,
   sha256,
@@ -66,6 +68,7 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
   const genomeFingerprint = opts.genomeFingerprint ?? GENESIS_GENOME_FINGERPRINT;
 
   const state = new TrackerState(persistPath);
+  state.rehydrateSolveCursor();
 
   let nextId = 1;
   const clients = new Map<number, ClientRecord>();
@@ -104,6 +107,9 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
   }
 
   function recordMint(coin: CoinV1, source: string): TrackedMint | null {
+    // Legacy single-coin path: reject batch children here — they must come in
+    // via `mint-batch` bundled with their parent.
+    if (isBatchChild(coin)) return null;
     const result = verifyCoinV1(coin, { expectedGenomeFingerprint: genomeFingerprint });
     if (!result.ok) return null;
     const rec = state.addMint(coin);
@@ -111,6 +117,20 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
     log(`[tracker] mint+ seq=${rec.mintSeq} serial=${coin.serialHash.slice(0, 12)} src=${source}`);
     broadcast({ type: "broadcast-mint", coin, mintSeq: rec.mintSeq });
     return rec;
+  }
+
+  function recordBatch(parent: CoinV1, children: CoinV1[], source: string): TrackedMint[] | null {
+    const vr = verifyBatchV1(parent, children, { expectedGenomeFingerprint: genomeFingerprint });
+    if (!vr.ok) return null;
+    const recs = state.addBatch(parent, children);
+    if (!recs) return null;
+    const solveSeq = recs[0].solveSeq;
+    log(`[tracker] batch+ solve=${solveSeq} size=${recs.length} parent=${parent.serialHash.slice(0, 12)} src=${source}`);
+    // Broadcast each coin individually so existing subscribers keep working.
+    for (const rec of recs) {
+      broadcast({ type: "broadcast-mint", coin: rec.coin, mintSeq: rec.mintSeq });
+    }
+    return recs;
   }
 
   function recordSpend(
@@ -152,6 +172,14 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
           return;
         }
         const coin = msg.coin as CoinV1;
+        if (isBatchChild(coin)) {
+          sendTo(id, {
+            type: "mint-reject",
+            serialHash: coin.serialHash,
+            reason: "batch child must be submitted via mint-batch with parent",
+          });
+          return;
+        }
         const existing = state.hasMint(coin.serialHash);
         if (existing) {
           sendTo(id, {
@@ -180,6 +208,49 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
         }
         break;
       }
+      case "mint-batch": {
+        const parent = msg.parent as CoinV1 | undefined;
+        const children = (msg.children || []) as CoinV1[];
+        if (!parent || !Array.isArray(children)) {
+          sendTo(id, { type: "mint-batch-reject", reason: "missing parent or children" });
+          return;
+        }
+        if (state.hasMint(parent.serialHash)) {
+          sendTo(id, {
+            type: "mint-batch-reject",
+            parentSerialHash: parent.serialHash,
+            reason: "parent already known",
+          });
+          return;
+        }
+        const vr = verifyBatchV1(parent, children, { expectedGenomeFingerprint: genomeFingerprint });
+        if (!vr.ok) {
+          sendTo(id, {
+            type: "mint-batch-reject",
+            parentSerialHash: parent.serialHash,
+            reason: vr.reason,
+            failedIndex: (vr as any).failedIndex,
+          });
+          return;
+        }
+        const recs = recordBatch(parent, children, me.role);
+        if (recs) {
+          sendTo(id, {
+            type: "mint-batch-ack",
+            parentSerialHash: parent.serialHash,
+            solveSeq: recs[0].solveSeq,
+            size: recs.length,
+            mintSeqs: recs.map((r) => r.mintSeq),
+          });
+        } else {
+          sendTo(id, {
+            type: "mint-batch-reject",
+            parentSerialHash: parent.serialHash,
+            reason: "duplicate serialHash within batch",
+          });
+        }
+        break;
+      }
       case "spend": {
         const { nullifier, coinSerialHash, envelope } = msg || {};
         if (typeof nullifier !== "string"
@@ -189,7 +260,34 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
           return;
         }
         if (state.hasSpend(nullifier)) {
-          sendTo(id, { type: "spend-reject", nullifier, reason: "already spent" });
+          // Already-spent nullifier but a well-formed envelope: treat as a
+          // re-delivery request. The coin itself can't be double-spent
+          // (nullifier is pinned), but the envelope must reach the
+          // recipient's inbox. Useful when a previous envelope was
+          // consumed by a stale client and never actually applied.
+          if (envelope && typeof envelope === "object") {
+            const toHash = String((envelope as any).toPubKeyHash || "").slice(0, 128);
+            if (toHash && state.hasMint(coinSerialHash)) {
+              const env = state.addEnvelope({
+                envelope,
+                toPubKeyHash: toHash,
+                coinSerialHash,
+                nullifier,
+              });
+              // Gossip metadata only — never leak envelope bodies to every
+              // connected peer. Recipients pull the body from their inbox.
+              broadcast({
+                type: "envelope-meta",
+                envelopeSeq: env.envelopeSeq,
+                toPubKeyHash: toHash,
+                coinSerialHash,
+                nullifier,
+              });
+              sendTo(id, { type: "spend-ack", nullifier, coinSerialHash, spendSeq: 0, redelivery: true });
+              return;
+            }
+          }
+          sendTo(id, { type: "spend-reject", nullifier, coinSerialHash, reason: "already spent" });
           return;
         }
         const mint = state.hasMint(coinSerialHash);
@@ -197,6 +295,7 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
           sendTo(id, {
             type: "spend-reject",
             nullifier,
+            coinSerialHash,
             reason: "unknown coin",
           });
           return;
@@ -211,11 +310,20 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
               coinSerialHash,
               nullifier,
             });
-            broadcast({ type: "envelope", envelopeSeq: env.envelopeSeq, envelope });
+            // Gossip metadata only — envelope bodies stay in the addressed
+            // inbox. Prevents drive-by claim attacks against plaintext v1.1
+            // envelopes and reduces bandwidth for large payloads.
+            broadcast({
+              type: "envelope-meta",
+              envelopeSeq: env.envelopeSeq,
+              toPubKeyHash: toHash,
+              coinSerialHash,
+              nullifier,
+            });
           }
         }
         if (rec) {
-          sendTo(id, { type: "spend-ack", nullifier, spendSeq: rec.spendSeq });
+          sendTo(id, { type: "spend-ack", nullifier, coinSerialHash, spendSeq: rec.spendSeq });
         }
         break;
       }
@@ -422,6 +530,56 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
       }));
       return;
     }
+    if (req.url && req.url.startsWith("/mint?")) {
+      // /mint?serial=<serialHash> — look up a single mint by its serial
+      // hash. Used by wallets to fetch a batch-parent coin so they can
+      // verify a child that arrived without its parent attached.
+      try {
+        const u = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+        const serial = (u.searchParams.get("serial") || "").trim();
+        if (!serial) {
+          res.writeHead(400, { "content-type": "text/plain" });
+          res.end("missing ?serial=");
+          return;
+        }
+        const m = state.allMints().find((x) => x.coin.serialHash === serial);
+        if (!m) {
+          res.writeHead(404, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: "unknown serial" }));
+          return;
+        }
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(m));
+      } catch (e) {
+        res.writeHead(400, { "content-type": "text/plain" });
+        res.end("bad request: " + (e as Error).message);
+      }
+      return;
+    }
+    if (req.url && req.url.startsWith("/mints")) {
+      // /mints?owner=<minerPubKeyDNA>[&unspent=1][&limit=N]
+      //
+      // Lookup coins by their miner pubkey. Used by `biocrypt-transfer`
+      // to enumerate all coins authored by a given miner wallet so they
+      // can be forwarded on to a frontend wallet or another recipient.
+      try {
+        const u = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+        const owner = (u.searchParams.get("owner") || "").trim();
+        const unspent = u.searchParams.get("unspent") === "1";
+        const limit = Math.min(Number(u.searchParams.get("limit") || 10000), 10000);
+        const all = state.allMints();
+        const filtered = all
+          .filter((m) => !owner || m.coin.minerPubKeyDNA === owner)
+          .filter((m) => !unspent || !m.spent)
+          .slice(0, limit);
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(filtered));
+      } catch (e) {
+        res.writeHead(400, { "content-type": "text/plain" });
+        res.end("bad request: " + (e as Error).message);
+      }
+      return;
+    }
     res.writeHead(404, { "content-type": "text/plain" });
     res.end("not found");
   });
@@ -442,6 +600,26 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
       const url = `http://${host === "0.0.0.0" ? "localhost" : host}:${actualPort}`;
       log(`[tracker] listening on ${url} trackerId=${state.trackerId}`);
       log(`[tracker] genome=${genomeFingerprint.slice(0, 16)}... leadingTs=${leadingTs}`);
+
+      // Keepalive: send WS ping to all clients every 25s. Long-idle
+      // mining connections (PoW can take many minutes between submits)
+      // would otherwise be silently torn down by reverse proxies such as
+      // Apache's ProxyTimeout or nginx's proxy_read_timeout. Pinging
+      // periodically keeps the upstream and downstream TCP alive;
+      // clients pong back automatically.
+      const pingFrame = Buffer.from([0x89, 0x00]);
+      const keepaliveTimer = setInterval(() => {
+        for (const c of clients.values()) {
+          if (!c.alive) continue;
+          try {
+            c.socket.write(pingFrame);
+          } catch {
+            /* ignore, handled by socket error path */
+          }
+        }
+      }, 25_000);
+      keepaliveTimer.unref();
+
       resolve({
         port: actualPort,
         host,

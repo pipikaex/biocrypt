@@ -3,12 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "workspaces": [
-    "packages/core",
-    "packages/server",
-    "packages/frontend",
-    "packages/gateway",
-    "packages/demo",
-    "packages/tracker"
+    "packages/*"
   ],
   "devDependencies": {
     "canvas": "^3.2.3"

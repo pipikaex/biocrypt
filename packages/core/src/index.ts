@@ -13,3 +13,4 @@ export * from "./crypto-dna";
 export * from "./dna-ledger";
 export * from "./genesis";
 export * from "./miner-sign";
+export * from "./coin-envelope";

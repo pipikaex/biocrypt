@@ -12,6 +12,8 @@ import {
   type DNAEnvelope,
 } from "./crypto-dna";
 import { verifyDna256MiningProof } from "./dna256";
+import { verifyCoinV1, type CoinV1 } from "./miner-sign";
+import { GENESIS_GENOME_FINGERPRINT } from "./genesis";
 
 export interface mRNAPayload {
   type: "transfer";
@@ -21,6 +23,11 @@ export interface mRNAPayload {
   senderPublicKeyHash: string;
   recipientPublicKeyHash: string | null;
   nullifierCommitment: string;
+  /**
+   * Legacy v0 network signature (Ed25519-over-DNA, signed by the central
+   * network authority). For v1 coins this field is empty and `coinV1` below
+   * carries the authoritative miner signature + PoW proof instead.
+   */
   networkSignature: string;
   networkId: string;
   networkGenome: string;
@@ -32,6 +39,14 @@ export interface mRNAPayload {
   };
   lineage: TransferRecord[];
   createdAt: number;
+  /**
+   * v1.1 extension: full `CoinV1` snapshot carried with the transfer so the
+   * receiver can verify miner signature + PoW via `verifyCoinV1` without
+   * contacting a central authority. For batch-child coins, `coinV1Parent`
+   * must also be present (required by `verifyCoinV1`).
+   */
+  coinV1?: CoinV1;
+  coinV1Parent?: CoinV1;
 }
 
 export interface TransferRecord {
@@ -72,6 +87,8 @@ export function createMRNA(
   miningProof: { nonce: number; hash: string; difficulty: string },
   existingLineage: TransferRecord[] = [],
   rflpFingerprint?: RFLPFingerprint,
+  coinV1?: CoinV1,
+  coinV1Parent?: CoinV1,
 ): TransferResult {
   const senderProof = proveOwnership(senderWalletDNA, senderPrivateKeyDNA);
   if (!verifyOwnership(senderWalletDNA, senderProof)) {
@@ -116,6 +133,8 @@ export function createMRNA(
     miningProof,
     lineage: [...existingLineage, transferRecord],
     createdAt: Date.now(),
+    coinV1,
+    coinV1Parent,
   };
 
   return {
@@ -128,13 +147,28 @@ export function createMRNA(
 /**
  * Apply an mRNA payload to a recipient's wallet DNA.
  * Validates structure AND network signature before integrating.
+ *
+ * When `recipientPublicKeyHash` is provided, `applyMRNA` refuses to integrate
+ * the coin unless the addressed recipient in the mRNA matches (open
+ * "to anyone" transfers pass through). This is defence-in-depth on top of
+ * envelope encryption: even if a plaintext mRNA leaks, it can't be
+ * integrated into the wrong wallet.
  */
 export function applyMRNA(
   recipientWalletDNA: string,
   mrna: mRNAPayload,
   recipientNetworkGenome?: string,
+  recipientPublicKeyHash?: string,
 ): string {
   validateMRNA(mrna, recipientNetworkGenome);
+  if (recipientPublicKeyHash
+      && mrna.recipientPublicKeyHash
+      && mrna.recipientPublicKeyHash !== recipientPublicKeyHash) {
+    throw new Error(
+      "mRNA is addressed to a different wallet ("
+      + mrna.recipientPublicKeyHash.slice(0, 12) + "…)",
+    );
+  }
   return integrateCoinGene(recipientWalletDNA, mrna.coinGene);
 }
 
@@ -171,29 +205,46 @@ export function validateMRNA(mrna: mRNAPayload, networkGenome?: string): void {
     throw new Error("Coin serial hash mismatch");
   }
 
-  const genome = networkGenome || mrna.networkGenome;
-  const hasValidNetSig = !!(genome && mrna.networkSignature);
-
-  if (hasValidNetSig) {
-    const coin: SignedCoin = {
-      coinGene: mrna.coinGene,
-      serial,
-      serialHash: mrna.coinSerialHash,
-      miningProof: mrna.miningProof,
-      networkSignature: mrna.networkSignature,
-      networkId: mrna.networkId,
-      networkGenome: mrna.networkGenome,
-      signedAt: mrna.createdAt,
-    };
-    if (!verifyNetworkSignature(coin, genome)) {
-      throw new Error("Invalid network signature — coin is not from this network");
+  // v1 path: the mRNA carries a full CoinV1 snapshot — verify miner signature
+  // + PoW via `verifyCoinV1`. For batch-child coins the parent CoinV1 must be
+  // attached so the child's signature can be validated against it.
+  if (mrna.coinV1) {
+    if (mrna.coinV1.serialHash !== mrna.coinSerialHash) {
+      throw new Error("coinV1 serialHash does not match mRNA coinSerialHash");
+    }
+    const v = verifyCoinV1(mrna.coinV1, {
+      expectedGenomeFingerprint: GENESIS_GENOME_FINGERPRINT,
+      parent: mrna.coinV1Parent,
+    });
+    if (!v.ok) {
+      throw new Error("Invalid v1 coin — " + v.reason);
     }
   } else {
-    if (!mrna.miningProof.difficulty || mrna.miningProof.difficulty.length < 6) {
-      throw new Error("Invalid mining proof — difficulty too low or missing");
-    }
-    if (!verifyMiningProof(mrna.coinGene, mrna.miningProof.nonce, mrna.miningProof.difficulty)) {
-      throw new Error("Invalid mining proof — coin was not properly mined");
+    // Legacy v0 path.
+    const genome = networkGenome || mrna.networkGenome;
+    const hasValidNetSig = !!(genome && mrna.networkSignature);
+
+    if (hasValidNetSig) {
+      const coin: SignedCoin = {
+        coinGene: mrna.coinGene,
+        serial,
+        serialHash: mrna.coinSerialHash,
+        miningProof: mrna.miningProof,
+        networkSignature: mrna.networkSignature,
+        networkId: mrna.networkId,
+        networkGenome: mrna.networkGenome,
+        signedAt: mrna.createdAt,
+      };
+      if (!verifyNetworkSignature(coin, genome)) {
+        throw new Error("Invalid network signature — coin is not from this network");
+      }
+    } else {
+      if (!mrna.miningProof.difficulty || mrna.miningProof.difficulty.length < 6) {
+        throw new Error("Invalid mining proof — difficulty too low or missing");
+      }
+      if (!verifyMiningProof(mrna.coinGene, mrna.miningProof.nonce, mrna.miningProof.difficulty)) {
+        throw new Error("Invalid mining proof — coin was not properly mined");
+      }
     }
   }
 
@@ -268,10 +319,11 @@ export function applyMRNABundle(
   recipientWalletDNA: string,
   mrnas: mRNAPayload[],
   recipientNetworkGenome?: string,
+  recipientPublicKeyHash?: string,
 ): string {
   let dna = recipientWalletDNA;
   for (const mrna of mrnas) {
-    dna = applyMRNA(dna, mrna, recipientNetworkGenome);
+    dna = applyMRNA(dna, mrna, recipientNetworkGenome, recipientPublicKeyHash);
   }
   return dna;
 }

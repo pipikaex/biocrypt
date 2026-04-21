@@ -24,7 +24,8 @@ import https from "node:https";
 
 import {
   generateNetworkKeyPair, derivePublicKeyDNA,
-  signCoinWithMiner, verifyCoinV1,
+  signCoinWithMiner, verifyCoinV1, verifyBatchV1,
+  signBatchChild, rewardForSolve,
   ribosome, sha256,
   GENESIS_GENOME_FINGERPRINT, GENESIS_LEADING_TS,
 } from "@biocrypt/core";
@@ -120,7 +121,15 @@ function tryAutoCompile(here) {
   try { fs.mkdirSync(destDir, { recursive: true }); } catch { /* */ }
   const dest = path.join(destDir, "zcoin-miner-v1");
   console.log(`[miner] no prebuilt zcoin-miner-v1 on PATH — compiling from ${source}`);
-  const res = spawnSync(compiler, ["-O3", "-o", dest, source], { stdio: "inherit" });
+  // `-pthread` is required on Linux for pthread_mutex_* / pthread_cond_*;
+  // harmless on macOS where pthreads ship in libSystem.
+  const cflags = ["-O3", "-pthread", "-o", dest, source];
+  let res = spawnSync(compiler, cflags, { stdio: "inherit" });
+  if (res.status !== 0) {
+    // Some very old compilers don't understand `-pthread`; retry without it.
+    console.error(`[miner] ${compiler} with -pthread failed (exit ${res.status}); retrying without it`);
+    res = spawnSync(compiler, ["-O3", "-o", dest, source, "-lpthread"], { stdio: "inherit" });
+  }
   if (res.status !== 0) {
     console.error(`[miner] ${compiler} failed to build zcoin-miner-v1 (exit ${res.status})`);
     return null;
@@ -418,7 +427,8 @@ function startMiner() {
     if (err && err.code === "ENOENT") {
       console.error(`\n[miner] could not launch zcoin-miner-v1 at "${MINER_BIN}".`);
       console.error("[miner] Build it once with:");
-      console.error("        clang -O3 -o zcoin-miner-v1 zcoin-miner-v1.c");
+      console.error("        cc    -O3 -pthread -o zcoin-miner-v1 zcoin-miner-v1.c   # Linux / BSD");
+      console.error("        clang -O3          -o zcoin-miner-v1 zcoin-miner-v1.c   # macOS");
       console.error("        sudo mv zcoin-miner-v1 /usr/local/bin/   # or /opt/homebrew/bin on Apple Silicon");
       console.error("[miner] Or pass a custom path with --miner /path/to/zcoin-miner-v1");
       process.exit(127);
@@ -440,6 +450,10 @@ function startMiner() {
   return child;
 }
 
+// Track the tracker's current solve count so we can size each batch correctly.
+// Initialized from the `welcome` summary and incremented per accepted batch.
+let currentSolveCount = 0;
+
 function handleCandidate(cand, child) {
   const rib = ribosome(cand.gene);
   const protein = rib.proteins[0];
@@ -456,35 +470,57 @@ function handleCandidate(cand, child) {
     difficulty: "T".repeat(cand.leadingTs),
     minedAt: Date.now(),
   };
-  const coin = signCoinWithMiner(mining, wallet.privateKeyDNA, genomeFingerprint);
-  coin.miningProof.leadingTs = cand.leadingTs;
+  const parentBase = signCoinWithMiner(mining, wallet.privateKeyDNA, genomeFingerprint);
+  parentBase.miningProof.leadingTs = cand.leadingTs;
 
-  // Re-sign so the embedded leadingTs is covered (message doesn't include leadingTs, so no re-sign needed)
-  const verify = verifyCoinV1(coin, { expectedGenomeFingerprint: genomeFingerprint });
+  const batchSize = rewardForSolve(currentSolveCount);
+  const parent = {
+    ...parentBase,
+    batchParent: "",
+    batchIndex: 0,
+    batchSize,
+  };
+
+  const children = [];
+  for (let i = 1; i < batchSize; i++) {
+    children.push(signBatchChild({
+      parent,
+      batchIndex: i,
+      batchSize,
+      minerPrivateKeyDNA: wallet.privateKeyDNA,
+      networkGenomeFingerprint: genomeFingerprint,
+    }));
+  }
+
+  const verify = verifyBatchV1(parent, children, { expectedGenomeFingerprint: genomeFingerprint });
   if (!verify.ok) {
     console.error(`  [miner] self-check FAILED: ${verify.reason}`);
     return;
   }
 
   if (LOG_PATH) {
-    try { fs.appendFileSync(LOG_PATH, JSON.stringify(coin) + "\n"); } catch {}
+    try {
+      for (const coin of [parent, ...children]) {
+        fs.appendFileSync(LOG_PATH, JSON.stringify(coin) + "\n");
+      }
+    } catch {}
   }
 
   if (SFX_EVENT === "candidate") playCoinSound();
 
   if (args.localOnly) {
-    console.log(`  ✓ signed  seq=${cand.seq}  serial=${serialHash.slice(0, 12)}  lts=${cand.leadingTs}  (local-only)`);
-    if (SFX_EVENT === "accept") playCoinSound(); // no tracker round-trip in local mode
+    console.log(`  ✓ signed batch  size=${batchSize}  parent=${serialHash.slice(0, 12)}  lts=${cand.leadingTs}  (local-only)`);
+    if (SFX_EVENT === "accept") playCoinSound();
     return;
   }
 
   if (!ws.ready) {
-    console.log(`  · buffered (tracker offline)  serial=${serialHash.slice(0, 12)}`);
-    pending.push(coin);
+    console.log(`  · buffered (tracker offline)  batch size=${batchSize}  parent=${serialHash.slice(0, 12)}`);
+    pending.push({ parent, children });
     return;
   }
-  ws.send({ type: "mint", coin });
-  console.log(`  → submitted  seq=${cand.seq}  serial=${serialHash.slice(0, 12)}  lts=${cand.leadingTs}`);
+  ws.send({ type: "mint-batch", parent, children });
+  console.log(`  → submitted batch  seq=${cand.seq}  size=${batchSize}  parent=${serialHash.slice(0, 12)}  lts=${cand.leadingTs}`);
 }
 
 const pending = [];
@@ -514,8 +550,36 @@ if (ws) {
             }
           }
         }
-        console.log(`  [ws] welcome tracker=${msg.trackerId} genome=${(msg.genomeFingerprint || "").slice(0, 12)}... lts=${msg.leadingTs}`);
-        while (pending.length) ws.send({ type: "mint", coin: pending.shift() });
+        if (msg.summary && typeof msg.summary.totalSolves === "number") {
+          currentSolveCount = msg.summary.totalSolves;
+        }
+        console.log(`  [ws] welcome tracker=${msg.trackerId} genome=${(msg.genomeFingerprint || "").slice(0, 12)}... lts=${msg.leadingTs} solves=${currentSolveCount} reward=${rewardForSolve(currentSolveCount)}`);
+        while (pending.length) {
+          const { parent, children } = pending.shift();
+          ws.send({ type: "mint-batch", parent, children });
+        }
+        break;
+      }
+      case "summary": {
+        if (msg.summary && typeof msg.summary.totalSolves === "number") {
+          currentSolveCount = msg.summary.totalSolves;
+        }
+        break;
+      }
+      case "mint-batch-ack": {
+        const size = Number(msg.size || 1);
+        coinsSubmitted += size;
+        currentSolveCount++;
+        const nextReward = rewardForSolve(currentSolveCount);
+        console.log(`  ★ batch accepted  size=${size}  solve=${msg.solveSeq}  parent=${(msg.parentSerialHash || "").slice(0, 12)}  (total coins ${coinsSubmitted}, next reward=${nextReward})`);
+        if (SFX_EVENT === "accept") playCoinSound();
+        break;
+      }
+      case "mint-batch-reject": {
+        coinsRejected++;
+        console.log(`  ✗ batch rejected  parent=${(msg.parentSerialHash || "").slice(0, 12)}  reason=${msg.reason}`);
+        // Sync our solve count from the tracker in case halving boundary caused a size mismatch.
+        ws.send({ type: "summary" });
         break;
       }
       case "mint-ack":
@@ -528,7 +592,6 @@ if (ws) {
         console.log(`  ✗ rejected  serial=${(msg.serialHash || "").slice(0, 12)}  reason=${msg.reason}`);
         break;
       case "broadcast-mint":
-        // Live feed, ignore for miner role
         break;
       default: break;
     }

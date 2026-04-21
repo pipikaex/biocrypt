@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { CoinV1 } from "@biocrypt/core";
+import { isBatchChild } from "@biocrypt/core";
 
 export interface TrackedMint {
   mintSeq: number;
@@ -13,6 +14,8 @@ export interface TrackedMint {
   receivedAt: number;
   spent: boolean;
   spentAt?: number;
+  /** Sequence number of the PoW solve that produced this coin (1-based). */
+  solveSeq?: number;
 }
 
 export interface TrackedSpend {
@@ -37,7 +40,7 @@ export interface TrackerPersistShape {
   mints: TrackedMint[];
   spends: TrackedSpend[];
   envelopes: PendingEnvelope[];
-  cursors: { mint: number; spend: number; envelope: number };
+  cursors: { mint: number; spend: number; envelope: number; solve?: number };
   version: 1;
 }
 
@@ -49,6 +52,7 @@ export class TrackerState {
   private mintSeqCursor = 0;
   private spendSeqCursor = 0;
   private envelopeSeqCursor = 0;
+  private solveSeqCursor = 0;
   private dirty = false;
   private persistTimer: NodeJS.Timeout | null = null;
   private persistPath: string;
@@ -84,6 +88,7 @@ export class TrackerState {
       this.mintSeqCursor = raw.cursors?.mint ?? 0;
       this.spendSeqCursor = raw.cursors?.spend ?? 0;
       this.envelopeSeqCursor = raw.cursors?.envelope ?? 0;
+      this.solveSeqCursor = raw.cursors?.solve ?? 0;
       return raw.trackerId || "tr-" + Math.random().toString(16).slice(2, 10);
     } catch (e) {
       console.error("[tracker] state load failed:", e);
@@ -112,6 +117,7 @@ export class TrackerState {
         mint: this.mintSeqCursor,
         spend: this.spendSeqCursor,
         envelope: this.envelopeSeqCursor,
+        solve: this.solveSeqCursor,
       },
       version: 1,
     };
@@ -128,7 +134,7 @@ export class TrackerState {
     return this.spends.has(nullifier);
   }
 
-  addMint(coin: CoinV1): TrackedMint | null {
+  addMint(coin: CoinV1, opts: { solveSeq?: number } = {}): TrackedMint | null {
     if (this.mints.has(coin.serialHash)) return null;
     this.mintSeqCursor += 1;
     const record: TrackedMint = {
@@ -136,10 +142,59 @@ export class TrackerState {
       coin,
       receivedAt: Date.now(),
       spent: false,
+      solveSeq: opts.solveSeq,
     };
     this.mints.set(coin.serialHash, record);
     this.schedulePersist();
     return record;
+  }
+
+  /**
+   * Atomically record a batch of coins produced by one PoW solve.
+   * The parent is pre-verified by the caller; children must have been
+   * verified against the parent. Returns the resulting mint records in
+   * batchIndex order, or null if the parent was already recorded OR any
+   * child already exists (duplicate serialHash).
+   */
+  addBatch(parent: CoinV1, children: CoinV1[]): TrackedMint[] | null {
+    if (this.mints.has(parent.serialHash)) return null;
+    for (const c of children) {
+      if (this.mints.has(c.serialHash)) return null;
+    }
+    this.solveSeqCursor += 1;
+    const solveSeq = this.solveSeqCursor;
+    const records: TrackedMint[] = [];
+    for (const coin of [parent, ...children]) {
+      this.mintSeqCursor += 1;
+      const rec: TrackedMint = {
+        mintSeq: this.mintSeqCursor,
+        coin,
+        receivedAt: Date.now(),
+        spent: false,
+        solveSeq,
+      };
+      this.mints.set(coin.serialHash, rec);
+      records.push(rec);
+    }
+    this.schedulePersist();
+    return records;
+  }
+
+  /** Count distinct PoW solves ever recorded. */
+  get totalSolves(): number { return this.solveSeqCursor; }
+
+  /**
+   * Opportunistically re-count solves based on stored mints when a legacy
+   * persistence file is loaded. Called exactly once at startup.
+   */
+  rehydrateSolveCursor(): void {
+    if (this.solveSeqCursor > 0) return;
+    const seen = new Set<number>();
+    for (const m of this.mints.values()) {
+      if (typeof m.solveSeq === "number") seen.add(m.solveSeq);
+      else if (!isBatchChild(m.coin)) seen.add(m.mintSeq);
+    }
+    this.solveSeqCursor = seen.size;
   }
 
   addSpend(
@@ -216,6 +271,7 @@ export class TrackerState {
       trackerId: this.trackerId,
       totalMinted: mintList.length,
       totalSpent: spentCount,
+      totalSolves: this.solveSeqCursor,
       last24h,
       pendingEnvelopes: this.envelopes.length,
       cursors: this.cursors(),
@@ -226,5 +282,10 @@ export class TrackerState {
     return [...this.mints.values()]
       .sort((a, b) => b.mintSeq - a.mintSeq)
       .slice(0, limit);
+  }
+
+  /** Return every recorded mint, sorted by mintSeq ascending. */
+  allMints(): TrackedMint[] {
+    return [...this.mints.values()].sort((a, b) => a.mintSeq - b.mintSeq);
   }
 }

@@ -1,37 +1,51 @@
+# --- dependencies & build output ---
 node_modules/
 dist/
+build/
+.vite/
 *.tsbuildinfo
 
-# Runtime data
+# --- tracker, server & miner runtime state ---
+tracker-data/
+miner-wallet.json
+*.wallet.json
+*.miner.json
+zcoin-miner-v1
+zcoin-miner-v1.exe
+zcoin-miner-v1.*.o
 packages/server/data/
-data/
 
-# OS files
-.DS_Store
-Thumbs.db
+# --- private website (lives in a separate private repo) ---
+packages/frontend/
 
-# IDE
-.vscode/
-.idea/
+# --- local transfer artifacts ---
+*.mrna
+*.mrna.json
 
-# Logs
+# --- logs ---
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Native miner build artifacts & runtime
-zcoin-miner
-zcoin-miner-v1
-zcoin-miner-v1-arm64
-zcoin-miner-v1-x86_64
-zcoin-mined.jsonl
-zcoin-mined.mp3
-zcoin-mined.aiff
-zcoin-mined.m4a
-zcoin-mined.wav
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
 
-# Tracker persistent state
-tracker-data/
-
-# Environment
+# --- env & secrets ---
 .env
 .env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+
+# --- misc ---
+coverage/
+.nyc_output/

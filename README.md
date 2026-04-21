@@ -96,13 +96,20 @@ packages/
   tracker/    @biocrypt/tracker   — zero-dep WebSocket relay (mints, spends, envelopes, peers)
   gateway/    @biocrypt/gateway   — embeddable payment-gateway SDK
   server/     @biocrypt/server    — residual NestJS API (wallet helpers, marketplace, gateway, betting)
-  frontend/   @biocrypt/frontend  — React + Vite SPA (biocrypt.net)
+  frontend/   @biocrypt/frontend  — React + Vite SPA (biocrypt.net) — lives in a separate private repo
   demo/       @biocrypt/demo      — demo marketplace (demo.biocrypt.net)
 zcoin-miner-v1.c                  — reference native miner (clang -O3)
 ```
 
-Only `core`, `tracker`, and `gateway` are published to npm. The server and
-frontend are application code that runs on `biocrypt.net`.
+Only `core`, `tracker`, and `gateway` are published to npm. The server is
+application code that runs on `biocrypt.net`.
+
+> **Note on the website.** The React/Vite SPA that powers `www.biocrypt.net`
+> lives in a **separate private repository** and is expected to be cloned into
+> `packages/frontend/` when you want to develop the UI locally. The protocol,
+> tracker, core library, and everything else needed to participate in the
+> network are fully in this public repo — you can mine, run a tracker, verify
+> coins, and build alternative wallets without the private website source.
 
 ---
 
