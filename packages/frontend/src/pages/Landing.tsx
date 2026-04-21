@@ -207,7 +207,7 @@ const HERO_SLIDES: HeroSlide[] = [
     sub: "Like PayPal, Stripe, or Revolut — but powered by DNA. No credit card processor. No 3% fee. No chargebacks.",
     cta: [
       { label: "File Marketplace", to: "https://file.biocrypt.net", primary: true },
-      { label: "View Gateway Source", to: "https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway" },
+      { label: "View Gateway Source", to: "https://github.com/pipikaex/biocrypt/tree/main/packages/gateway" },
     ],
   },
   {
@@ -1931,7 +1931,7 @@ function ForEveryone() {
           <div className="persona-card">
             <h3>Developers</h3>
             <p>Fork our open-source engine. Create custom tokens, build payment integrations, launch your own biological network in minutes.</p>
-            <a href="https://github.com/pipikaex/biocoin" target="_blank" rel="noopener" className="btn btn-secondary btn-sm">View Source</a>
+            <a href="https://github.com/pipikaex/biocrypt" target="_blank" rel="noopener" className="btn btn-secondary btn-sm">View Source</a>
           </div>
           <div className="persona-card">
             <h3>Businesses</h3>
@@ -2139,7 +2139,7 @@ const result = await pay.requestPayment({
           <a href="https://file.biocrypt.net" target="_blank" rel="noopener" className="btn btn-primary btn-lg btn-glow">
             File Marketplace
           </a>
-          <a href="https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway" target="_blank" rel="noopener" className="btn btn-secondary btn-lg">
+          <a href="https://github.com/pipikaex/biocrypt/tree/main/packages/gateway" target="_blank" rel="noopener" className="btn btn-secondary btn-lg">
             View Source
           </a>
         </div>
@@ -2315,7 +2315,7 @@ console.log(verifyDna256MiningProof(signed)); // true
 console.log(verifyNetworkSignature(signed, publicKeyDNA)); // true`}</pre>
         </div>
         <div style={{ textAlign: "center", marginTop: "2rem" }}>
-          <a href="https://github.com/pipikaex/biocoin" target="_blank" rel="noopener" className="btn btn-secondary btn-lg">
+          <a href="https://github.com/pipikaex/biocrypt" target="_blank" rel="noopener" className="btn btn-secondary btn-lg">
             Star on GitHub
           </a>
         </div>
@@ -2380,11 +2380,11 @@ function Community() {
           </p>
         </div>
         <div className="community-grid">
-          <a href="https://github.com/pipikaex/biocoin" className="social-card" target="_blank" rel="noopener">
+          <a href="https://github.com/pipikaex/biocrypt" className="social-card" target="_blank" rel="noopener">
             <div className="social-icon">Core Engine</div>
             <p>Star the repo, contribute code, report bugs, or fork the project to build your own network.</p>
           </a>
-          <a href="https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway" className="social-card" target="_blank" rel="noopener">
+          <a href="https://github.com/pipikaex/biocrypt/tree/main/packages/gateway" className="social-card" target="_blank" rel="noopener">
             <div className="social-icon">Payment Gateway</div>
             <p>File Marketplace, embeddable SDK, and integration examples for accepting BioCrypt payments.</p>
           </a>
@@ -2498,8 +2498,8 @@ function Footer() {
           </div>
           <div>
             <h4>Community</h4>
-            <a href="https://github.com/pipikaex/biocoin" target="_blank" rel="noopener">GitHub</a>
-            <a href="https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway" target="_blank" rel="noopener">Gateway SDK</a>
+            <a href="https://github.com/pipikaex/biocrypt" target="_blank" rel="noopener">GitHub</a>
+            <a href="https://github.com/pipikaex/biocrypt/tree/main/packages/gateway" target="_blank" rel="noopener">Gateway SDK</a>
             <a href="https://file.biocrypt.net" target="_blank" rel="noopener">File Marketplace</a>
           </div>
         </div>

@@ -190,7 +190,7 @@ export function Ecosystem() {
         <div className="eco-cta-btns">
           <a
             className="btn btn-primary"
-            href="https://github.com/pipikaex/biocoin"
+            href="https://github.com/pipikaex/biocrypt"
             target="_blank"
             rel="noopener"
           >
@@ -198,7 +198,7 @@ export function Ecosystem() {
           </a>
           <a
             className="btn btn-secondary"
-            href="https://github.com/pipikaex/biocoin-marketplace-demo-payment-gateway"
+            href="https://github.com/pipikaex/biocrypt/tree/main/packages/gateway"
             target="_blank"
             rel="noopener"
           >
