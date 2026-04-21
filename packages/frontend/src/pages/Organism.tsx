@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { ribosome, isCoinProtein, type Protein } from "@biocrypt/core";
-import { api } from "../api";
+import { trackerHttp, type TrackedMint } from "../trackerClient";
 
 const AMINO_COLORS: Record<string, string> = {
   Met: "#22c55e", Gly: "#a855f7", Trp: "#ec4899", Cys: "#eab308",
@@ -17,8 +17,16 @@ interface ProteinBlock {
   isCoin: boolean;
 }
 
+/**
+ * Under the v1 decentralized model there is no central "network DNA"; the
+ * organism on this page is assembled by concatenating every coin gene we
+ * know about from the tracker's mint feed. Each coin protein stays
+ * exactly as the miner produced it, and the intergenic filler is the
+ * rolling hash of the preceding genes so the rendered strand still looks
+ * like a living genome.
+ */
 export function Organism() {
-  const [dna, setDna] = useState<string | null>(null);
+  const [mints, setMints] = useState<TrackedMint[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<ProteinBlock | null>(null);
@@ -26,10 +34,32 @@ export function Organism() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    api.getNetworkDna()
-      .then((d) => { setDna(d.dna); setLoading(false); })
-      .catch((e) => { setError(e.message); setLoading(false); });
+    let alive = true;
+    const load = async () => {
+      try {
+        const latest = await trackerHttp.latest();
+        if (!alive) return;
+        setMints(latest);
+        setLoading(false);
+      } catch (e: any) {
+        if (!alive) return;
+        setError(e?.message || "tracker unreachable");
+        setLoading(false);
+      }
+    };
+    load();
+    const id = window.setInterval(load, 30000);
+    return () => { alive = false; window.clearInterval(id); };
   }, []);
+
+  const dna = useMemo(() => {
+    if (!mints || !mints.length) return null;
+    const intergenic = "TTAGGG".repeat(20);
+    return mints
+      .map((m) => m.coin?.coinGene)
+      .filter(Boolean)
+      .join(intergenic);
+  }, [mints]);
 
   const ribosomeResult = useMemo(() => {
     if (!dna) return null;
@@ -68,7 +98,6 @@ export function Organism() {
     const containerWidth = canvas.parentElement?.clientWidth || 900;
     const cols = Math.floor(containerWidth / (SQ + GAP));
 
-    // Flatten all amino acids with protein boundaries
     type Cell = { color: string; proteinIdx: number; aa: string; isCoin: boolean } | { gap: true };
     const cells: Cell[] = [];
     for (let pi = 0; pi < blocks.length; pi++) {
@@ -128,7 +157,6 @@ export function Organism() {
       }
     }
 
-    // Store cells ref for click handler
     (canvas as any).__cells = cells;
     (canvas as any).__cols = cols;
   }, [blocks, hoveredIdx, selected]);
@@ -174,7 +202,7 @@ export function Organism() {
       <div className="page" style={{ textAlign: "center", paddingTop: "4rem" }}>
         <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>{"\u{1F9EC}"}</div>
         <h2>Synthesizing organism...</h2>
-        <p className="text-muted">Running ribosome on 261K+ bases of network DNA</p>
+        <p className="text-muted">Pulling the latest coin genes from the tracker mesh</p>
       </div>
     );
   }
@@ -183,7 +211,19 @@ export function Organism() {
     return (
       <div className="page">
         <h1>Network Organism</h1>
-        <div className="card" style={{ color: "var(--danger)" }}>Failed to load: {error}</div>
+        <div className="card" style={{ color: "var(--danger)" }}>Tracker offline: {error}</div>
+      </div>
+    );
+  }
+
+  if (!mints || mints.length === 0) {
+    return (
+      <div className="page">
+        <h1>Network Organism</h1>
+        <p className="text-muted">
+          No coins have been minted yet. Mine the first coin and this organism
+          will start growing — every new mint adds a protein to the strand.
+        </p>
       </div>
     );
   }
@@ -192,9 +232,11 @@ export function Organism() {
     <div className="page">
       <h1>Network Organism</h1>
       <p className="text-muted" style={{ maxWidth: 700, marginBottom: "1.5rem", lineHeight: 1.7 }}>
-        Every protein synthesized by the ribosome reading the full network DNA, laid out as colored amino acid squares.
-        Each block of color is one protein. Coin proteins and structural proteins together form the living organism
-        of the BioCrypt network.
+        Every protein synthesized by the ribosome reading the concatenated
+        coin genes from the tracker mesh, laid out as colored amino acid
+        squares. Each block of color is one protein. Coin proteins and
+        structural proteins together form the living organism of the BioCrypt
+        network.
       </p>
 
       {stats && (

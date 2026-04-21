@@ -3,10 +3,10 @@ import { BettingController } from "./betting.controller";
 import { BettingService } from "./betting.service";
 import { BettingGateway } from "./betting.gateway";
 import { WalletModule } from "../wallet/wallet.module";
-import { TransferModule } from "../transfer/transfer.module";
+import { RegistryModule } from "../registry/registry.module";
 
 @Module({
-  imports: [WalletModule, TransferModule],
+  imports: [WalletModule, RegistryModule],
   controllers: [BettingController],
   providers: [BettingService, BettingGateway],
 })

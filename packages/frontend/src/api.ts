@@ -1,3 +1,11 @@
+/**
+ * Residual REST helpers for the decentralized v1 server.
+ *
+ * After the 2026 genesis-anchor rollout, the Nest.js server only hosts
+ * wallet helpers, the payment gateway, the marketplace and the betting
+ * PoC. All mint/transfer/tracker/network endpoints are gone — use
+ * the @biocrypt/tracker WebSocket service via `trackerClient.ts` instead.
+ */
 const BASE = "/api";
 
 async function request<T>(path: string, opts?: RequestInit): Promise<T> {
@@ -10,101 +18,6 @@ async function request<T>(path: string, opts?: RequestInit): Promise<T> {
     throw new Error(body.message || res.statusText);
   }
   return res.json();
-}
-
-export interface NetworkStats {
-  networkId: string;
-  dnaLength: number;
-  dnaHash: string;
-  difficulty: string;
-  difficultyTarget: string;
-  totalWallets: number;
-  totalCoins: number;
-  totalSubmissions: number;
-  epochProgress: string;
-  nextAdjustmentIn: number;
-  peers: number;
-  nullifiers: number;
-  feeCoinCount: number;
-  maxSupply: number;
-  currentReward: number;
-  halvingEra: number;
-  halvingEraName: string;
-  coinsUntilHalving: number;
-  telomereLength: number;
-  telomerePercent: number;
-  circulatingSupply: number;
-  burnedCoins: number;
-}
-
-export interface RFLPFingerprint {
-  fragments: number[];
-  enzymesUsed: string[];
-  markerCount: number;
-  markerDNA: string;
-}
-
-export interface SignedCoinResponse {
-  coin: {
-    serial: string;
-    serialHash: string;
-    networkId: string;
-    networkSignature: string;
-    networkGenome: string;
-    rflpFingerprint?: RFLPFingerprint;
-    miningProof: { nonce: number; hash: string; difficulty: string };
-  };
-  blockReward: number;
-  bonusCoins: Array<{
-    coinGene: string;
-    serial: string;
-    serialHash: string;
-    aminoAcids: string[];
-    nonce: number;
-    hash: string;
-    difficulty: string;
-    networkId: string;
-    networkSignature: string;
-    networkGenome: string;
-    rflpFingerprint?: RFLPFingerprint;
-  }>;
-  feeCoinMinted: boolean;
-  difficultyAdjusted: boolean;
-  currentDifficulty: string;
-  currentTarget: string;
-  halvingEra: number;
-  halvingEraName: string;
-  telomerePercent: number;
-}
-
-export interface NetworkDnaAnalysis {
-  dna: string;
-  dnaLength: number;
-  dnaHash: string;
-  totalProteins: number;
-  totalCoins: number;
-  totalStructural: number;
-  intergenicRegions: number;
-  publicKeyHash: string;
-  coins: {
-    index: number;
-    serial: string;
-    serialHash: string;
-    aminoAcids: string[];
-    length: number;
-    rflpFragments?: number[];
-    rflpMarkerCount?: number;
-    rflpMarkerDNA?: string;
-  }[];
-  structuralProteins: {
-    index: number;
-    aminoAcids: string[];
-    length: number;
-    role: string;
-    charge: number;
-    polarity: number;
-    hydrophobicity: number;
-  }[];
 }
 
 export interface WalletResponse {
@@ -122,43 +35,6 @@ export interface WalletViewResponse {
 }
 
 export const api = {
-  getNetworkStats: () => request<NetworkStats>("/network/stats"),
-
-  getNetworkDna: () => request<NetworkDnaAnalysis>("/network/dna"),
-
-  getNetworkRFLP: () => request<RFLPFingerprint>("/network/rflp"),
-
-  getDifficulty: () =>
-    request<{
-      difficulty: string;
-      target: string;
-      networkId: string;
-      networkGenome: string;
-      totalSubmissions: number;
-      epochProgress: string;
-      nextAdjustmentIn: number;
-    }>("/mine/difficulty"),
-
-  submitCoin: (miningResult: {
-    coinGene: string;
-    serial: string;
-    serialHash: string;
-    nonce: number;
-    hash: string;
-    difficulty: string;
-    bonusCoinGenes?: Array<{ coinGene: string; merkleProof: Array<{ hash: string; position: "left" | "right" }> }>;
-  }) =>
-    request<SignedCoinResponse>("/mine/submit", {
-      method: "POST",
-      body: JSON.stringify({
-        coinGene: miningResult.coinGene,
-        nonce: miningResult.nonce,
-        hash: miningResult.hash,
-        difficulty: miningResult.difficulty,
-        ...(miningResult.bonusCoinGenes?.length ? { bonusCoinGenes: miningResult.bonusCoinGenes } : {}),
-      }),
-    }),
-
   createWallet: () =>
     request<WalletResponse>("/wallet", { method: "POST" }),
 
@@ -168,31 +44,6 @@ export const api = {
 
   getBalance: (id: string) =>
     request<{ id: string; coins: number; proteins: number }>(`/wallet/${id}/balance`),
-
-  transfer: (data: {
-    senderWalletId: string;
-    senderPrivateKeyDNA: string;
-    coinSerialHash: string;
-    recipientPublicKeyHash?: string;
-    networkSignature: string;
-    miningProof: { nonce: number; hash: string; difficulty: string };
-  }) =>
-    request<{ mrna: string; nullifier: string }>("/transfer", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-
-  receiveTransfer: (data: { walletId: string; mrna: string }) =>
-    request<{ coinSerialHash: string; newBalance: number }>("/transfer/receive", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-
-  validateTransfer: (mrna: string) =>
-    request<{ valid: boolean; spent: boolean; details: unknown }>("/transfer/validate", {
-      method: "POST",
-      body: JSON.stringify({ mrna }),
-    }),
 
   createPayment: (data: {
     amount: number;

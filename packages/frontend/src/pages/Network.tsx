@@ -1,10 +1,51 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { api, type NetworkStats, type NetworkDnaAnalysis, type RFLPFingerprint } from "../api";
+import { fetchDerivedStats, type DerivedNetworkStats } from "../networkStats";
 import { DNAVisualization } from "../components/DNAVisualization";
-import { ProteinBar, ProteinBarInline } from "../ProteinBar";
+import { ProteinBar } from "../ProteinBar";
 import { GelElectrophoresis } from "../components/GelElectrophoresis";
 import { NETWORK_ENZYMES, digestWithEnzymes } from "@biocrypt/core";
+
+type NetworkStats = DerivedNetworkStats;
+
+// Legacy type — retained so the pre-existing protein/RFLP UI
+// compiles while the tracker-based feed is empty.
+interface RFLPFingerprint {
+  fragments: number[];
+  enzymesUsed: string[];
+  markerCount: number;
+  markerDNA: string;
+}
+
+interface NetworkDnaAnalysis {
+  dna: string;
+  dnaLength: number;
+  dnaHash: string;
+  totalProteins: number;
+  totalCoins: number;
+  totalStructural: number;
+  intergenicRegions: number;
+  publicKeyHash: string;
+  coins: {
+    index: number;
+    serial: string;
+    serialHash: string;
+    aminoAcids: string[];
+    length: number;
+    rflpFragments?: number[];
+    rflpMarkerCount?: number;
+    rflpMarkerDNA?: string;
+  }[];
+  structuralProteins: {
+    index: number;
+    aminoAcids: string[];
+    length: number;
+    role: string;
+    charge: number;
+    polarity: number;
+    hydrophobicity: number;
+  }[];
+}
 
 export function Network() {
   const [stats, setStats] = useState<NetworkStats | null>(null);
@@ -18,29 +59,22 @@ export function Network() {
 
   const load = () => {
     setLoading(true);
-    api.getNetworkStats()
-      .then((s) => { setStats(s); setError(""); })
-      .catch((e) => setError(e.message))
+    fetchDerivedStats()
+      .then((s) => {
+        if (s) { setStats(s); setError(""); }
+        else setError("tracker unreachable");
+      })
+      .catch((e) => setError(e?.message || "tracker error"))
       .finally(() => setLoading(false));
   };
 
-  const loadDna = () => {
-    setDnaLoading(true);
-    api.getNetworkDna()
-      .then((d) => setDnaData(d))
-      .catch(() => {})
-      .finally(() => setDnaLoading(false));
-    api.getNetworkRFLP()
-      .then((r) => setRflp(r))
-      .catch(() => {});
-  };
-
   useEffect(() => {
+    setDnaData(null);
+    setRflp(null);
+    setDnaLoading(false);
     load();
-    loadDna();
     const interval = setInterval(load, 15000);
-    const dnaInterval = setInterval(loadDna, 30000);
-    return () => { clearInterval(interval); clearInterval(dnaInterval); };
+    return () => { clearInterval(interval); };
   }, []);
 
   return (
@@ -70,13 +104,13 @@ export function Network() {
         <>
           {/* Hero Stats Bar */}
           <div className="net-hero">
-            <HeroStat value={dnaData?.totalCoins ?? stats.totalCoins} label="Coins in Network" icon="coin" />
-            <HeroStat value={stats.totalWallets} label="Active Miners" icon="wallet" />
-            <HeroStat value={stats.totalSubmissions} label="Blocks Mined" icon="mine" />
-            <HeroStat value={`${stats.difficulty.length} zeros`} label="Difficulty" icon="difficulty" />
-            <HeroStat value={(stats as any).currentReward ?? "?"} label="Block Reward" icon="shield" />
-            <HeroStat value={(stats as any).halvingEraName ?? "Genesis"} label={`Era ${((stats as any).halvingEra ?? 0) + 1}`} icon="shield" />
-            <HeroStat value={`${((stats as any).telomerePercent ?? 100).toFixed(1)}%`} label="Telomere" icon="shield" />
+            <HeroStat value={stats.totalCoins} label="Coins Minted" icon="coin" />
+            <HeroStat value={stats.peers} label="Connected Peers" icon="wallet" />
+            <HeroStat value={stats.last24h} label="Minted (24h)" icon="mine" />
+            <HeroStat value={`${stats.dnaLeadingTs} Ts`} label="Difficulty" icon="difficulty" />
+            <HeroStat value={stats.currentReward} label="Block Reward" icon="shield" />
+            <HeroStat value={stats.halvingEraName} label={`Era ${stats.halvingEra + 1}`} icon="shield" />
+            <HeroStat value={`${stats.telomerePercent.toFixed(1)}%`} label="Telomere" icon="shield" />
           </div>
 
           {/* Tab Navigation */}
@@ -178,12 +212,16 @@ function OverviewTab({ stats, dnaData, dnaLoading, networkRflp }: { stats: Netwo
             <div className="mono text-sm">{stats.networkId}</div>
           </div>
           <div className="field">
-            <label className="label">DNA Hash</label>
-            <div className="mono text-xs truncate">{stats.dnaHash}</div>
+            <label className="label">Genome Fingerprint</label>
+            <div className="mono text-xs truncate">{stats.genomeFingerprint}</div>
           </div>
           <div className="field">
-            <label className="label">DNA Length</label>
-            <div className="mono text-sm">{stats.dnaLength.toLocaleString()} bases</div>
+            <label className="label">Protocol Version</label>
+            <div className="mono text-sm">v{stats.protocolVersion}</div>
+          </div>
+          <div className="field">
+            <label className="label">Tracker</label>
+            <div className="mono text-xs truncate">{stats.trackerId}</div>
           </div>
           {dnaData && (
             <>
@@ -202,19 +240,16 @@ function OverviewTab({ stats, dnaData, dnaLoading, networkRflp }: { stats: Netwo
         <div className="card">
           <h2>Mining & Difficulty</h2>
           <div className="field">
-            <label className="label">Current Difficulty</label>
-            <div className="mono text-sm">{stats.difficulty.length} leading zeros (<code>{stats.difficulty}</code>)</div>
+            <label className="label">DNA256 Difficulty</label>
+            <div className="mono text-sm">{stats.dnaLeadingTs} leading <code>T</code> bases (≈ {stats.difficulty.length} hex zeros)</div>
           </div>
           <div className="field">
-            <label className="label">Epoch Progress</label>
-            <div className="epoch-bar">
-              <div className="epoch-fill" style={{ width: `${parseEpochPercent(stats.epochProgress)}%` }} />
-              <span className="epoch-text">{stats.epochProgress}</span>
-            </div>
+            <label className="label">Block Reward</label>
+            <div className="mono text-sm">{stats.currentReward} ZBIO per mint</div>
           </div>
           <div className="field">
-            <label className="label">Next Adjustment In</label>
-            <div className="mono text-sm">{stats.nextAdjustmentIn} submissions</div>
+            <label className="label">Coins Until Halving</label>
+            <div className="mono text-sm">{stats.coinsUntilHalving.toLocaleString()}</div>
           </div>
           <div className="field">
             <label className="label">Connected Peers</label>
@@ -683,11 +718,6 @@ function HealthIndicator({ label, status, detail }: { label: string; status: "he
 
 /* ─── Helpers ─── */
 
-function parseEpochPercent(epoch: string): number {
-  const [current, total] = epoch.split("/").map(Number);
-  if (!total) return 0;
-  return Math.min(100, Math.round((current / total) * 100));
-}
 
 /* ─── Styles ─── */
 

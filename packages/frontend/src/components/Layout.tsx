@@ -8,10 +8,14 @@ const PAGE_TITLES: Record<string, string> = {
   "/mine": "Mine Coins — BioCrypt",
   "/transfer": "Transfer — BioCrypt",
   "/network": "Network Explorer — BioCrypt",
+  "/tracker": "Coin Tracker — BioCrypt",
+  "/ecosystem": "Ecosystem — BioCrypt",
+  "/apps": "Ecosystem — BioCrypt",
   "/economics": "Economics — BioCrypt",
   "/proof": "Cryptographic Proof — BioCrypt",
   "/how-it-works": "How It Works — BioCrypt",
   "/organism": "Network Organism — BioCrypt",
+  "/download": "Download Miner — BioCrypt",
 };
 
 export function Layout() {
@@ -54,10 +58,13 @@ export function Layout() {
             </NavLink>
             <NavLink to="/transfer" className={navCls}>Transfer</NavLink>
             <NavLink to="/network" className={navCls}>Network</NavLink>
+            <NavLink to="/tracker" className={navCls}>Tracker</NavLink>
+            <NavLink to="/ecosystem" className={navCls}>Apps</NavLink>
             <NavLink to="/economics" className={navCls}>Economics</NavLink>
             <NavLink to="/proof" className={navCls}>Proof</NavLink>
             <NavLink to="/how-it-works" className={navCls}>How It Works</NavLink>
             <NavLink to="/organism" className={navCls}>Organism</NavLink>
+            <NavLink to="/download" className={navCls}>Download</NavLink>
           </div>
 
           {/* Wallet pill (desktop) */}
@@ -102,6 +109,12 @@ export function Layout() {
           <NavLink to="/network" className={navCls} onClick={() => setMenuOpen(false)}>
             <span className="drawer-icon">{"\u{1F30D}"}</span> Network
           </NavLink>
+          <NavLink to="/tracker" className={navCls} onClick={() => setMenuOpen(false)}>
+            <span className="drawer-icon">{"\u{1F50D}"}</span> Tracker
+          </NavLink>
+          <NavLink to="/ecosystem" className={navCls} onClick={() => setMenuOpen(false)}>
+            <span className="drawer-icon">{"\u{1F9E9}"}</span> Apps
+          </NavLink>
           <NavLink to="/economics" className={navCls} onClick={() => setMenuOpen(false)}>
             <span className="drawer-icon">{"\u{1F4C8}"}</span> Economics
           </NavLink>
@@ -113,6 +126,9 @@ export function Layout() {
           </NavLink>
           <NavLink to="/organism" className={navCls} onClick={() => setMenuOpen(false)}>
             <span className="drawer-icon">{"\u{1F9AB}"}</span> Organism
+          </NavLink>
+          <NavLink to="/download" className={navCls} onClick={() => setMenuOpen(false)}>
+            <span className="drawer-icon">{"\u2B07\uFE0F"}</span> Download
           </NavLink>
         </div>
       </nav>

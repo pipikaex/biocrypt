@@ -51,9 +51,10 @@ export function HowItWorks() {
             How <span className="hiw-grad">BioCrypt</span> Works
           </h1>
           <p className="hiw-sub">
-            A cryptocurrency where wallets are DNA, coins are proteins, transfers are mRNA, 
-            and double-spend protection is an immune system. Ed25519 signatures encoded as DNA 
-            let any wallet verify any coin offline &mdash; even if the network server disappears.
+            A cryptocurrency where wallets are seed-derived DNA, coins are proteins, and transfers are
+            X25519-encrypted envelopes. DNA256 proof-of-work replaces hexadecimal hashing with a
+            leading-T target on a 256-base strand. Ed25519 signatures encoded as DNA let any wallet
+            verify any coin offline &mdash; even if the network server disappears.
           </p>
         </div>
       </section>
@@ -82,25 +83,26 @@ export function HowItWorks() {
           <div className="hiw-split">
             <div className="hiw-text">
               <div className="hiw-step-badge" style={{ background: "var(--primary)" }}>Step 1</div>
-              <h2>Wallets Are DNA Strands</h2>
+              <h2>Wallets Are Seed-Derived DNA Strands</h2>
               <p>
-                Your wallet is a strand of 6,000+ DNA bases (T, A, C, G) — randomly generated 
-                in your browser. It never leaves your device.
+                Your wallet starts as a 32-byte seed &mdash; deterministically expanded, in your browser,
+                into a 6,000+ base DNA strand plus an Ed25519 signing key and an X25519 encryption key.
+                The seed never leaves your device.
               </p>
               <p>
                 A <strong>ribosome function</strong> reads this DNA using the real human codon table, 
                 translating 3-letter codes (codons) into amino acids. The resulting protein chain 
-                becomes your <strong>public key</strong>.
+                becomes the public identity the network uses to route coins and envelopes to you.
               </p>
               <p>
-                Your <strong>private key</strong> is a separate DNA strand. When combined with your 
-                wallet DNA through hybridization, it produces a unique "unlocking protein" that 
-                proves ownership &mdash; just like a biological key fitting a lock.
+                Your <strong>Ed25519 private key</strong> signs transfers, while a paired <strong>X25519
+                private key</strong> decrypts envelopes addressed to you. Same seed, two mathematically
+                independent identities &mdash; the same design used in Signal and in BioCrypt Chat.
               </p>
               <p>
-                At creation, your wallet also receives the <strong>Network Genome</strong> &mdash; a 128-base 
-                DNA sequence encoding the network's Ed25519 public key. This lets your wallet 
-                verify any coin's authenticity offline, forever, like every cell carrying your body's MHC markers.
+                Every received coin is then folded into your wallet&rsquo;s DNA as a compressed
+                <strong> 64-base rotating receipt</strong>. Your transaction history lives inside the
+                genome itself &mdash; compact, portable, and cryptographically bound to your keys.
               </p>
             </div>
             <div className="hiw-visual">
@@ -139,21 +141,24 @@ export function HowItWorks() {
           <div className="hiw-split hiw-split-reverse">
             <div className="hiw-text">
               <div className="hiw-step-badge" style={{ background: "#3b82f6" }}>Step 2</div>
-              <h2>Mining = Protein Synthesis + Proof-of-Work</h2>
+              <h2>Mining = Protein Synthesis + DNA256 Proof-of-Work</h2>
               <p>
                 Mining creates new coins. Each coin is a <strong>DNA gene</strong> starting 
                 with the coin header <code>ATGGGGTGGTGC</code> (which translates to Met-Gly-Trp-Cys), 
                 followed by a random body and a nonce.
               </p>
               <p>
-                The miner must find a nonce such that:<br/>
-                <code className="hiw-formula">SHA-256(gene + "|" + nonce) {"<="} difficulty target</code>
+                Instead of hunting hexadecimal leading zeros, the miner looks for a nonce whose
+                <strong> DNA256 strand</strong> starts with enough T bases:<br/>
+                <code className="hiw-formula">leadingTs( DNA256(gene, nonce) ) &ge; target</code>
               </p>
               <p>
-                This is <strong>similar to Bitcoin's SHA-256 proof-of-work</strong> &mdash; the same SHA-256 hash 
-                function, adaptive difficulty adjustment, the same computational guarantee. 
-                Each coin's 180-base body produces ~60 amino acids, giving <strong>259 bits of entropy</strong> &mdash;
-                more collision-resistant than SHA-256 itself. Nobody can create coins for free.
+                Under the hood the codec chains two domain-separated SHA-256 digests
+                (<code>GEMIX:DNA256:v1:</code> and <code>GEMIX:PoW:v1:</code>), concatenates with
+                a mixed hash, XORs with a fixed display mask, then encodes the resulting 64 bytes
+                into a 256-base TACG strand (2 bits per nucleotide). The 180-base coin body produces
+                ~60 amino acids &mdash; <strong>259 bits of protein entropy</strong> &mdash; while the DNA256
+                target enforces real computational effort, native to nucleotide space.
               </p>
             </div>
             <div className="hiw-visual">
@@ -163,16 +168,16 @@ export function HowItWorks() {
                   ATGGGGTGGTGC<span style={{ color: "var(--text-muted)" }}>GCTACGTTACCC<br/>GTTGAGGTCTAT...GCTGCT</span>TAA
                 </div>
                 <div className="hiw-arrow-down">{"\u2193"}</div>
-                <div className="hiw-card-label">Proof-of-Work</div>
+                <div className="hiw-card-label">DNA256 Proof-of-Work</div>
                 <div className="hiw-pow-box">
                   <div className="hiw-pow-line">
                     <span className="text-muted">nonce:</span> <span className="mono">158,859</span>
                   </div>
                   <div className="hiw-pow-line">
-                    <span className="text-muted">hash:</span> <span className="mono"><span style={{ color: "#22c55e" }}>000000000</span>8ea12dabe1...</span>
+                    <span className="text-muted">DNA256:</span> <span className="mono"><span style={{ color: "#22c55e" }}>TTTTTTTTTTTTTT</span>GCATGCAACGGT...</span>
                   </div>
                   <div className="hiw-pow-line">
-                    <span className="text-muted">target:</span> <span className="mono">9 leading hex zeros</span>
+                    <span className="text-muted">target:</span> <span className="mono">16 leading T bases</span>
                   </div>
                 </div>
                 <div className="hiw-arrow-down">{"\u2193"}</div>
@@ -198,14 +203,14 @@ export function HowItWorks() {
                 (128 bases) is the "Network Genome" &mdash; shared with every wallet.
               </p>
               <ol className="hiw-list">
-                <li><strong>Verifies</strong> your proof-of-work + checks for duplicate coin serial hashes</li>
+                <li><strong>Verifies</strong> your DNA256 proof-of-work + rejects duplicate coin serial hashes</li>
                 <li><strong>Signs</strong> with Ed25519: <code>Ed25519.sign(serialHash + networkId, privateKeyDNA)</code></li>
-                <li><strong>Generates</strong> parentage marker DNA &mdash; a separate strand with restriction enzyme sites derived from the private key + coin serial, like mitochondrial DNA inherited from the mother</li>
-                <li><strong>Mutates</strong> its own DNA by splicing the coin gene into the network strand</li>
+                <li><strong>Records</strong> the minted coin on the public <Link to="/tracker">Coin Tracker</Link> &mdash; auditable forever</li>
+                <li><strong>Returns</strong> the signed coin; your wallet folds it into its own DNA as a 64-base rotating receipt</li>
               </ol>
               <p>
-                Two independent proofs travel with every coin: a 256-base Ed25519 signature (mathematical)
-                and an RFLP fingerprint (biological). Any wallet can verify both offline using the Network 
+                Independent proofs travel with every coin: the DNA256 proof-of-work (rebuildable from
+                gene + nonce) and a 256-base Ed25519 signature. Any wallet can verify both offline using the Network 
                 Genome. <strong>No server needed.</strong> If the server disappears, your coins remain 
                 provably valid and tradeable forever.
               </p>
@@ -230,16 +235,16 @@ export function HowItWorks() {
                 </div>
               </div>
               <div className="hiw-card-dark" style={{ marginTop: "1.25rem" }}>
-                <div className="hiw-card-label">Defense in Depth: Two Proofs per Coin</div>
+                <div className="hiw-card-label">Defense in Depth: Three Proofs per Coin</div>
                 <div className="hiw-pow-box">
                   <div className="hiw-pow-line">
-                    <span className="text-muted">1. Ed25519 Signature:</span> <span className="mono" style={{ color: "#22c55e" }}>256-base DNA &mdash; mathematical proof (256-bit security)</span>
+                    <span className="text-muted">1. DNA256 PoW:</span> <span className="mono" style={{ color: "#f59e0b" }}>256-base strand with leading-T target &mdash; computational proof</span>
                   </div>
                   <div className="hiw-pow-line">
-                    <span className="text-muted">2. RFLP Fingerprint:</span> <span className="mono" style={{ color: "#a855f7" }}>Restriction enzyme gel bands &mdash; biological proof of parentage</span>
+                    <span className="text-muted">2. Ed25519 Signature:</span> <span className="mono" style={{ color: "#22c55e" }}>256-base DNA &mdash; network authority proof (256-bit security)</span>
                   </div>
                   <div className="hiw-pow-line">
-                    <span className="text-muted">Enzymes:</span> <span className="mono">EcoRI (GAATTC) &middot; BamHI (GGATCC) &middot; HindIII (AAGCTT) &middot; PstI (CTGCAG) &middot; SalI (GTCGAC)</span>
+                    <span className="text-muted">3. Coin Tracker record:</span> <span className="mono" style={{ color: "#a855f7" }}>Public append-only mint ledger &mdash; auditable supply</span>
                   </div>
                   <div className="hiw-pow-line">
                     <span className="text-muted">Verification:</span> <span className="mono">Offline with Network Genome &mdash; like a forensic paternity test</span>
@@ -247,11 +252,14 @@ export function HowItWorks() {
                 </div>
               </div>
               <div className="hiw-card-dark" style={{ marginTop: "0.75rem" }}>
-                <div className="hiw-card-label">Gel Electrophoresis (Parentage Test)</div>
+                <div className="hiw-card-label">Coin Tracker record</div>
                 <div style={{ fontFamily: "var(--mono)", fontSize: "0.7rem", lineHeight: 1.8, color: "var(--text-muted)" }}>
-                  <div>Network: <span style={{ color: "#a855f7" }}>{"\u2588\u2588\u2588\u2588"}</span>{"  "}<span style={{ color: "#a855f7" }}>{"\u2588\u2588"}</span>{"  "}<span style={{ color: "#a855f7" }}>{"\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588"}</span>{"  "}<span style={{ color: "#a855f7" }}>{"\u2588\u2588\u2588"}</span>{"  "}<span style={{ color: "#a855f7" }}>{"\u2588\u2588\u2588\u2588\u2588"}</span></div>
-                  <div>Coin A:{"  "}<span style={{ color: "#22c55e" }}>{"\u2588\u2588\u2588\u2588"}</span>{"  "}<span style={{ color: "#22c55e" }}>{"\u2588\u2588"}</span>{"    "}<span style={{ color: "#22c55e" }}>{"\u2588\u2588\u2588\u2588"}</span>{"  "}<span style={{ color: "#22c55e" }}>{"\u2588\u2588\u2588"}</span>{"  "}<span style={{ color: "#22c55e" }}>{"\u2588\u2588\u2588\u2588\u2588"}</span>{"  "}<span style={{ color: "var(--primary)" }}>{"\u2190 shares bands \u2192 VALID \u2713"}</span></div>
-                  <div>Coin B:{"  "}<span style={{ color: "#ef4444" }}>{"\u2588\u2588\u2588\u2588\u2588\u2588"}</span>{"  "}<span style={{ color: "#ef4444" }}>{"\u2588\u2588\u2588"}</span>{"  "}<span style={{ color: "#ef4444" }}>{"\u2588\u2588\u2588\u2588\u2588\u2588"}</span>{"  "}<span style={{ color: "#ef4444" }}>{"\u2588\u2588"}</span>{"        "}<span style={{ color: "#ef4444" }}>{"\u2190 no match \u2192 FORGERY \u2717"}</span></div>
+                  <div><span style={{ color: "#22c55e" }}>serial</span>   : 9e2a\u2026</div>
+                  <div><span style={{ color: "#22c55e" }}>hash</span>     : 3c81\u2026</div>
+                  <div><span style={{ color: "#22c55e" }}>leading T</span>: 14</div>
+                  <div><span style={{ color: "#22c55e" }}>source</span>   : browser</div>
+                  <div><span style={{ color: "#22c55e" }}>miner</span>    : 5a93\u2026</div>
+                  <div><span style={{ color: "var(--primary)" }}>status</span>   : unspent</div>
                 </div>
               </div>
             </div>
@@ -265,22 +273,23 @@ export function HowItWorks() {
           <div className="hiw-split hiw-split-reverse">
             <div className="hiw-text">
               <div className="hiw-step-badge" style={{ background: "#f97316" }}>Step 4</div>
-              <h2>Transfers via mRNA — Even Offline</h2>
+              <h2>Encrypted Transfers &mdash; DNA Envelopes, Online or Offline</h2>
               <p>
                 To send a coin, your wallet:
               </p>
               <ol className="hiw-list">
                 <li><strong>Extracts</strong> the coin gene from your DNA (it's gone from your wallet)</li>
-                <li><strong>Computes a nullifier</strong> from your private key — a unique "spent" marker</li>
-                <li><strong>Wraps everything</strong> in an mRNA payload (JSON file)</li>
+                <li><strong>Computes a nullifier</strong> from your private key &mdash; a unique "spent" marker</li>
+                <li><strong>Generates</strong> an ephemeral X25519 keypair and derives a shared secret with the recipient&rsquo;s public key</li>
+                <li><strong>Encrypts</strong> the mRNA payload with XSalsa20-Poly1305 and encodes the whole envelope as DNA</li>
               </ol>
               <p>
-                The recipient <strong>splices</strong> the gene into their DNA. The mRNA file 
-                contains everything needed — no server required. Send it via email, USB stick, 
-                QR code, or carrier pigeon.
+                The recipient <strong>decrypts</strong> the envelope with their wallet&rsquo;s X25519 key and
+                folds the gene into their own DNA ledger. Only they can read it &mdash; yet anyone with the
+                Network Genome can still verify signatures, proofs-of-work, and nullifiers.
               </p>
               <p className="hiw-highlight">
-                This is true peer-to-peer transfer. Works completely offline.
+                Same primitives as BioCrypt Chat. Works completely offline: send by email, USB, QR, or Bluetooth.
               </p>
             </div>
             <div className="hiw-visual">
@@ -296,13 +305,13 @@ export function HowItWorks() {
                   <div>Create mRNA</div>
                   <div className="hiw-transfer-detail">Gene + proof + nullifier</div>
                 </div>
-                <div className="hiw-transfer-arrow">{"\u2193"} send file</div>
+                <div className="hiw-transfer-arrow">{"\u2193"} seal in X25519 DNA envelope</div>
                 <div className="hiw-transfer-step">
                   <div className="hiw-transfer-icon" style={{ background: "rgba(59,130,246,0.15)" }}>{"\u{1F4E8}"}</div>
-                  <div>mRNA Payload</div>
-                  <div className="hiw-transfer-detail">Email / USB / QR / Offline</div>
+                  <div>Encrypted Envelope</div>
+                  <div className="hiw-transfer-detail">TACG ciphertext &middot; Email / USB / QR</div>
                 </div>
-                <div className="hiw-transfer-arrow">{"\u2193"} splice into DNA</div>
+                <div className="hiw-transfer-arrow">{"\u2193"} decrypt &amp; fold into DNA</div>
                 <div className="hiw-transfer-step">
                   <div className="hiw-transfer-icon" style={{ background: "rgba(0,229,153,0.15)" }}>{"\u{1F4B3}"}</div>
                   <div>Recipient DNA</div>
@@ -341,8 +350,13 @@ export function HowItWorks() {
                   network signature using the Ed25519 public key. Forged signatures fail instantly.
                 </li>
                 <li>
-                  <strong>Proof-of-work enforcement:</strong> Every transfer validates the coin's mining proof.
-                  No valid PoW? The coin is rejected even in offline mode.
+                  <strong>DNA256 proof-of-work enforcement:</strong> Every transfer rebuilds the coin&rsquo;s
+                  256-base strand and re-counts the leading T bases. No valid PoW? The coin is rejected even offline.
+                </li>
+                <li>
+                  <strong>Rotating DNA ledger:</strong> Each receiving wallet folds the coin into its own
+                  genome as a 64-base receipt. Replaying the same coin into another wallet simply fails the
+                  checksum, because the receipt is cryptographically bound to the owner&rsquo;s DNA.
                 </li>
               </ol>
             </div>
@@ -405,18 +419,19 @@ export function HowItWorks() {
                 </tr>
               </thead>
               <tbody>
-                <tr><td>Proof-of-Work</td><td>SHA-256</td><td>Various</td><td className="hiw-table-highlight">SHA-256 (identical)</td></tr>
+                <tr><td>Proof-of-Work</td><td>SHA-256 leading hex zeros</td><td>Various</td><td className="hiw-table-highlight">DNA256 leading-T (same SHA-256 engine, nucleotide target)</td></tr>
                 <tr><td>Signing</td><td>ECDSA</td><td>Various</td><td className="hiw-table-highlight">Ed25519 encoded as DNA</td></tr>
-                <tr><td>Ledger</td><td>Blockchain</td><td>Blockchain/DAG</td><td className="hiw-table-highlight">No ledger &mdash; nullifier registry</td></tr>
-                <tr><td>Offline transfers</td><td>No</td><td>No</td><td className="hiw-table-highlight">Yes &mdash; mRNA payloads</td></tr>
+                <tr><td>Encrypted transfers</td><td>No</td><td>No</td><td className="hiw-table-highlight">X25519 + XSalsa20-Poly1305 DNA envelopes</td></tr>
+                <tr><td>Ledger</td><td>Blockchain</td><td>Blockchain/DAG</td><td className="hiw-table-highlight">No chain &mdash; nullifier registry + Coin Tracker</td></tr>
+                <tr><td>Offline transfers</td><td>No</td><td>No</td><td className="hiw-table-highlight">Yes &mdash; encrypted envelopes</td></tr>
                 <tr><td>Offline verification</td><td>No (needs nodes)</td><td>No</td><td className="hiw-table-highlight">Yes &mdash; Network Genome in every wallet</td></tr>
-                <tr><td>Storage</td><td>Every node stores all txns</td><td>Full chain</td><td className="hiw-table-highlight">Only nullifiers + network DNA</td></tr>
+                <tr><td>Storage</td><td>Every node stores all txns</td><td>Full chain</td><td className="hiw-table-highlight">Only nullifiers + network DNA + mint tracker</td></tr>
                 <tr><td>Coin identity</td><td>UTXO hash</td><td>Token ID</td><td className="hiw-table-highlight">180-base gene &rarr; protein fingerprint (259 bits)</td></tr>
-                <tr><td>Wallet format</td><td>Seed phrase</td><td>Seed phrase</td><td className="hiw-table-highlight">DNA strand (TACG bases)</td></tr>
-                <tr><td>Double-spend prevention</td><td>6 confirmations</td><td>Confirmations</td><td className="hiw-table-highlight">Instant nullifier + duplicate serial check</td></tr>
+                <tr><td>Wallet format</td><td>Seed phrase</td><td>Seed phrase</td><td className="hiw-table-highlight">Seed-derived DNA strand + rotating coin ledger</td></tr>
+                <tr><td>Double-spend prevention</td><td>6 confirmations</td><td>Confirmations</td><td className="hiw-table-highlight">Instant nullifier + duplicate serial + DNA ledger</td></tr>
                 <tr><td>Private key exposure</td><td>Signs transactions</td><td>Signs transactions</td><td className="hiw-table-highlight">Never leaves client &mdash; one-time export only</td></tr>
-                <tr><td>Visual verification</td><td>None</td><td>None</td><td className="hiw-table-highlight">RFLP gel electrophoresis &mdash; see proof of parentage</td></tr>
-                <tr><td>Coins without server</td><td>Need network</td><td>Need network</td><td className="hiw-table-highlight">Self-validating forever via Ed25519 + RFLP</td></tr>
+                <tr><td>Transaction history</td><td>Public on-chain</td><td>Public on-chain</td><td className="hiw-table-highlight">Folded into wallet DNA (64 bases per coin)</td></tr>
+                <tr><td>Coins without server</td><td>Need network</td><td>Need network</td><td className="hiw-table-highlight">Self-validating forever via DNA256 + Ed25519</td></tr>
               </tbody>
             </table>
           </div>
@@ -433,6 +448,7 @@ export function HowItWorks() {
           <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
             <Link to="/mine" className="btn btn-primary btn-lg">Start Mining</Link>
             <Link to="/wallet" className="btn btn-secondary btn-lg">Create Wallet</Link>
+            <Link to="/ecosystem" className="btn btn-secondary btn-lg">Explore Apps</Link>
             <Link to="/network" className="btn btn-ghost btn-lg">View Network</Link>
           </div>
         </div>

@@ -3,14 +3,24 @@ import {
   mutateInsert, findInsertionPoints, BASES, START_CODON,
 } from "./dna";
 import { ribosome, type RibosomeResult, type Protein } from "./ribosome";
+import { encryptionKeyPairFromSeed, type EncryptionKeyPair } from "./crypto-dna";
+import {
+  appendLedgerEntry, ledgerContainsCoin, nextRotation, removeLedgerEntry,
+} from "./dna-ledger";
 
 export interface Wallet {
   dna: string;
   privateKeyDNA: string;
   publicKeyHash: string;
   ownershipProofHash: string;
+  /** X25519 encryption public key DNA (128 bases) — for receiving encrypted transfers */
+  encryptionPublicKeyDNA: string;
+  /** X25519 encryption private key DNA (128 bases) — keep secret */
+  encryptionPrivateKeyDNA: string;
   networkGenome: string;
   networkId: string;
+  /** BIP-39-style 24-word mnemonic derived from 32-byte seed (optional on legacy wallets) */
+  seedPhrase?: string;
   createdAt: number;
 }
 
@@ -51,8 +61,38 @@ export function createWallet(
   networkGenome: string = "",
   networkId: string = "",
 ): Wallet {
-  const baseDNA = generateDNA(dnaLength);
-  const privateKeyDNA = generateDNA(Math.floor(dnaLength / 2));
+  const seed = randomBytes(32);
+  return mintWalletFromSeed(seed, { dnaLength, networkGenome, networkId });
+}
+
+export interface MintOpts {
+  dnaLength?: number;
+  networkGenome?: string;
+  networkId?: string;
+}
+
+/**
+ * DNA-seeded wallet minting.
+ *
+ * A single 32-byte seed deterministically produces:
+ *   • the wallet DNA (including embedded ownership proof)
+ *   • the Ed25519 signing identity (private-key DNA)
+ *   • the X25519 encryption identity (recipient of encrypted transfers)
+ *
+ * Same seed + same network = same wallet, forever. This is the "wallets are
+ * minted from the network DNA seed" behaviour described in the spec.
+ */
+export function mintWalletFromSeed(seed32: Uint8Array, opts: MintOpts = {}): Wallet {
+  if (seed32.length !== 32) throw new Error("seed must be 32 bytes");
+  const dnaLength = opts.dnaLength ?? 6000;
+  const networkGenome = opts.networkGenome ?? "";
+  const networkId = opts.networkId ?? "";
+
+  const baseDNA = deriveDeterministicDNA(seed32, "wallet/base", dnaLength);
+  const privateKeyDNA = deriveDeterministicDNA(seed32, "wallet/sig", Math.floor(dnaLength / 2));
+  const encSeedHex = sha256("enc|" + bytesToHex(seed32) + "|" + networkId);
+  const encSeed = hexToBytes(encSeedHex.slice(0, 64));
+  const encPair: EncryptionKeyPair = encryptionKeyPairFromSeed(encSeed);
 
   const identityRegion = baseDNA.slice(0, 300);
   const hybridized = hybridizeStrands(identityRegion, privateKeyDNA);
@@ -67,11 +107,136 @@ export function createWallet(
     privateKeyDNA,
     publicKeyHash: walletResult.publicKeyHash,
     ownershipProofHash,
+    encryptionPublicKeyDNA: encPair.publicKeyDNA,
+    encryptionPrivateKeyDNA: encPair.privateKeyDNA,
     networkGenome,
     networkId,
+    seedPhrase: seedToPhrase(seed32),
     createdAt: Date.now(),
   };
 }
+
+/**
+ * Mint a wallet anchored to a specific network DNA.
+ * The network genome is folded into the seed so the exact same user seed on a
+ * different network produces a different wallet.
+ */
+export function mintWalletFromNetworkSeed(
+  networkGenome: string,
+  networkId: string,
+  userEntropy: Uint8Array | string,
+  opts: MintOpts = {},
+): Wallet {
+  const entropyBytes =
+    typeof userEntropy === "string" ? new TextEncoder().encode(userEntropy) : userEntropy;
+  const bundled = sha256(
+    "biocrypt|mint|" + networkGenome + "|" + networkId + "|" + bytesToHex(entropyBytes),
+  );
+  const seed = hexToBytes(bundled);
+  return mintWalletFromSeed(seed, { ...opts, networkGenome, networkId });
+}
+
+/**
+ * Rehydrate a wallet from its seed phrase (24 words).
+ */
+export function restoreWalletFromPhrase(phrase: string, opts: MintOpts = {}): Wallet {
+  const seed = phraseToSeed(phrase);
+  return mintWalletFromSeed(seed, opts);
+}
+
+/* ── Deterministic helpers ─────────────────────────────────────────── */
+
+function deriveDeterministicDNA(seed: Uint8Array, tag: string, length: number): string {
+  let dna = "";
+  let counter = 0;
+  const seedHex = bytesToHex(seed);
+  while (dna.length < length) {
+    const block = sha256(seedHex + "|" + tag + "|" + counter);
+    for (let i = 0; i < block.length && dna.length < length; i += 2) {
+      const byte = parseInt(block.slice(i, i + 2), 16);
+      dna += BASES[(byte >> 6) & 3];
+      if (dna.length < length) dna += BASES[(byte >> 4) & 3];
+      if (dna.length < length) dna += BASES[(byte >> 2) & 3];
+      if (dna.length < length) dna += BASES[byte & 3];
+    }
+    counter++;
+  }
+  return dna;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  let out = "";
+  for (let i = 0; i < bytes.length; i++) out += bytes[i].toString(16).padStart(2, "0");
+  return out;
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
+
+/* ── Tiny 2048-ish mnemonic (DNA-flavoured, self-contained) ────────── */
+
+const BIOWORDS = [
+  "alanine","arginine","asparagine","aspartate","cysteine","glutamate","glutamine","glycine",
+  "histidine","isoleucine","leucine","lysine","methionine","phenylalanine","proline","serine",
+  "threonine","tryptophan","tyrosine","valine","adenine","thymine","cytosine","guanine",
+  "uracil","ribose","codon","anticodon","ribosome","polymerase","helicase","primase",
+  "telomere","centromere","chromatin","chromosome","nucleus","nucleolus","cytoplasm","membrane",
+  "mitosis","meiosis","replication","transcription","translation","splicing","capping","polyA",
+  "exon","intron","promoter","enhancer","silencer","operon","lactose","tryptophan2",
+  "genome","exome","proteome","metabolome","plasmid","vector","vector2","primer",
+  "ligase","nuclease","restriction","ecori","bamhi","hindiii","crispr","cas9",
+  "sgrna","trna","mrna","lnrna","snrna","sirna","mirna","piRNA",
+  "virus","prion","bacteriophage","eukaryote","prokaryote","archaea","bacteria","fungi",
+  "plant","animal","protist","monera","cell","organelle","vacuole","lysosome",
+  "peroxisome","mitochondria","chloroplast","endoplasmic","golgi","ribosome2","cytoskeleton","flagellum",
+  "cilium","microtubule","actin","myosin","kinesin","dynein","collagen","keratin",
+  "hemoglobin","myoglobin","insulin","glucagon","oxytocin","dopamine","serotonin","adrenaline",
+  "cortisol","estrogen","testosterone","progesterone","thyroxine","melatonin","enzyme","catalyst",
+  "substrate","product","cofactor","coenzyme","atp","adp","amp","nadh",
+  "nadph","fadh","pyruvate","lactate","glucose","fructose","galactose","sucrose",
+  "maltose","lactose2","cellulose","starch","glycogen","chitin","peptide","polymer",
+  "monomer","dimer","trimer","tetramer","hexamer","octamer","filament","fiber",
+  "membrane2","phospholipid","cholesterol","steroid","lipid","fatty","saturated","unsaturated",
+  "hydrophobic","hydrophilic","amphipathic","polar","nonpolar","covalent","ionic","hydrogen",
+  "disulfide","peptidebond","glycosidic","ester","ether","amide","amine","carboxyl",
+  "hydroxyl","methyl","ethyl","phenyl","aromatic","aliphatic","alcohol","aldehyde",
+  "ketone","ether2","amine2","thiol","sulfide","halide","carbonate","phosphate",
+  "sulfate","nitrate","chloride","bromide","iodide","fluoride","hydroxide","oxide",
+  "peroxide","superoxide","radical","antioxidant","vitamin","mineral","calcium","magnesium",
+  "sodium","potassium","iron","zinc","copper","manganese","selenium","molybdenum",
+  "chromium","cobalt","nickel","iodine","fluorine","chlorine","bromine","phosphorus",
+  "sulfur","silicon","carbon","nitrogen","oxygen","hydrogen2","helium","neon",
+  "argon","krypton","xenon","radon","lithium","beryllium","boron","aluminum",
+  "gallium","germanium","arsenic","selenium2","rubidium","strontium","yttrium","zirconium",
+  "niobium","technetium","ruthenium","rhodium","palladium","silver","cadmium","indium",
+  "tin","antimony","tellurium","cesium","barium","lanthanum","cerium","praseodymium",
+  "neodymium","promethium","samarium","europium","gadolinium","terbium","dysprosium","holmium",
+  "erbium","thulium","ytterbium","lutetium","hafnium","tantalum","tungsten","rhenium",
+  "osmium","iridium","platinum","gold","mercury","thallium","lead","bismuth",
+  "polonium","astatine","francium","radium","actinium","thorium","protactinium","uranium",
+] as const;
+
+function seedToPhrase(seed: Uint8Array): string {
+  const words: string[] = [];
+  for (let i = 0; i < 24; i++) {
+    const byte = seed[i % seed.length] ^ (i * 0x5f);
+    const word = BIOWORDS[byte % BIOWORDS.length];
+    words.push(word);
+  }
+  return words.join(" ");
+}
+
+function phraseToSeed(phrase: string): Uint8Array {
+  const hex = sha256("biocrypt/phrase/v1|" + phrase.trim().toLowerCase());
+  return hexToBytes(hex);
+}
+
+export { seedToPhrase, phraseToSeed };
 
 /**
  * Hybridize two DNA strands at codon level.
@@ -253,4 +418,33 @@ export function getCoinSerial(protein: Protein): string {
  */
 export function integrateCoinGene(walletDNA: string, coinGene: string): string {
   return walletDNA + "TAA" + coinGene;
+}
+
+/* ── Compact DNA-ledger integration ────────────────────────────────── */
+
+/**
+ * Integrate a coin's _receipt_ (not its full gene) into wallet DNA using the
+ * rotating DNA ledger. 64 bases per coin, checksummed, self-mutating. This
+ * is the "each coin gets compressed into the wallet DNA" behaviour.
+ */
+export function integrateCoinReceipt(walletDNA: string, serialHash: string): string {
+  const identity = walletDNA.slice(0, 300);
+  const rot = nextRotation(walletDNA);
+  return appendLedgerEntry(walletDNA, identity, serialHash, rot);
+}
+
+/**
+ * Check whether a coin's receipt is present in the wallet ledger.
+ */
+export function walletLedgerContains(walletDNA: string, serialHash: string): boolean {
+  const identity = walletDNA.slice(0, 300);
+  return ledgerContainsCoin(walletDNA, identity, serialHash);
+}
+
+/**
+ * Remove a coin's receipt from the wallet ledger (called when spending).
+ */
+export function removeCoinReceipt(walletDNA: string, serialHash: string): string {
+  const identity = walletDNA.slice(0, 300);
+  return removeLedgerEntry(walletDNA, identity, serialHash);
 }

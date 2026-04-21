@@ -1,7 +1,9 @@
 import { Injectable, OnModuleInit, BadRequestException, NotFoundException } from "@nestjs/common";
-import { validateMRNA, deserializeMRNA, type mRNAPayload } from "@biocrypt/core";
+import {
+  validateMRNA, deserializeMRNA, type mRNAPayload,
+  GENESIS_NETWORK_GENOME,
+} from "@biocrypt/core";
 import { RegistryService } from "../registry/registry.service";
-import { NetworkService } from "../network/network.service";
 import * as fs from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
@@ -28,7 +30,6 @@ export interface Payment {
 export class GatewayService implements OnModuleInit {
   constructor(
     private registry: RegistryService,
-    private network: NetworkService,
   ) {}
 
   onModuleInit() {
@@ -82,7 +83,7 @@ export class GatewayService implements OnModuleInit {
     }
 
     const validatedMrnas: mRNAPayload[] = [];
-    const networkGenome = this.network.getNetworkGenome();
+    const networkGenome = GENESIS_NETWORK_GENOME;
 
     for (const raw of serializedMrnas) {
       let mrna: mRNAPayload;

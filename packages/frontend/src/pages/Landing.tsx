@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { api, type NetworkStats } from "../api";
+import { fetchDerivedStats, type DerivedNetworkStats } from "../networkStats";
 import { useReveal } from "../hooks/useReveal";
+
+type NetworkStats = DerivedNetworkStats;
 
 function useParallax() {
   const ref = useRef<HTMLDivElement>(null);
@@ -63,7 +65,7 @@ function SideHelix({ side = "left", top = "10%" }: { side?: "left" | "right"; to
 
 export function Landing() {
   const [stats, setStats] = useState<NetworkStats | null>(null);
-  useEffect(() => { api.getNetworkStats().then(setStats).catch(() => {}); }, []);
+  useEffect(() => { fetchDerivedStats().then(setStats).catch(() => {}); }, []);
 
   return (
     <div className="landing">
@@ -79,6 +81,7 @@ export function Landing() {
       <Tokenomics stats={stats} />
       <SecuritySection />
       <PaymentGateway />
+      <EcosystemStrip />
       <BuildYourOwn />
       <Roadmap />
       <Community />
@@ -142,15 +145,15 @@ const HERO_SLIDES: HeroSlide[] = [
   {
     tag: "MINE IN YOUR BROWSER — OR GO NATIVE",
     title: <>Open a tab. Click <span className="grad-text">Start Mining</span>. Or compile the C miner for raw speed.</>,
-    sub: "Browser mining works on any device. Need more power? Our open-source C miner uses Apple Silicon hardware-accelerated SHA-256 with multi-threaded pthreads — orders of magnitude faster.",
+    sub: "Browser mining works on any device. Need more power? Our open-source C miner uses Apple Silicon hardware-accelerated SHA-256 (the engine behind our DNA256 hash) with multi-threaded pthreads — orders of magnitude faster.",
     badges: [
-      { label: "SHA-256 PROOF-OF-WORK", color: "var(--primary)" },
+      { label: "DNA256 PROOF-OF-WORK", color: "var(--primary)" },
       { label: "NO KYC", color: "#f85149" },
       { label: "BROWSER OR NATIVE", color: "var(--secondary)" },
     ],
     cta: [
       { label: "Start Mining — Free", to: "/mine", primary: true },
-      { label: "Native Miner (C)", to: "https://github.com/pipikaex/biocoin/blob/main/zcoin-miner.c" },
+      { label: "Native Miner (C)", to: "/download" },
     ],
   },
   {
@@ -440,9 +443,9 @@ function GelVisual() {
 
 function ShieldsVisual() {
   const shields = [
-    { n: "1", label: "SHA-256 Proof-of-Work", sub: "Same algorithm as Bitcoin", color: "#d29922" },
-    { n: "2", label: "Ed25519 Signatures", sub: "Same crypto as Solana & Signal", color: "var(--secondary)" },
-    { n: "3", label: "RFLP Bio-Fingerprinting", sub: "DNA paternity test", color: "#8b5cf6" },
+    { n: "1", label: "DNA256 Proof-of-Work", sub: "Leading-T target on a 256-base strand", color: "#d29922" },
+    { n: "2", label: "Ed25519 + X25519", sub: "Signatures + encrypted DNA envelopes", color: "var(--secondary)" },
+    { n: "3", label: "Rotating DNA Ledger", sub: "Coins bound to the wallet's own DNA", color: "#8b5cf6" },
     { n: "4", label: "Cryptographic Nullifiers", sub: "No double-spending", color: "#f85149" },
   ];
   return (
@@ -465,7 +468,7 @@ function MrnaVisual() {
       <div className="slide-mrna-envelope">
         <span>{"\uD83D\uDCE7"}</span>
         <small>mRNA Payload</small>
-        <span className="slide-mrna-stamp">Ed25519 &bull; RFLP &bull; PoW</span>
+        <span className="slide-mrna-stamp">X25519 &bull; Ed25519 &bull; DNA256</span>
       </div>
       <span className="slide-mrna-arrow">&rarr;</span>
       <span className="slide-mrna-icon">{"\uD83E\uDDEC"}</span>
@@ -562,13 +565,13 @@ function Ticker({ stats }: { stats: NetworkStats | null }) {
         <span className="sep">&middot;</span>
         <span>ZBIO: <b className="text-primary">{stats.totalCoins}</b></span>
         <span className="sep">&middot;</span>
-        <span>Miners: <b>{stats.totalWallets}</b></span>
+        <span>Peers: <b>{stats.peers}</b></span>
         <span className="sep">&middot;</span>
-        <span>Difficulty: <b className="mono">{stats.difficulty.length} zeros</b></span>
+        <span>Difficulty: <b className="mono">{stats.dnaLeadingTs} Ts</b></span>
         <span className="sep">&middot;</span>
-        <span>Submissions: <b>{stats.totalSubmissions}</b></span>
+        <span>Spent: <b>{stats.totalSpent}</b></span>
         <span className="sep">&middot;</span>
-        <span>Nullifiers: <b>{stats.nullifiers}</b></span>
+        <span>Last 24h: <b>{stats.last24h}</b></span>
       </div>
     </div>
   );
@@ -581,10 +584,10 @@ function WhySection() {
   const px = useParallax();
   const cards = [
     { icon: "&#x1F9EC;", title: "Mine in your browser", desc: "No GPU rigs, no electricity bills. Open a tab and your browser's CPU does the work. Anyone with a web browser can earn ZBIO." },
-    { icon: "&#x26D3;&#xFE0F;", title: "No blockchain", desc: "Faster, lighter, more private. Nullifier-based double-spend prevention, duplicate serial tracking, and Ed25519 verification \u2014 no blockchain ledger." },
-    { icon: "&#x1F510;", title: "Ed25519 + SHA-256 + RFLP", desc: "Ed25519 asymmetric signatures, SHA-256 proof-of-work, and biological RFLP fingerprinting. Three independent layers — mathematical, computational, and biological. 259 bits of protein entropy per ZBIO." },
-    { icon: "&#x1F4E1;", title: "Offline everything", desc: "Transfer and verify ZBIO without internet. Every wallet carries the Network Genome to validate Ed25519 signatures offline. RFLP parentage tests work anywhere. True peer-to-peer, even without servers." },
-    { icon: "&#x1F52C;", title: "DNA-encoded value", desc: "Every ZBIO is a gene sequence. Every wallet is a DNA strand. Each ZBIO carries inherited restriction enzyme markers — a biological fingerprint proving parentage, just like a DNA paternity test." },
+    { icon: "&#x26D3;&#xFE0F;", title: "No blockchain", desc: "Faster, lighter, more private. Nullifier-based double-spend prevention, the public minted-coin tracker, and offline Ed25519 verification \u2014 no blockchain ledger." },
+    { icon: "&#x1F510;", title: "DNA256 + X25519 + Ed25519", desc: "DNA256 proof-of-work, X25519 encrypted envelopes for private transfers, Ed25519 network signatures. Three independent layers \u2014 biological, cryptographic, and computational." },
+    { icon: "&#x1F4E1;", title: "Offline everything", desc: "Sign, transfer, and verify ZBIO without internet. Every wallet carries the Network Genome and its own rotating DNA ledger \u2014 ribosome-ready validation, no server required." },
+    { icon: "&#x1F9EC;", title: "Wallets that remember", desc: "Each received ZBIO is folded into your wallet's own DNA as a compressed 64-base receipt. Your transaction history lives inside the genome \u2014 double-spends mutate themselves out." },
     { icon: "&#x1F680;", title: "Build your own", desc: "Fork the network, create your own ZBIO network with custom DNA. Our TypeScript SDK makes it trivial to launch a new biological token." },
   ];
   return (
@@ -1180,27 +1183,27 @@ const FLOW_STEPS: FlowStep[] = [
   },
   {
     id: "mine", icon: "⛏", label: "02", title: "Mine ZBIO",
-    desc: "A Web Worker brute-forces SHA-256 hashes on a random 180-base gene sequence until the hash meets the difficulty target. Same proof-of-work as Bitcoin — running in your browser.",
+    desc: "A Web Worker brute-forces DNA256 hashes on a random 180-base gene sequence until the resulting 256-base DNA strand starts with enough T bases. Real proof-of-work \u2014 but native to DNA, not hexadecimal.",
     color: "#3b82f6",
   },
   {
     id: "sign", icon: "✍️", label: "03", title: "Network Signing",
-    desc: "The network verifies your proof-of-work, then signs the ZBIO with its Ed25519 private key and generates an RFLP fingerprint — a unique restriction enzyme gel-band pattern proving parentage.",
+    desc: "The network verifies your DNA256 proof-of-work, signs the ZBIO with its Ed25519 private key, and logs the minted coin to the public Coin Tracker so anyone can audit the supply.",
     color: "#a855f7",
   },
   {
     id: "integrate", icon: "🧪", label: "04", title: "ZBIO Integration",
-    desc: "The signed ZBIO gene is spliced into your wallet's DNA via biological mutation. Your wallet now physically contains the ZBIO — it's part of your DNA, not a balance in a database.",
+    desc: "The signed ZBIO is folded into your wallet's DNA as a 64-base rotating ledger entry. Each receipt is a rotated, XORed serial hash plus checksum \u2014 compressed transaction history stored inside the genome itself.",
     color: "#d29922",
   },
   {
     id: "transfer", icon: "📧", label: "05", title: "Transfer via mRNA",
-    desc: "To send ZBIO, an mRNA payload is created containing the gene, Ed25519 signature, RFLP fingerprint, and proof-of-work. The ZBIO is excised from your DNA. Send via email, USB, QR, or Bluetooth.",
+    desc: "To send ZBIO, an X25519 envelope is sealed for the recipient's encryption key \u2014 the entire mRNA payload becomes an unreadable TACG strand. Send via email, USB, QR, or Bluetooth; only the recipient's wallet can open it.",
     color: "#f59e0b",
   },
   {
     id: "receive", icon: "📥", label: "06", title: "Receive & Verify",
-    desc: "The recipient verifies the Ed25519 signature against the embedded Network Genome, runs the RFLP gel-band check, and confirms the nullifier hasn't been spent — all offline. Then the ZBIO gene integrates into their DNA.",
+    desc: "The recipient decrypts the envelope with their X25519 key, verifies the Ed25519 network signature against the embedded Network Genome, and checks the nullifier \u2014 all offline. The coin is then folded into their own wallet DNA.",
     color: "#22c55e",
   },
   {
@@ -1353,9 +1356,9 @@ function FlowAnimation() {
         ctx.fillStyle = isMatch ? "#22c55e" : "rgba(255,255,255,0.3)";
         ctx.globalAlpha = alpha;
 
-        const prefix = isMatch ? "000000000" : "4f" + String(i * 3 + 7).padStart(8, "a");
-        const rest = isMatch ? "a7c3e1..." : String(Math.floor(Math.random() * 9999)).padStart(4, "0") + "...";
-        ctx.fillText(`SHA-256(gene|nonce=${1247 + i * 389}) = ${prefix}${rest}`, cx, y);
+        const prefix = isMatch ? "TTTTTTT" : ["ACGT", "GCTA", "TGCA", "CAGT", "GACT"][i % 5] + "ACGT";
+        const rest = isMatch ? "GCATGCA..." : ["ACGT", "TGCA", "CAGT", "GCAT"][i % 4] + ["GCAT", "TACG", "ACGT", "CAGT"][(i + 2) % 4] + "...";
+        ctx.fillText(`DNA256(gene|nonce=${1247 + i * 389}) = ${prefix}${rest}`, cx, y);
         ctx.globalAlpha = 1;
       }
 
@@ -1367,7 +1370,7 @@ function FlowAnimation() {
         ctx.fillText("✓ ZBIO FOUND", cx, hashY + numHashes * 18 + 28);
         ctx.font = `${baseFont}px monospace`;
         ctx.fillStyle = "rgba(255,255,255,0.4)";
-        ctx.fillText("Hash below difficulty target — proof-of-work complete", cx, hashY + numHashes * 18 + 46);
+        ctx.fillText("Enough leading T bases — DNA256 proof-of-work complete", cx, hashY + numHashes * 18 + 46);
         ctx.globalAlpha = 1;
       }
     }
@@ -1427,7 +1430,7 @@ function FlowAnimation() {
 
         if (sigT > 0.4) {
           ctx.fillStyle = "#8b5cf6";
-          ctx.fillText("✓ RFLP Fingerprint generated", cx, cy + 58);
+          ctx.fillText("✓ Coin Tracker record committed", cx, cy + 58);
         }
 
         // Gel mini-visualization
@@ -1576,7 +1579,7 @@ function FlowAnimation() {
         ctx.fillText("mRNA", envX, envY - 6);
         ctx.font = `${baseFont - 2}px monospace`;
         ctx.fillStyle = "rgba(245,158,11,0.6)";
-        ctx.fillText("Gene + Sig + RFLP", envX, envY + 8);
+        ctx.fillText("X25519 envelope", envX, envY + 8);
       }
 
       // Transport method labels
@@ -1615,10 +1618,10 @@ function FlowAnimation() {
 
       // Verification steps appearing
       const checks = [
-        { label: "Ed25519 signature ✓", color: "#3b82f6", at: 0.15 },
-        { label: "RFLP gel-band match ✓", color: "#a855f7", at: 0.35 },
+        { label: "X25519 envelope decrypted ✓", color: "#3b82f6", at: 0.15 },
+        { label: "Ed25519 signature ✓", color: "#a855f7", at: 0.35 },
         { label: "Nullifier not spent ✓", color: "#ef4444", at: 0.50 },
-        { label: "Proof-of-work valid ✓", color: "#f59e0b", at: 0.65 },
+        { label: "DNA256 proof-of-work valid ✓", color: "#f59e0b", at: 0.65 },
       ];
 
       const checkX = small ? cx - 70 : cx - 100;
@@ -1822,10 +1825,10 @@ function FlowAnimation() {
 function HowItWorks() {
   const r = useReveal();
   const steps = [
-    { n: "01", title: "Create a wallet", desc: "One click generates a 6,000-base DNA strand with a private key. The network\u2019s Ed25519 public key is embedded, letting you verify ZBIO offline forever. No KYC. No signup.", color: "var(--primary)" },
-    { n: "02", title: "Mine ZBIO", desc: "Click \u201CStart Mining\u201D in your browser, or compile the native C miner for maximum throughput. Both brute-force SHA-256 until a hash meets the difficulty target \u2014 real proof-of-work, same algorithm as Bitcoin.", color: "var(--secondary)" },
-    { n: "03", title: "Get signed + fingerprinted", desc: "The network validates your proof-of-work, signs with Ed25519, and generates a unique RFLP gel-band fingerprint. Two independent proofs travel with every ZBIO for offline verification.", color: "#d29922" },
-    { n: "04", title: "Trade & transfer", desc: "Send ZBIO via mRNA payloads \u2014 self-contained files carrying the gene, signature, and fingerprint. Recipients validate everything offline. Email, USB, QR \u2014 your choice.", color: "#f85149" },
+    { n: "01", title: "Create a wallet", desc: "One click derives an Ed25519 signing key and an X25519 encryption key from a 32-byte seed. The network\u2019s public key is embedded so you can verify ZBIO offline forever. No KYC. No signup.", color: "var(--primary)" },
+    { n: "02", title: "Mine ZBIO", desc: "Click \u201CStart Mining\u201D in your browser, or compile the native C miner for maximum throughput. Both hunt DNA256 hashes \u2014 256 TACG bases with enough leading T bases to meet the target. Real work, native to DNA.", color: "var(--secondary)" },
+    { n: "03", title: "Get signed + tracked", desc: "The network validates your DNA256 proof-of-work, signs with Ed25519, and records the minted coin on the public Coin Tracker \u2014 a full audit trail of every ZBIO ever created.", color: "#d29922" },
+    { n: "04", title: "Trade & transfer", desc: "Send ZBIO as an X25519-encrypted DNA envelope. Only the recipient\u2019s wallet can decrypt it \u2014 yet anyone can verify signatures and nullifiers offline. Email, USB, QR, or the built-in relay.", color: "#f85149" },
   ];
   const px = useParallax();
   return (
@@ -1985,7 +1988,7 @@ function Tokenomics({ stats }: { stats: NetworkStats | null }) {
         </div>
         <div className="tok-explain">
           <p>
-            <b>How value is created:</b> Each ZBIO requires real computational work (SHA-256 PoW). Block rewards start at 50 ZBIO
+            <b>How value is created:</b> Each ZBIO requires real computational work (DNA256 proof-of-work). Block rewards start at 50 ZBIO
             and halve every 210,000 submissions — identical to Bitcoin. The network's telomeres (TTAGGG repeats) shorten with each
             mine. When they reach zero, mining stops forever (Hayflick limit). Transfers burn 1% of ZBIO, creating deflationary pressure.
           </p>
@@ -2007,26 +2010,26 @@ function SecuritySection() {
   const layers = [
     {
       icon: "\u{1F6E1}\u{FE0F}",
-      title: "Layer 1 — Proof-of-Work",
-      detail: "SHA-256 mining: each ZBIO requires real computational effort. Dynamic difficulty adjustment every epoch. Identical to Bitcoin's mining algorithm.",
+      title: "Layer 1 — DNA256 Proof-of-Work",
+      detail: "Every mined ZBIO must produce a 256-nucleotide DNA strand starting with a target number of T bases. Domain-separated SHA-256 drives the codec, but the PoW target lives in nucleotide space \u2014 native to biology, adjustable per epoch.",
       color: "var(--primary)",
     },
     {
       icon: "\u{1F58A}\u{FE0F}",
-      title: "Layer 2 — Ed25519 Signature",
-      detail: "The network signs every ZBIO with its Ed25519 private key DNA (256-bit security). Any wallet can verify the signature offline using the embedded Network Genome. Mathematically impossible to forge.",
+      title: "Layer 2 — Ed25519 + X25519",
+      detail: "The network signs every ZBIO with its Ed25519 private key DNA (256-bit security). Transfers are sealed in X25519 + XSalsa20-Poly1305 DNA envelopes so only the intended recipient can read the payload \u2014 same primitives used in BioCrypt Chat.",
       color: "var(--secondary)",
     },
     {
       icon: "\u{1F9EC}",
-      title: "Layer 3 — RFLP Fingerprint",
-      detail: "Biological proof of parentage. The network generates a unique parentage marker DNA for each ZBIO, containing restriction enzyme sites derived from the private key. Digest with public enzymes (EcoRI, BamHI, HindIII, PstI, SalI) to see the gel-band pattern — a visual \"paternity test\" proving the ZBIO was born from this network.",
+      title: "Layer 3 — Rotating DNA Ledger",
+      detail: "Each received ZBIO is folded into the wallet\u2019s own DNA as a 64-base rotating receipt: rotation index, XOR-folded serial hash, and checksum. Your transaction history is inside the genome \u2014 double-spend attempts mutate themselves out.",
       color: "#d29922",
     },
     {
       icon: "\u{1F6AB}",
-      title: "Layer 4 — Nullifier + Duplicate Tracking",
-      detail: "Deterministic nullifiers (SHA-256 of serialHash + delimiter + SHA-256 of privateKeyDNA) prevent double-spending. The network also tracks all signed serial hashes to reject duplicate submissions. Two overlapping mechanisms for absolute safety.",
+      title: "Layer 4 — Nullifiers + Coin Tracker",
+      detail: "Deterministic nullifiers (SHA-256 of serialHash + delimiter + SHA-256 of privateKeyDNA) prevent double-spending. The public Coin Tracker records every mint; the Network also rejects duplicate serials. Overlapping, independent safeguards.",
       color: "#f85149",
     },
   ];
@@ -2057,23 +2060,24 @@ function SecuritySection() {
         </div>
         <div className="security-gel-explainer">
           <div className="gel-ascii">
-            <div className="gel-ascii-header">Gel Electrophoresis — Parentage Verification</div>
-            <pre>{`  Network    ZBIO #1    ZBIO #2    FORGERY
-  ┈┈┈┈┈┈┈    ┈┈┈┈┈┈┈    ┈┈┈┈┈┈┈    ┈┈┈┈┈┈┈
-  ████         ████       ████
-    ██           ██         ██
-      ████         ████       ████
-        ██           ██
-  ██               ██       ██       ██████
-    ████                       ████
-                                       ██
-  ──────    ───────    ───────    ───────
-  PARENT    MATCH ✓    MATCH ✓    NO MATCH ✗`}</pre>
+            <div className="gel-ascii-header">DNA256 Proof-of-Work &mdash; Leading T target</div>
+            <pre>{`  Target: 16 leading T bases       (harder as network grows)
+
+  Miner tries nonces, computing a 256-base DNA strand each time:
+
+  attempt 1:   ACGGCTAACG\u2026              \u2717  starts with A
+  attempt 2:   TGCAAGCGTA\u2026              \u2717  only 1 leading T
+  attempt 3:   TTTTACGCAA\u2026              \u2717  4 leading Ts
+  \u2026
+  attempt N:   TTTTTTTTTTTTTTTTGCAAT\u2026  \u2713  16 leading Ts \u2014 accepted
+
+  Verify offline: rebuild the DNA256 strand from the coin gene + nonce,
+  count the T prefix. No server needed, no lookups, pure biology-math.`}</pre>
           </div>
           <p className="text-sm text-muted">
-            Like a real DNA paternity test: restriction enzymes cut the marker DNA at known recognition
-            sequences. The resulting fragment lengths form a unique "bar code." A legitimate ZBIO's bands
-            align with the network's pattern. A forged ZBIO produces random, non-matching bands.
+            Hashes are hexadecimal. DNA256 is nucleotides. The proof-of-work target is counted
+            in T bases at the start of a 256-base strand &mdash; equivalent difficulty to
+            Bitcoin-style leading-zero hashing, but expressed in the language of DNA.
           </p>
         </div>
         <div style={{ textAlign: "center", marginTop: "2rem" }}>
@@ -2144,6 +2148,130 @@ const result = await pay.requestPayment({
   );
 }
 
+/* ─── Ecosystem strip ────────────────────────────────────────────────────── */
+
+function EcosystemStrip() {
+  const r = useReveal();
+  const apps = [
+    {
+      id: "chat",
+      icon: "\u{1F4AC}",
+      color: "#5c9eff",
+      title: "BioCrypt Chat",
+      sub: "End-to-end encrypted DNA messaging over the same X25519 envelopes that ship your ZBIO.",
+      url: "https://chat.biocrypt.net",
+    },
+    {
+      id: "sim",
+      icon: "\u{1F9EC}",
+      color: "#00c9a7",
+      title: "Seed Simulation",
+      sub: "Watch a DNA seed transcribe into RNA and translate into the proteins that become coins.",
+      url: "https://sim.biocrypt.net",
+    },
+    {
+      id: "reel",
+      icon: "\u{1F3AC}",
+      color: "#8a82ff",
+      title: "Protocol Reel",
+      sub: "A 9:16 scroll-through of the whole BioCrypt protocol \u2014 base by base, codon by codon.",
+      url: "https://reel.biocrypt.net",
+    },
+    {
+      id: "vault",
+      icon: "\u{1F5C4}\uFE0F",
+      color: "#f7b731",
+      title: "Encrypted Vault",
+      sub: "Reference SDK demo \u2014 store any secret as a DNA envelope signed by your BioCrypt wallet.",
+      url: "https://file.biocrypt.net",
+    },
+  ];
+
+  return (
+    <section className="section section-alt" id="ecosystem">
+      <div className="container" ref={r.ref} data-reveal={r.visible}>
+        <div className="section-header">
+          <span className="section-tag">Ecosystem</span>
+          <h2 className="section-title">One protocol, <span className="grad-text">many apps</span></h2>
+          <p className="section-sub">
+            BioCrypt isn&rsquo;t just a coin. Every app below shares the same DNA codec,
+            the same X25519 keypair, and the same DNA256 proof-of-work. Your wallet seed
+            logs you into all of them.
+          </p>
+        </div>
+
+        <div className="eco-strip">
+          {apps.map((a) => (
+            <a
+              key={a.id}
+              href={a.url}
+              target="_blank"
+              rel="noopener"
+              className="eco-strip-card"
+              style={{ ["--eco-accent" as any]: a.color }}
+            >
+              <span className="eco-strip-icon" style={{ background: a.color + "22", color: a.color }}>
+                {a.icon}
+              </span>
+              <div className="eco-strip-body">
+                <h3>{a.title}</h3>
+                <p>{a.sub}</p>
+                <span className="eco-strip-host">{new URL(a.url).hostname} &rarr;</span>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: "2rem" }}>
+          <Link to="/ecosystem" className="btn btn-secondary btn-lg">
+            Explore the Full Ecosystem
+          </Link>
+        </div>
+      </div>
+      <style>{`
+        .eco-strip {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          gap: 1rem;
+        }
+        .eco-strip-card {
+          display: flex; gap: 0.9rem;
+          padding: 1.1rem;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          text-decoration: none; color: var(--text);
+          transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+          position: relative; overflow: hidden;
+        }
+        .eco-strip-card::before {
+          content: ""; position: absolute; inset: 0 auto 0 0; width: 3px;
+          background: var(--eco-accent, var(--primary));
+        }
+        .eco-strip-card:hover {
+          border-color: var(--eco-accent, var(--primary));
+          transform: translateY(-2px);
+          box-shadow: 0 10px 30px -20px var(--eco-accent, var(--primary));
+          text-decoration: none;
+        }
+        .eco-strip-icon {
+          width: 42px; height: 42px; border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 1.3rem; flex-shrink: 0;
+        }
+        .eco-strip-body h3 { margin: 0 0 0.25rem; font-size: 1rem; }
+        .eco-strip-body p { margin: 0; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+        .eco-strip-host {
+          display: inline-block; margin-top: 0.6rem;
+          font-family: var(--mono); font-size: 0.72rem;
+          color: var(--eco-accent, var(--primary));
+          font-weight: 600;
+        }
+      `}</style>
+    </section>
+  );
+}
+
 /* ─── Build your own ────────────────────────────────────────────────────── */
 
 function BuildYourOwn() {
@@ -2168,21 +2296,22 @@ function BuildYourOwn() {
           </div>
           <pre className="code-body">{`import {
   generateNetworkKeyPair, sha256,
-  mineCoin, signCoinWithNetwork,
-  verifyNetworkSignature
+  mineCoinDna256, signCoinWithNetwork,
+  verifyNetworkSignature, verifyDna256MiningProof
 } from "@biocrypt/core";
 
 // Generate Ed25519 keypair encoded as DNA
 const { publicKeyDNA, privateKeyDNA } = generateNetworkKeyPair();
 const networkId = sha256(publicKeyDNA).slice(0, 16);
 
-// Mine ZBIO (180-base gene, SHA-256 proof-of-work)
-const coin = mineCoin("00000");
+// Mine ZBIO with DNA256 proof-of-work (look for leading T bases)
+const coin = mineCoinDna256({ leadingTs: 16 });
 const signed = signCoinWithNetwork(
   coin, privateKeyDNA, networkId, publicKeyDNA
 );
 
-// Anyone can verify offline with just the public genome
+// Anyone can verify the DNA256 PoW + network signature offline
+console.log(verifyDna256MiningProof(signed)); // true
 console.log(verifyNetworkSignature(signed, publicKeyDNA)); // true`}</pre>
         </div>
         <div style={{ textAlign: "center", marginTop: "2rem" }}>
@@ -2276,16 +2405,17 @@ function FAQ() {
   const [open, setOpen] = useState<number | null>(null);
   const faqs = [
     { q: "Why should I use BioCrypt?", a: "BioCrypt is the only cryptocurrency where your wallet is living DNA and every ZBIO is a gene you physically own. No KYC, no sign-up, no app download \u2014 mine ZBIO in your browser, trade them offline via mRNA files, and verify them with real biology (gel electrophoresis). There are zero fees for peer-to-peer transfers, a hard cap of 21 million ZBIO with Bitcoin-style halving, and a payment gateway merchants can add with one script tag. If you want a currency that can\u2019t be censored, seized, or inflated \u2014 and that keeps working even if the server disappears \u2014 BioCrypt is built for you." },
-    { q: "Is biocrypt.net a real cryptocurrency?", a: "Yes. It uses SHA-256 proof-of-work (same as Bitcoin), Ed25519 asymmetric signatures (same as Solana and Stellar), and nullifier-based double-spend prevention. The biological encoding is a unique representation layer, but the underlying security is mathematically equivalent to established cryptocurrencies." },
-    { q: "How do I start mining?", a: "Two ways: (1) Browser \u2014 create a wallet, go to the Mine page, click \u2018Start Mining.\u2019 A Web Worker runs proof-of-work in the background. (2) Native C miner \u2014 compile zcoin-miner.c with clang and run it from your terminal for orders-of-magnitude faster hashing with multi-threaded, hardware-accelerated SHA-256 on Apple Silicon. Both submit ZBIO to the network automatically." },
-    { q: "Can ZBIO be double-spent?", a: "No. Four overlapping defenses prevent it: (1) SHA-256 proof-of-work, (2) Ed25519 signature verification, (3) RFLP biological fingerprint validation, and (4) nullifier-based spend tracking with duplicate serial rejection. Offline transfers carry a theoretical risk, mitigated by lineage tracking and nullifier broadcast upon reconnection." },
-    { q: "What makes BioCrypt different from Bitcoin?", a: "Bitcoin uses a blockchain. BioCrypt uses DNA-encoded wallets, Ed25519 signatures encoded as DNA, and RFLP biological fingerprints for parentage verification. Every wallet carries the Network Genome, so every ZBIO is self-validating with both mathematical and biological proof \u2014 even if the server goes offline forever. You can literally run a gel electrophoresis on your ZBIO to prove it's genuine." },
-    { q: "Can I create my own token?", a: "Absolutely. The @biocrypt/core TypeScript package is open source. Call generateNetworkKeyPair() to get an Ed25519 keypair encoded as DNA, set your difficulty, and deploy. Each ZBIO mined on your network carries your unique Ed25519 signature \u2014 they're distinct from biocrypt.net ZBIO but use the same engine." },
-    { q: "Is there a pre-mine or ICO?", a: "No. No ZBIO was pre-mined. There is no ICO, no VC funding, no token sale. Every ZBIO in existence was mined through proof-of-work by someone contributing compute to the network. The 10% network fee is the only revenue mechanism, and it's transparent." },
-    { q: "How do offline transfers work?", a: "When you send ZBIO, an mRNA payload file is generated containing the ZBIO gene, Ed25519 signature, mining proof, and ownership proofs. The recipient's wallet verifies the signature using the Network Genome \u2014 no server needed. Send via email, USB, QR code, or any medium. When either party connects, the nullifier is broadcast." },
-    { q: "What is the DNA actually encoding?", a: "The DNA uses the real human codon table (64 codons \u2192 20 amino acids). Wallet DNA is read by a ribosome function that translates codons into proteins. Each ZBIO is a 180-base gene sequence yielding ~60 amino acids (259 bits of entropy). Each signed ZBIO also carries parentage marker DNA \u2014 a separate strand with restriction enzyme sites that form a unique RFLP fingerprint. The network's Ed25519 keys are encoded as 128-base DNA strands. Every key, signature, fingerprint, and ZBIO is pure DNA." },
-    { q: "What happens if the biocrypt.net server goes down?", a: "Your ZBIO stays valid. Every wallet embeds the Network Genome (Ed25519 public key), and every ZBIO carries its Ed25519 signature plus an RFLP fingerprint. Verification is a pure math + biology operation \u2014 no server needed. Run the gel electrophoresis, verify the Ed25519 signature, and trade ZBIO peer-to-peer forever." },
-    { q: "What is RFLP and gel electrophoresis?", a: "RFLP (Restriction Fragment Length Polymorphism) is a real technique from forensic DNA analysis and paternity testing. Restriction enzymes cut DNA at specific recognition sequences (like EcoRI cuts at GAATTC). The resulting fragment lengths form a unique pattern. In BioCrypt, each signed ZBIO carries a parentage marker DNA with restriction sites derived from the network's private key. Digesting it with the public enzyme panel reveals a gel-band pattern that must match the network's known profile \u2014 proving the ZBIO was 'born' from this network." },
+    { q: "Is biocrypt.net a real cryptocurrency?", a: "Yes. It uses DNA256 proof-of-work (SHA-256 digests rendered as a 256-base TACG strand with a leading-T target), Ed25519 asymmetric signatures (same as Solana and Stellar) for identity, and X25519 + XSalsa20-Poly1305 envelopes for encrypted transfers \u2014 the exact primitives used in Signal and WireGuard. The biological encoding is a unique representation layer, but the underlying security is mathematically equivalent to established cryptocurrencies." },
+    { q: "How do I start mining?", a: "Two ways: (1) Browser \u2014 create a wallet, go to the Mine page, click \u2018Start Mining.\u2019 A Web Worker runs DNA256 proof-of-work in the background. (2) Native C miner \u2014 compile zcoin-miner-v1.c with clang and run it from your terminal for orders-of-magnitude faster hashing with multi-threaded, hardware-accelerated SHA-256 (the core of the DNA256 codec). Both submit ZBIO to the network automatically." },
+    { q: "Can ZBIO be double-spent?", a: "No. Four overlapping defenses prevent it: (1) DNA256 proof-of-work, (2) Ed25519 signature verification, (3) the rotating DNA ledger inside each wallet binding coins to a specific genome, and (4) nullifier-based spend tracking plus the public Coin Tracker. Offline transfers carry a theoretical risk, mitigated by lineage tracking and nullifier broadcast upon reconnection." },
+    { q: "What makes BioCrypt different from Bitcoin?", a: "Bitcoin uses a blockchain. BioCrypt uses DNA-encoded wallets, DNA256 proof-of-work, encrypted DNA envelopes, and a rotating DNA ledger that stores your transaction history inside the wallet's own genome. Every wallet carries the Network Genome, so every ZBIO is self-validating \u2014 even if the server goes offline forever." },
+    { q: "Can I create my own token?", a: "Absolutely. The @biocrypt/core TypeScript package is open source. Call generateNetworkKeyPair() to get an Ed25519 keypair encoded as DNA, set your DNA256 difficulty (leading-T target), and deploy. Each ZBIO mined on your network carries your unique Ed25519 signature \u2014 they're distinct from biocrypt.net ZBIO but use the same engine." },
+    { q: "Is there a pre-mine or ICO?", a: "No. No ZBIO was pre-mined. There is no ICO, no VC funding, no token sale. Every ZBIO in existence was mined through DNA256 proof-of-work by someone contributing compute to the network. The 10% network fee is the only revenue mechanism, and it's fully visible on the Coin Tracker." },
+    { q: "How do encrypted transfers work?", a: "When you send ZBIO, the payload is sealed into a DNA envelope: your wallet generates an ephemeral X25519 keypair, derives a shared secret with the recipient\u2019s public key, and encrypts the mRNA with XSalsa20-Poly1305. The whole envelope (recipient key, ephemeral key, nonce, ciphertext) is encoded as a TACG strand. Only the recipient\u2019s wallet can decrypt it \u2014 yet anyone can still verify signatures and nullifiers offline." },
+    { q: "How do offline transfers work?", a: "An OfflineTransfer bundle carries the encrypted DNA envelope, nullifier commitment, Ed25519 network signature, and DNA256 proof. Send it via email, USB, QR code, Bluetooth \u2014 anything. The recipient validates everything locally: signature, proof-of-work, nullifier-not-seen. When either party reconnects, the nullifier is broadcast to finalize the spend." },
+    { q: "What is the DNA actually encoding?", a: "The DNA uses the real human codon table (64 codons \u2192 20 amino acids). Wallet DNA is read by a ribosome function that translates codons into proteins. Each ZBIO is a 180-base gene sequence yielding ~60 amino acids. Each received coin is folded into your wallet as a 64-base rotating receipt (rotation index + XOR-folded serial hash + checksum). The network\u2019s Ed25519 and X25519 keys are encoded as DNA strands. Every key, signature, envelope, and ZBIO is pure DNA." },
+    { q: "What happens if the biocrypt.net server goes down?", a: "Your ZBIO stays valid. Every wallet embeds the Network Genome (Ed25519 public key) and its own rotating DNA ledger of owned coins. Every ZBIO carries its Ed25519 signature plus a verifiable DNA256 proof. Verification is a pure math + biology operation \u2014 no server needed. Sign, send, and receive peer-to-peer forever." },
+    { q: "What is the Coin Tracker?", a: "The Coin Tracker is the public mint ledger at /tracker. Every time a coin is signed by the network \u2014 whether browser-mined, native-mined, or a bonus \u2014 a record is appended with its serial hash, miner tag, source, leading-T count, and timestamp. When a coin is spent, it\u2019s marked spent. It is the definitive, auditable list of every ZBIO that has ever existed." },
   ];
   return (
     <section className="section section-alt" id="faq">
@@ -2348,12 +2478,22 @@ function Footer() {
             <Link to="/mine">Mine</Link>
             <Link to="/transfer">Transfer</Link>
             <Link to="/network">Network</Link>
+            <Link to="/tracker">Coin Tracker</Link>
+          </div>
+          <div>
+            <h4>Ecosystem</h4>
+            <Link to="/ecosystem">All apps</Link>
+            <a href="https://chat.biocrypt.net" target="_blank" rel="noopener">Chat</a>
+            <a href="https://sim.biocrypt.net" target="_blank" rel="noopener">Seed Sim</a>
+            <a href="https://reel.biocrypt.net" target="_blank" rel="noopener">Protocol Reel</a>
+            <a href="https://file.biocrypt.net" target="_blank" rel="noopener">Vault / Marketplace</a>
           </div>
           <div>
             <h4>Resources</h4>
             <Link to="/how-it-works">How it works</Link>
-            <a href="#faq">FAQ</a>
+            <Link to="/proof">Proof</Link>
             <Link to="/economics">Economics</Link>
+            <a href="#faq">FAQ</a>
             <a href="#roadmap">Roadmap</a>
           </div>
           <div>
@@ -2365,7 +2505,7 @@ function Footer() {
         </div>
         <div className="footer-bottom">
           <span>&copy; {new Date().getFullYear()} biocrypt.net &mdash; All rights reserved.</span>
-          <span className="text-muted text-xs">Built with DNA, powered by SHA-256 + Ed25519 + RFLP.</span>
+          <span className="text-muted text-xs">DNA256 proof-of-work &middot; X25519 envelopes &middot; Ed25519 signatures.</span>
         </div>
       </div>
     </footer>

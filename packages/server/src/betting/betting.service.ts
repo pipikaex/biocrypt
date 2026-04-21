@@ -5,7 +5,6 @@ import {
 } from "@biocrypt/core";
 import { WalletService } from "../wallet/wallet.service";
 import { RegistryService } from "../registry/registry.service";
-import { NetworkService } from "../network/network.service";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -39,7 +38,6 @@ export class BettingService implements OnModuleInit {
   constructor(
     private walletService: WalletService,
     private registry: RegistryService,
-    private network: NetworkService,
   ) {}
 
   onModuleInit() {

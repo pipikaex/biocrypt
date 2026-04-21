@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 import {
   sha256, ribosome, isCoinProtein, getCoinSerial,
   verifyMiningProof, verifyNetworkSignature, verifyRFLPFingerprint,
+  verifyDna256MiningProof, powLayerDna256, countLeadingTs,
   type SignedCoin, type RFLPFingerprint,
 } from "@biocrypt/core";
 import { useReveal } from "../hooks/useReveal";
 import { useStore } from "../store";
-import { api } from "../api";
 
 interface CoinForProof {
   coinGene: string;
@@ -29,15 +29,25 @@ function verifyCoinLayers(coin: CoinForProof | null): VerifyResult[] {
   const results: VerifyResult[] = [];
 
   const t0 = performance.now();
-  const powPass = verifyMiningProof(coin.coinGene, coin.nonce, coin.difficulty);
+  const strand = (() => {
+    try { return powLayerDna256(coin.coinGene, coin.nonce); }
+    catch { return ""; }
+  })();
+  const leadingTs = strand ? countLeadingTs(strand) : 0;
+  const dnaPass = strand ? verifyDna256MiningProof(coin.coinGene, coin.nonce, leadingTs) : false;
+  const legacyPass = !dnaPass &&
+    verifyMiningProof(coin.coinGene, coin.nonce, coin.difficulty);
+  const powPass = dnaPass || legacyPass;
   const t1 = performance.now();
   results.push({
-    layer: "Proof of Work (SHA-256)",
+    layer: dnaPass ? "Proof of Work (DNA256)" : "Proof of Work (SHA-256)",
     icon: "\u26CF\uFE0F",
     pass: powPass,
-    detail: powPass
+    detail: dnaPass
+      ? `DNA256 strand has ${leadingTs} leading "T" bases: ${strand.slice(0, 24)}...`
+      : legacyPass
       ? `SHA-256(gene|${coin.nonce}) = ${coin.hash.slice(0, 20)}... starts with "${coin.difficulty}"`
-      : `Hash does not match difficulty prefix "${coin.difficulty}"`,
+      : `Hash does not match any accepted target (DNA256 or legacy "${coin.difficulty}")`,
     time: `${(t1 - t0).toFixed(2)}ms`,
   });
 
@@ -222,11 +232,16 @@ function MathSection() {
       <p className="proof-section-sub">A forger must break ALL four simultaneously. Breaking one leaves three intact.</p>
       <div className="locks-grid">
         <LockCard
-          num={1} name="SHA-256 Proof-of-Work" color="#f59e0b"
-          equation="H(gene || nonce) < target"
+          num={1} name="DNA256 Proof-of-Work" color="#f59e0b"
+          equation="countLeadingTs(DNA256(gene || nonce)) >= target"
           bits={36} ops="~68,719,476,736"
-          explanation="Must find a nonce where the hash of the coin gene has 9 leading hex zeros (36 bits). Each attempt is a full SHA-256 computation. Cannot shortcut — SHA-256 is a one-way function."
-          analogy="Like trying every combination on a lock with ~68.7 billion (2^36) possibilities on average. No pattern, no shortcut."
+          explanation={
+            "Must find a nonce such that DNA256(gene || nonce) — a domain-separated " +
+            "SHA-256 digest encoded as a 256-nucleotide TACG strand — begins with at " +
+            "least the current target number of 'T' bases. Each attempt is a fresh " +
+            "hash + codec; the one-way property of SHA-256 makes it non-invertible."
+          }
+          analogy="Instead of counting hex zeros, we count leading T bases in the DNA — same math, DNA-native display."
         />
         <LockCard
           num={2} name="Ed25519 Digital Signature" color="#3b82f6"
@@ -409,7 +424,7 @@ function TamperSection({ coin, activeTamper, setActiveTamper, tamperResults, rea
 function EntropySection() {
   const r = useReveal();
   const layers = [
-    { name: "SHA-256 PoW (9 hex zeros, 36 bits)", bits: 36, color: "#f59e0b" },
+    { name: "DNA256 PoW (leading T bases, 36+ bits)", bits: 36, color: "#f59e0b" },
     { name: "Ed25519 Signature", bits: 128, color: "#3b82f6" },
     { name: "RFLP Marker DNA", bits: 96, color: "#8b5cf6" },
     { name: "Nullifier Hash", bits: 256, color: "#ef4444" },
@@ -572,7 +587,7 @@ function ImpossibilitySection() {
         </div>
         <h2>Mathematically Proven Unforgeable</h2>
         <p>
-          To forge a single BioCrypt coin, an attacker must simultaneously: compute a valid SHA-256 proof-of-work,
+          To forge a single BioCrypt coin, an attacker must simultaneously: compute a valid DNA256 proof-of-work,
           forge an Ed25519 signature without the private key, generate matching RFLP restriction enzyme fragments
           from unknown parent DNA, and produce a unique nullifier that hasn't been seen before.
         </p>

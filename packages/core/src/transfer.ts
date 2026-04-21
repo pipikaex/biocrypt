@@ -3,9 +3,15 @@ import { ribosome } from "./ribosome";
 import {
   extractCoinGene, getCoinSerial, isCoinProtein,
   integrateCoinGene, proveOwnership, verifyOwnership,
+  integrateCoinReceipt,
 } from "./wallet";
 import { verifyMiningProof, verifyNetworkSignature, type SignedCoin } from "./miner";
 import { verifyRFLPFingerprint, type RFLPFingerprint } from "./rflp";
+import {
+  encryptToDNA, decryptFromDNA, serializeEnvelope, deserializeEnvelope,
+  type DNAEnvelope,
+} from "./crypto-dna";
+import { verifyDna256MiningProof } from "./dna256";
 
 export interface mRNAPayload {
   type: "transfer";
@@ -275,4 +281,167 @@ export function applyMRNABundle(
  */
 export function coinExistsInWallet(walletDNA: string, coinSerialHash: string): boolean {
   return extractCoinGene(walletDNA, coinSerialHash) !== null;
+}
+
+/* ── Encrypted mRNA envelopes (RSA-over-DNA-style) ──────────────────── */
+
+export interface EncryptedMRNA {
+  kind: "encrypted-mrna";
+  envelope: DNAEnvelope;
+  /** Public coin serial hash — lets the recipient reject duplicates before decrypting */
+  coinSerialHash: string;
+  /** DNA256 proof-of-transmission (deterministic from envelope + serial) */
+  transmissionProof: string;
+  createdAt: number;
+}
+
+/**
+ * Wrap an mRNA transfer in a DNA-native encrypted envelope addressed to the
+ * recipient's X25519 public key DNA. The ciphertext + ephemeral key + nonce
+ * are all DNA strings — exactly the protocol used by chat.biocrypt.net.
+ */
+export function encryptMRNAForRecipient(
+  mrna: mRNAPayload,
+  recipientEncryptionPublicKeyDNA: string,
+): EncryptedMRNA {
+  const envelope = encryptToDNA(serializeMRNA(mrna), recipientEncryptionPublicKeyDNA);
+  return {
+    kind: "encrypted-mrna",
+    envelope,
+    coinSerialHash: mrna.coinSerialHash,
+    transmissionProof: sha256(
+      envelope.eph + "|" + envelope.nonce + "|" + mrna.coinSerialHash,
+    ),
+    createdAt: Date.now(),
+  };
+}
+
+/**
+ * Decrypt an incoming EncryptedMRNA with the recipient's X25519 private key DNA.
+ * Throws if the envelope is not addressed to this key or is tampered.
+ */
+export function decryptMRNA(
+  encrypted: EncryptedMRNA,
+  recipientEncryptionPrivateKeyDNA: string,
+): mRNAPayload {
+  const plaintext = decryptFromDNA(encrypted.envelope, recipientEncryptionPrivateKeyDNA);
+  const mrna = deserializeMRNA(plaintext);
+  if (mrna.coinSerialHash !== encrypted.coinSerialHash) {
+    throw new Error("envelope serial hash mismatch — possible tampering");
+  }
+  return mrna;
+}
+
+export function serializeEncryptedMRNA(msg: EncryptedMRNA): string {
+  return JSON.stringify(msg);
+}
+
+export function deserializeEncryptedMRNA(data: string): EncryptedMRNA {
+  const parsed = JSON.parse(data);
+  if (parsed.kind !== "encrypted-mrna" || !parsed.envelope) {
+    throw new Error("invalid encrypted mRNA");
+  }
+  return {
+    kind: "encrypted-mrna",
+    envelope: parsed.envelope as DNAEnvelope,
+    coinSerialHash: parsed.coinSerialHash,
+    transmissionProof: parsed.transmissionProof,
+    createdAt: parsed.createdAt,
+  };
+}
+
+/* ── Offline transfer protocol ──────────────────────────────────────── */
+
+/**
+ * An OfflineTransfer bundles everything a recipient needs to *independently*
+ * verify and integrate a coin without contacting the server:
+ *
+ *   • encrypted mRNA (coin gene, network signature, mining proof, lineage)
+ *   • nullifier commitment (so the recipient can gossip it later)
+ *   • DNA256 PoW proof (leading-T check, recomputed from the public digest)
+ *
+ * The recipient applies it to their wallet immediately; both parties queue
+ * the nullifier for gossip whenever either one is back online.
+ */
+export interface OfflineTransfer {
+  kind: "offline-transfer";
+  version: 1;
+  encrypted: EncryptedMRNA;
+  nullifierCommitment: string;
+  nullifier: string; // revealed to recipient — they'll broadcast when online
+  coinSerialHash: string;
+  senderPublicKeyHash: string;
+  recipientPublicKeyHash: string;
+  createdAt: number;
+}
+
+export function packOfflineTransfer(
+  mrna: mRNAPayload,
+  nullifier: string,
+  recipientEncryptionPublicKeyDNA: string,
+  recipientPublicKeyHash: string,
+): OfflineTransfer {
+  return {
+    kind: "offline-transfer",
+    version: 1,
+    encrypted: encryptMRNAForRecipient(mrna, recipientEncryptionPublicKeyDNA),
+    nullifierCommitment: sha256(nullifier),
+    nullifier,
+    coinSerialHash: mrna.coinSerialHash,
+    senderPublicKeyHash: mrna.senderPublicKeyHash,
+    recipientPublicKeyHash,
+    createdAt: Date.now(),
+  };
+}
+
+/**
+ * Apply an offline transfer to the recipient wallet DNA. Verifies the full
+ * mRNA envelope *without touching the network* — pure offline settlement.
+ * Returns the updated wallet DNA and the mRNA (so caller can gossip the
+ * nullifier later).
+ */
+export function applyOfflineTransfer(
+  recipientWalletDNA: string,
+  recipientEncryptionPrivateKeyDNA: string,
+  transfer: OfflineTransfer,
+  networkGenome?: string,
+): { walletDNA: string; mrna: mRNAPayload } {
+  if (transfer.kind !== "offline-transfer" || transfer.version !== 1) {
+    throw new Error("unsupported offline transfer");
+  }
+  if (sha256(transfer.nullifier) !== transfer.nullifierCommitment) {
+    throw new Error("nullifier commitment mismatch");
+  }
+  const mrna = decryptMRNA(transfer.encrypted, recipientEncryptionPrivateKeyDNA);
+  validateMRNA(mrna, networkGenome);
+
+  const walletDNA = applyMRNA(recipientWalletDNA, mrna, networkGenome);
+  // Also integrate the compact receipt for quick balance lookup.
+  const withReceipt = integrateCoinReceipt(walletDNA, mrna.coinSerialHash);
+  return { walletDNA: withReceipt, mrna };
+}
+
+export function serializeOfflineTransfer(t: OfflineTransfer): string {
+  return JSON.stringify(t);
+}
+
+export function deserializeOfflineTransfer(data: string): OfflineTransfer {
+  const parsed = JSON.parse(data);
+  if (parsed.kind !== "offline-transfer" || parsed.version !== 1) {
+    throw new Error("invalid offline transfer");
+  }
+  return parsed as OfflineTransfer;
+}
+
+/* ── DNA256-aware verification ──────────────────────────────────────── */
+
+/**
+ * Verify an mRNA's mining proof in DNA256 space.
+ * `leadingTs` is the network's current DNA256 difficulty (number of leading T bases
+ * required on the PoW layer). Falls back to the legacy prefix check if the coin
+ * was mined before the DNA256 upgrade.
+ */
+export function verifyMRNAMiningProofDNA256(mrna: mRNAPayload, leadingTs: number): boolean {
+  if (leadingTs <= 0) return true;
+  return verifyDna256MiningProof(mrna.coinGene, mrna.miningProof.nonce, leadingTs);
 }

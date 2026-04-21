@@ -13,6 +13,10 @@ import {
   encodeMerkleRootAsDNA, decodeMerkleRootFromDNA,
   type MerkleProofStep,
 } from "./merkle";
+import {
+  powLayerDna256, countLeadingTs, verifyDna256MiningProof,
+  dnaDifficultyFromLeadingHexZeros, formatDnaTarget, powLayerDigestHex,
+} from "./dna256";
 
 export const DEFAULT_BODY_LENGTH = 180;
 
@@ -166,6 +170,85 @@ export function verifyMiningProof(coinGene: string, nonce: number, difficulty: s
   const payload = coinGene + "|" + nonce;
   const hash = sha256(payload);
   return hash.startsWith(difficulty);
+}
+
+/* ── DNA256 PoW (gemix-compatible) ───────────────────────────────────── */
+
+/**
+ * Mine a coin with DNA256 proof-of-work.
+ *
+ * The PoW hash is `powLayerDigestHex(coinGene || "|" || nonce)` encoded as a
+ * 256-nucleotide TACG strand. Difficulty is the minimum number of leading `T`
+ * bases the strand must start with (T = bits 00, so each T = 2 zero bits).
+ *
+ * This is the new primary mining primitive — the legacy SHA-256 hex target
+ * remains available for backwards-compat verification only.
+ */
+export function mineCoinDna256(
+  leadingTs: number = 18,
+  bodyLength: number = DEFAULT_BODY_LENGTH,
+): MiningResult {
+  const minedAt = Date.now();
+
+  let coinBody = "";
+  while (coinBody.length < bodyLength) {
+    const codon =
+      BASES[Math.floor(Math.random() * 4)] +
+      BASES[Math.floor(Math.random() * 4)] +
+      BASES[Math.floor(Math.random() * 4)];
+    if (!STOP_CODONS.has(codon) && codon !== "ATG") {
+      coinBody += codon;
+    }
+  }
+
+  const basePayload = COIN_GENE_HEADER + coinBody;
+  let nonce = 0;
+
+  while (true) {
+    const nonceCodons = encodeNonceAsCodons(nonce);
+    const fullGene = basePayload + nonceCodons + "TAA";
+    const strand = powLayerDna256(fullGene, nonce);
+
+    if (countLeadingTs(strand) >= leadingTs) {
+      const result = ribosome(fullGene);
+      const protein = result.proteins[0];
+      if (!protein) {
+        nonce++;
+        continue;
+      }
+      const serial = protein.aminoAcids.slice(4).join("-");
+      return {
+        coinGene: fullGene,
+        protein,
+        serial,
+        serialHash: sha256(serial),
+        nonce,
+        hash: powLayerDigestHex(fullGene + "|" + nonce),
+        difficulty: formatDnaTarget(leadingTs).slice(0, leadingTs),
+        minedAt,
+      };
+    }
+    nonce++;
+  }
+}
+
+/**
+ * Verify a coin's DNA256 mining proof.
+ * `leadingTs` is the network's current DNA256 difficulty.
+ */
+export function verifyMiningProofDna256(
+  coinGene: string,
+  nonce: number,
+  leadingTs: number,
+): boolean {
+  return verifyDna256MiningProof(coinGene, nonce, leadingTs);
+}
+
+/**
+ * Bridge from legacy hex-prefix difficulty to DNA256 leading-T count.
+ */
+export function hexPrefixToLeadingTs(hexPrefix: string): number {
+  return dnaDifficultyFromLeadingHexZeros(hexPrefix.length);
 }
 
 /**

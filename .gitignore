@@ -20,11 +20,17 @@ npm-debug.log*
 
 # Native miner build artifacts & runtime
 zcoin-miner
+zcoin-miner-v1
+zcoin-miner-v1-arm64
+zcoin-miner-v1-x86_64
 zcoin-mined.jsonl
 zcoin-mined.mp3
 zcoin-mined.aiff
 zcoin-mined.m4a
 zcoin-mined.wav
+
+# Tracker persistent state
+tracker-data/
 
 # Environment
 .env

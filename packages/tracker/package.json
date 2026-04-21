@@ -1,14 +1,14 @@
 {
-  "name": "@biocrypt/core",
+  "name": "@biocrypt/tracker",
   "version": "0.1.0",
-  "description": "BioCrypt v1 core primitives — DNA256 hashing, ribosome protein synthesis, Ed25519 coin signing, mRNA transfer envelopes.",
+  "description": "Zero-dep WebSocket tracker for BioCrypt v1 — relays mints, spends and encrypted envelopes; run your own with `npx @biocrypt/tracker`.",
   "license": "MIT",
   "author": "BioCrypt Contributors",
-  "homepage": "https://www.biocrypt.net",
+  "homepage": "https://www.biocrypt.net/download",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zbiocrypt/biocrypt.git",
-    "directory": "packages/core"
+    "directory": "packages/tracker"
   },
   "bugs": {
     "url": "https://github.com/zbiocrypt/biocrypt/issues"
@@ -16,15 +16,21 @@
   "keywords": [
     "biocrypt",
     "zbio",
+    "tracker",
+    "websocket",
+    "decentralized",
     "dna256",
-    "cryptocurrency",
-    "proof-of-work",
-    "ed25519",
-    "ribosome"
+    "miner"
   ],
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "biocrypt-tracker": "bin/biocrypt-tracker.mjs",
+    "biocrypt-mine": "bin/biocrypt-mine.mjs"
+  },
   "files": [
+    "bin",
     "dist",
     "README.md",
     "LICENSE"
@@ -34,16 +40,18 @@
   },
   "scripts": {
     "build": "tsc",
+    "start": "node bin/biocrypt-tracker.mjs",
     "dev": "tsc --watch",
-    "test": "tsc && node dist/test-refactor.js",
     "prepublishOnly": "tsc"
+  },
+  "dependencies": {
+    "@biocrypt/core": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "typescript": "^5.4.0"
   },
-  "dependencies": {
-    "js-sha256": "^0.11.1",
-    "tweetnacl": "^1.0.3"
+  "engines": {
+    "node": ">=22"
   }
 }

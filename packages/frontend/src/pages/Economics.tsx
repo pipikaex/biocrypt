@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useReveal } from "../hooks/useReveal";
-import { api, type NetworkStats } from "../api";
+import {
+  fetchDerivedStats,
+  MAX_SUPPLY,
+  HALVING_INTERVAL,
+  INITIAL_REWARD,
+  type DerivedNetworkStats,
+} from "../networkStats";
 
-const MAX_SUPPLY = 21_000_000;
-const HALVING_INTERVAL = 210_000;
-const INITIAL_REWARD = 50;
+type NetworkStats = DerivedNetworkStats;
 
 function computeHalvingSchedule() {
   const eras: { era: number; name: string; reward: number; coins: number; cumulative: number; pct: number }[] = [];
@@ -28,8 +32,8 @@ export function Economics() {
   const [stats, setStats] = useState<NetworkStats | null>(null);
 
   useEffect(() => {
-    api.getNetworkStats().then(setStats).catch(() => {});
-    const iv = setInterval(() => { api.getNetworkStats().then(setStats).catch(() => {}); }, 15000);
+    fetchDerivedStats().then(setStats).catch(() => {});
+    const iv = setInterval(() => { fetchDerivedStats().then(setStats).catch(() => {}); }, 15000);
     return () => clearInterval(iv);
   }, []);
 
@@ -357,8 +361,8 @@ function LiveStatsSection({ stats }: { stats: NetworkStats }) {
         <LiveStat label="Halving Era" value={stats.halvingEraName ?? "Genesis"} sub={`Era ${(stats.halvingEra ?? 0) + 1}`} />
         <LiveStat label="Until Halving" value={(stats.coinsUntilHalving ?? 0).toLocaleString()} sub="submissions left" />
         <LiveStat label="Telomere" value={`${pct.toFixed(2)}%`} sub="remaining" />
-        <LiveStat label="Difficulty" value={`${stats.difficulty.length} zeros`} sub={stats.difficulty} />
-        <LiveStat label="Submissions" value={stats.totalSubmissions.toLocaleString()} sub={`Epoch ${stats.epochProgress}`} />
+        <LiveStat label="Difficulty" value={`${stats.dnaLeadingTs} Ts`} sub={`${stats.difficulty.length} hex zeros`} />
+        <LiveStat label="Submissions" value={stats.totalSubmissions.toLocaleString()} sub={`Era ${stats.halvingEra + 1}`} />
       </div>
 
       <div className="live-telomere-bar">

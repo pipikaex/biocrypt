@@ -7,7 +7,8 @@
     "packages/server",
     "packages/frontend",
     "packages/gateway",
-    "packages/demo"
+    "packages/demo",
+    "packages/tracker"
   ],
   "devDependencies": {
     "canvas": "^3.2.3"

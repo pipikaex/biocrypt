@@ -34,6 +34,15 @@ export interface MinedCoin {
   networkId?: string;
   networkGenome?: string;
   rflpFingerprint?: RFLPFingerprint;
+  // v1 decentralized fields (populated when a coin is minted against the
+  // @biocrypt/tracker decentralized protocol).
+  protocolVersion?: 1;
+  networkGenomeFingerprint?: string;
+  leadingTs?: number;
+  minerPubKeyDNA?: string;
+  minerSignatureDNA?: string;
+  mintSeq?: number;
+  source?: "browser" | "native-c" | "server" | "fee" | "bonus";
 }
 
 interface MiningState {

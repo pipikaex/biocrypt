@@ -2,10 +2,10 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   createMRNA, serializeMRNA, serializeBundle, parseMRNAData, applyMRNABundle,
-  integrateCoinGene, extractCoinGene, ribosome,
+  integrateCoinGene, extractCoinGene, ribosome, validateMRNA,
 } from "@biocrypt/core";
 import { useStore, type MinedCoin } from "../store";
-import { api } from "../api";
+import { getSharedTracker } from "../trackerClient";
 
 export function Transfer() {
   const wallet = useStore((s) => s.wallet);
@@ -154,6 +154,7 @@ function SendFlow({ wallet, coins, setWallet, removeCoin, addToast }: {
     try {
       let currentDna = wallet.dna;
       const mrnas: ReturnType<typeof createMRNA>["mrna"][] = [];
+      const nullifiers: Array<{ nullifier: string; coinSerialHash: string }> = [];
 
       for (const coin of selectedCoins) {
         if (!extractCoinGene(currentDna, coin.serialHash) && coin.coinGene) {
@@ -164,8 +165,8 @@ function SendFlow({ wallet, coins, setWallet, removeCoin, addToast }: {
           privateKey,
           coin.serialHash,
           recipientKey || null,
-          coin.networkSignature!,
-          coin.networkId!,
+          coin.networkSignature || "",
+          coin.networkId || "",
           coin.networkGenome || wallet.networkGenome || "",
           { nonce: coin.nonce, hash: coin.hash, difficulty: coin.difficulty },
           [],
@@ -173,11 +174,36 @@ function SendFlow({ wallet, coins, setWallet, removeCoin, addToast }: {
         );
         currentDna = result.modifiedSenderDNA;
         mrnas.push(result.mrna);
+        nullifiers.push({
+          nullifier: result.nullifier,
+          coinSerialHash: coin.serialHash,
+        });
       }
 
       setWallet({ ...wallet, dna: currentDna });
       for (const coin of selectedCoins) {
         removeCoin(coin.serialHash);
+      }
+
+      // Gossip spends + envelopes to the tracker so anyone sees the
+      // double-spend prevention and the recipient can pull the envelope
+      // from their inbox when they come online.
+      try {
+        const tracker = getSharedTracker();
+        for (let i = 0; i < nullifiers.length; i++) {
+          const { nullifier, coinSerialHash } = nullifiers[i];
+          const mrna = mrnas[i];
+          const envelope = recipientKey
+            ? {
+                toPubKeyHash: recipientKey,
+                mrna,
+                createdAt: Date.now(),
+              }
+            : undefined;
+          tracker.sendSpend(nullifier, coinSerialHash, envelope);
+        }
+      } catch {
+        /* tracker offline is fine — the mRNA file is self-sufficient */
       }
 
       const serialized = mrnas.length === 1
@@ -418,14 +444,22 @@ function ReceiveFlow({ wallet, setWallet, addToast, addCoin }: {
     setValidating(true);
     try {
       const mrnas = parseMRNAData(mrnaInput.trim());
+      // Validate locally (signature, serial, PoW). Spend-status check is
+      // best-effort against the nullifier commitment — we can't resolve it
+      // without the sender's nullifier, so we surface "valid" here and let
+      // the tracker reject on apply if it's a double-spend.
       const results: { valid: boolean; spent: boolean }[] = [];
+      const existing = new Set(useStore.getState().spentHashes);
       for (const mrna of mrnas) {
+        let valid = false;
         try {
-          const result = await api.validateTransfer(JSON.stringify(mrna));
-          results.push({ valid: result.valid, spent: result.spent });
+          validateMRNA(mrna);
+          valid = true;
         } catch {
-          results.push({ valid: false, spent: false });
+          valid = false;
         }
+        const spent = existing.has(mrna.coinSerialHash);
+        results.push({ valid, spent });
       }
       setValidationResults(results);
       const spentCount = results.filter((r) => r.spent).length;

@@ -1,9 +1,13 @@
-import { sha256, BASES, STOP_CODONS, DEFAULT_BODY_LENGTH } from "@biocrypt/core";
+import {
+  sha256, BASES, STOP_CODONS, DEFAULT_BODY_LENGTH,
+  powLayerDna256, countLeadingTs, powLayerDigestHex,
+} from "@biocrypt/core";
 
 interface StartMsg {
   type: "start";
-  target: string;
-  difficulty: string;
+  target: string;            // legacy SHA-256 hex target (still used for fallback)
+  difficulty: string;        // display prefix of the hex target
+  leadingTs: number;         // DNA256 difficulty (number of leading T bases required)
   bodyLength?: number;
   blockReward?: number;
 }
@@ -16,6 +20,7 @@ interface UpdateTargetMsg {
   type: "updateTarget";
   target: string;
   difficulty: string;
+  leadingTs: number;
   blockReward?: number;
 }
 
@@ -24,6 +29,7 @@ type InMsg = StartMsg | StopMsg | UpdateTargetMsg;
 let running = false;
 let currentTarget = "";
 let currentDifficulty = "";
+let currentLeadingTs = 16;
 let currentBlockReward = 1;
 
 /* ─── Merkle root encoding as DNA ─── */
@@ -164,12 +170,11 @@ function extractSerial(coinGene: string): { serial: string; aminoAcids: string[]
   return { serial: acids.slice(4).join("-"), aminoAcids: acids };
 }
 
-/* ─── Mining loop ─── */
+/* ─── DNA256 mining loop ─── */
 
-function mineLoop(target: string, difficulty: string, bodyLength: number) {
+function mineLoop(leadingTs: number, bodyLength: number) {
   running = true;
-  currentTarget = target;
-  currentDifficulty = difficulty;
+  currentLeadingTs = leadingTs;
 
   let lastReport = performance.now();
   let hashCount = 0;
@@ -179,19 +184,18 @@ function mineLoop(target: string, difficulty: string, bodyLength: number) {
     const reward = currentBlockReward;
 
     if (reward <= 1) {
-      // Single coin — no Merkle needed (legacy path, slightly faster)
+      // Single coin — no Merkle needed
       const basePayload = COIN_GENE_HEADER + generateCoinBody(bodyLength);
       let nonce = 0;
 
       while (running) {
         const nonceCodons = encodeNonceAsCodons(nonce);
         const fullGene = basePayload + nonceCodons + "TAA";
-        const payload = fullGene + "|" + nonce;
-        const hash = sha256(payload);
+        const strand = powLayerDna256(fullGene, nonce);
         hashCount++;
         totalNonce++;
 
-        if (hash <= currentTarget) {
+        if (countLeadingTs(strand) >= currentLeadingTs) {
           const extracted = extractSerial(fullGene);
           if (extracted) {
             self.postMessage({
@@ -201,8 +205,10 @@ function mineLoop(target: string, difficulty: string, bodyLength: number) {
               serialHash: sha256(extracted.serial),
               aminoAcids: extracted.aminoAcids,
               nonce,
-              hash,
+              hash: powLayerDigestHex(fullGene + "|" + nonce),
+              dnaStrand: strand,
               difficulty: currentDifficulty,
+              leadingTs: currentLeadingTs,
               minedAt: Date.now(),
               bonusCoinGenes: [],
             });
@@ -211,8 +217,7 @@ function mineLoop(target: string, difficulty: string, bodyLength: number) {
         }
 
         nonce++;
-        reportProgress(hashCount, totalNonce, lastReport);
-        if (hashCount === 0) lastReport = performance.now();
+        reportProgress(hashCount, lastReport);
       }
     } else {
       // Multi-coin block with Merkle root
@@ -225,16 +230,6 @@ function mineLoop(target: string, difficulty: string, bodyLength: number) {
       }
 
       const primaryBody = generateCoinBody(bodyLength);
-
-      // Compute Merkle leaves: primary placeholder (will be recomputed) + bonus genes
-      // We need the Merkle root BEFORE completing the primary gene,
-      // but the primary gene includes the Merkle root — circular dependency.
-      // Solution: primary leaf = sha256(HEADER + body + merkleRootDNA + nonce + TAA)
-      // But Merkle root depends on primary leaf...
-      //
-      // Resolution: primary leaf in the tree is sha256 of the PRIMARY BODY (not full gene).
-      // This uniquely commits to the primary coin's random data.
-      // Bonus leaves = sha256 of their full genes.
       const primaryLeaf = sha256(COIN_GENE_HEADER + primaryBody);
       const allLeaves = [primaryLeaf, ...bonusGenes.map((g) => sha256(g))];
       const root = merkleRootFromLeaves(allLeaves);
@@ -246,20 +241,17 @@ function mineLoop(target: string, difficulty: string, bodyLength: number) {
       while (running) {
         const nonceCodons = encodeNonceAsCodons(nonce);
         const fullGene = basePayload + nonceCodons + "TAA";
-        const payload = fullGene + "|" + nonce;
-        const hash = sha256(payload);
+        const strand = powLayerDna256(fullGene, nonce);
         hashCount++;
         totalNonce++;
 
-        if (hash <= currentTarget) {
+        if (countLeadingTs(strand) >= currentLeadingTs) {
           const extracted = extractSerial(fullGene);
           if (extracted) {
-            // Build Merkle proofs for each bonus coin
             const bonusWithProofs = bonusGenes.map((gene, idx) => ({
               coinGene: gene,
               merkleProof: merkleProofFor(allLeaves, idx + 1),
             }));
-
             self.postMessage({
               type: "result",
               coinGene: fullGene,
@@ -267,8 +259,10 @@ function mineLoop(target: string, difficulty: string, bodyLength: number) {
               serialHash: sha256(extracted.serial),
               aminoAcids: extracted.aminoAcids,
               nonce,
-              hash,
+              hash: powLayerDigestHex(fullGene + "|" + nonce),
+              dnaStrand: strand,
               difficulty: currentDifficulty,
+              leadingTs: currentLeadingTs,
               minedAt: Date.now(),
               bonusCoinGenes: bonusWithProofs,
             });
@@ -277,22 +271,12 @@ function mineLoop(target: string, difficulty: string, bodyLength: number) {
         }
 
         nonce++;
-        const now = performance.now();
-        if (now - lastReport >= 500) {
-          const elapsed = (now - lastReport) / 1000;
-          self.postMessage({
-            type: "progress",
-            hashrate: Math.round(hashCount / elapsed),
-            nonce: totalNonce,
-          });
-          hashCount = 0;
-          lastReport = now;
-        }
+        reportProgress(hashCount, lastReport);
       }
     }
   }
 
-  function reportProgress(hc: number, _tn: number, lr: number) {
+  function reportProgress(hc: number, lr: number) {
     const now = performance.now();
     if (now - lr >= 500) {
       const elapsed = (now - lr) / 1000;
@@ -311,12 +295,16 @@ self.onmessage = (e: MessageEvent<InMsg>) => {
   const msg = e.data;
   if (msg.type === "start") {
     currentBlockReward = msg.blockReward ?? 1;
-    mineLoop(msg.target, msg.difficulty, msg.bodyLength ?? DEFAULT_BODY_LENGTH);
+    currentTarget = msg.target;
+    currentDifficulty = msg.difficulty;
+    currentLeadingTs = msg.leadingTs ?? 16;
+    mineLoop(currentLeadingTs, msg.bodyLength ?? DEFAULT_BODY_LENGTH);
   } else if (msg.type === "stop") {
     running = false;
   } else if (msg.type === "updateTarget") {
     currentTarget = msg.target;
     currentDifficulty = msg.difficulty;
+    currentLeadingTs = msg.leadingTs ?? currentLeadingTs;
     if (msg.blockReward !== undefined) currentBlockReward = msg.blockReward;
   }
 };

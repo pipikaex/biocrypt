@@ -1,10 +1,15 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { createWallet, viewWallet, ribosome, integrateCoinGene, isCoinProtein, type Protein } from "@biocrypt/core";
+import {
+  createWallet, viewWallet, ribosome, integrateCoinGene, isCoinProtein,
+  GENESIS_NETWORK_GENOME, GENESIS_NETWORK_ID,
+  applyMRNA,
+  type Protein,
+} from "@biocrypt/core";
 import { useStore, type LocalWallet, type MinedCoin } from "../store";
 import { DNAVisualization } from "../components/DNAVisualization";
 import { ProteinBar } from "../ProteinBar";
-import { api } from "../api";
+import { getSharedTracker } from "../trackerClient";
 
 export function Wallet() {
   const wallet = useStore((s) => s.wallet);
@@ -112,8 +117,9 @@ export function Wallet() {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const netInfo = await api.getDifficulty();
-      const w = createWallet(6000, netInfo.networkGenome, netInfo.networkId);
+      // v1 is decentralized: the network genome is a frozen protocol
+      // constant, no server call required to create a wallet.
+      const w = createWallet(6000, GENESIS_NETWORK_GENOME, GENESIS_NETWORK_ID);
       const local: LocalWallet = {
         id: w.publicKeyHash.slice(0, 16),
         dna: w.dna,
@@ -127,12 +133,80 @@ export function Wallet() {
       setWallet(local);
       setKeyCeremony(w.privateKeyDNA);
       setKeySaved(false);
-    } catch {
-      addToast("error", "Could not reach network to get genome. Check your connection.");
+    } catch (e: any) {
+      addToast("error", `Wallet creation failed: ${e?.message || e}`);
     } finally {
       setCreating(false);
     }
   };
+
+  /* ─── Tracker inbox polling ─────────────────────────────────────── */
+
+  useEffect(() => {
+    if (!wallet?.publicKeyHash) return;
+    const tracker = getSharedTracker();
+    let alive = true;
+
+    const off = tracker.on((msg) => {
+      if (!alive) return;
+      if (msg.type === "inbox") {
+        const envelopes = (msg as any).envelopes as Array<{ envelope: any }>;
+        if (!Array.isArray(envelopes) || envelopes.length === 0) return;
+        const s = useStore.getState();
+        const existing = new Set([
+          ...s.coins.map((c) => c.serialHash),
+          ...s.spentHashes,
+        ]);
+        let applied = 0;
+        let dna = wallet.dna;
+        for (const env of envelopes) {
+          const mrna = env?.envelope?.mrna;
+          if (!mrna || !mrna.coinSerialHash) continue;
+          if (existing.has(mrna.coinSerialHash)) continue;
+          try {
+            dna = applyMRNA(dna, mrna);
+            addCoin({
+              coinGene: mrna.coinGene,
+              serial: "",
+              serialHash: mrna.coinSerialHash,
+              nonce: mrna.miningProof?.nonce ?? 0,
+              hash: mrna.miningProof?.hash ?? "",
+              difficulty: mrna.miningProof?.difficulty ?? "",
+              minedAt: mrna.createdAt || Date.now(),
+              signed: true,
+              networkSignature: mrna.networkSignature,
+              networkId: mrna.networkId,
+              networkGenome: mrna.networkGenome,
+              rflpFingerprint: mrna.rflpFingerprint,
+            });
+            existing.add(mrna.coinSerialHash);
+            applied++;
+          } catch {
+            /* skip invalid */
+          }
+        }
+        if (applied > 0) {
+          useStore.setState({ wallet: { ...wallet, dna } });
+          addToast("success", `Received ${applied} coin${applied > 1 ? "s" : ""} from the tracker inbox.`);
+        }
+      }
+    });
+
+    const poll = () => {
+      if (!tracker.ready) return;
+      tracker.fetchInbox(wallet.publicKeyHash, true);
+    };
+
+    // wait for connection, then poll periodically
+    tracker.waitForReady(10000).then(poll).catch(() => {});
+    const timer = window.setInterval(poll, 20000);
+
+    return () => {
+      alive = false;
+      off();
+      window.clearInterval(timer);
+    };
+  }, [wallet?.publicKeyHash, wallet?.dna, addCoin, addToast]);
 
   const handleExport = () => {
     if (!wallet) return;

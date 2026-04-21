@@ -1,14 +1,41 @@
 {
   "name": "@biocrypt/gateway",
   "version": "0.1.0",
-  "description": "Embeddable payment gateway SDK for www.biocrypt.net",
+  "description": "Embeddable BioCrypt payment gateway SDK — drop-in widget and JS client for accepting ZBIO payments.",
+  "license": "MIT",
+  "author": "BioCrypt Contributors",
+  "homepage": "https://www.biocrypt.net",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zbiocrypt/biocrypt.git",
+    "directory": "packages/gateway"
+  },
+  "bugs": {
+    "url": "https://github.com/zbiocrypt/biocrypt/issues"
+  },
+  "keywords": [
+    "biocrypt",
+    "zbio",
+    "payments",
+    "gateway",
+    "sdk",
+    "widget"
+  ],
   "main": "dist/biocrypt-pay.js",
   "module": "dist/biocrypt-pay.esm.js",
   "types": "dist/biocrypt-pay.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "rollup -c rollup.config.mjs && cp dist/biocrypt-pay.js ../frontend/public/gateway/biocrypt-pay.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "rollup -c rollup.config.mjs"
   },
   "devDependencies": {
     "rollup": "^4.0.0",
