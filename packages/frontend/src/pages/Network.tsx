@@ -1,49 +1,44 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { fetchDerivedStats, type DerivedNetworkStats } from "../networkStats";
 import { DNAVisualization } from "../components/DNAVisualization";
 import { ProteinBar } from "../ProteinBar";
+import { trackerHttp, type TrackedMint } from "../trackerClient";
+import { ribosome } from "@biocrypt/core";
 
 type NetworkStats = DerivedNetworkStats;
+type TabId = "overview" | "coins" | "proteins" | "dna";
 
-interface NetworkDnaAnalysis {
-  dna: string;
-  dnaLength: number;
-  dnaHash: string;
-  totalProteins: number;
-  totalCoins: number;
-  totalStructural: number;
-  intergenicRegions: number;
-  publicKeyHash: string;
-  coins: {
-    index: number;
-    serial: string;
-    serialHash: string;
-    aminoAcids: string[];
-    length: number;
-  }[];
-  structuralProteins: {
-    index: number;
-    aminoAcids: string[];
-    length: number;
-    role: string;
-    charge: number;
-    polarity: number;
-    hydrophobicity: number;
-  }[];
+interface DecodedMint extends TrackedMint {
+  aminoAcids: string[];
+  geneLength: number;
+}
+
+function decodeMint(mint: TrackedMint): DecodedMint {
+  let aminoAcids: string[] = [];
+  try {
+    const rib = ribosome(mint.coin.coinGene);
+    aminoAcids = rib.proteins[0]?.aminoAcids ?? [];
+  } catch {
+    aminoAcids = [];
+  }
+  return {
+    ...mint,
+    aminoAcids,
+    geneLength: mint.coin.coinGene?.length ?? 0,
+  };
 }
 
 export function Network() {
   const [stats, setStats] = useState<NetworkStats | null>(null);
-  const [dnaData, setDnaData] = useState<NetworkDnaAnalysis | null>(null);
+  const [mints, setMints] = useState<DecodedMint[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dnaLoading, setDnaLoading] = useState(true);
+  const [mintsLoading, setMintsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"overview" | "coins" | "proteins" | "dna">("overview");
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [expandedCoin, setExpandedCoin] = useState<number | null>(null);
 
-  const load = () => {
-    setLoading(true);
+  const load = useCallback(() => {
     fetchDerivedStats()
       .then((s) => {
         if (s) { setStats(s); setError(""); }
@@ -51,35 +46,43 @@ export function Network() {
       })
       .catch((e) => setError(e?.message || "tracker error"))
       .finally(() => setLoading(false));
-  };
+
+    trackerHttp.latest()
+      .then((list) => {
+        setMints((list || []).map(decodeMint).reverse());
+      })
+      .catch(() => { /* leave previous mints in place */ })
+      .finally(() => setMintsLoading(false));
+  }, []);
 
   useEffect(() => {
-    setDnaData(null);
-    setDnaLoading(false);
     load();
-    const interval = setInterval(load, 15000);
+    const interval = setInterval(load, 10000);
     return () => { clearInterval(interval); };
-  }, []);
+  }, [load]);
+
+  const coinCount = stats?.totalCoins ?? mints?.length ?? 0;
 
   return (
     <div className="page">
       <h1>Network Explorer</h1>
-      <p className="text-muted mb-2" style={{ maxWidth: 720 }}>
-        The BioCrypt network is a decentralized mesh of trackers, miners, and wallets speaking
-        the ZBIO v1 protocol. No central signer, no blockchain &mdash; every coin is signed by the
-        wallet that mined it and pinned to the frozen genesis genome fingerprint.
+      <p className="text-muted mb-2" style={{ maxWidth: 760 }}>
+        BioCrypt v1 is a decentralized mesh of trackers, miners, and wallets speaking the ZBIO protocol.
+        No central signer, no blockchain &mdash; every coin is its own DNA gene, signed by the wallet that
+        mined it and pinned to the frozen v1 genesis fingerprint. This page shows live state straight from
+        the public tracker at <code className="mono">tracker.biocrypt.net</code>.
       </p>
 
       {loading && !stats && (
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
           <div className="spinner" style={{ margin: "0 auto 1rem" }} />
-          <p className="text-muted">Connecting to network...</p>
+          <p className="text-muted">Connecting to tracker...</p>
         </div>
       )}
 
       {error && !stats && (
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
-          <p className="text-muted mb-2">Could not connect to the network.</p>
+          <p className="text-muted mb-2">Could not reach the tracker.</p>
           <p className="text-xs text-muted">{error}</p>
           <button className="btn btn-secondary btn-sm mt-2" onClick={load}>Retry</button>
         </div>
@@ -87,46 +90,37 @@ export function Network() {
 
       {stats && (
         <>
-          {/* Hero Stats Bar */}
           <div className="net-hero">
             <HeroStat value={stats.totalCoins} label="Coins Minted" icon="coin" />
-            <HeroStat value={stats.peers} label="Connected Peers" icon="wallet" />
+            <HeroStat value={stats.totalSpent} label="Coins Spent" icon="mine" />
             <HeroStat value={stats.last24h} label="Minted (24h)" icon="mine" />
-            <HeroStat value={`${stats.dnaLeadingTs} Ts`} label="Difficulty" icon="difficulty" />
-            <HeroStat value={stats.currentReward} label="Block Reward" icon="shield" />
-            <HeroStat value={stats.halvingEraName} label={`Era ${stats.halvingEra + 1}`} icon="shield" />
-            <HeroStat value={`${stats.telomerePercent.toFixed(1)}%`} label="Telomere" icon="shield" />
+            <HeroStat value={`${stats.dnaLeadingTs} Ts`} label="PoW Difficulty" icon="difficulty" />
+            <HeroStat value={stats.currentReward} label="Reward / coin" icon="shield" />
+            <HeroStat value={stats.peers} label="Peer Trackers" icon="wallet" />
+            <HeroStat value={`${stats.telomerePercent.toFixed(1)}%`} label="Supply Remaining" icon="shield" />
           </div>
 
-          {/* Tab Navigation */}
           <div className="net-tabs">
             <button className={`net-tab ${activeTab === "overview" ? "active" : ""}`} onClick={() => setActiveTab("overview")}>
               Overview
             </button>
             <button className={`net-tab ${activeTab === "coins" ? "active" : ""}`} onClick={() => setActiveTab("coins")}>
-              Coins ({dnaData?.totalCoins ?? "..."})
+              Coins ({coinCount})
             </button>
             <button className={`net-tab ${activeTab === "proteins" ? "active" : ""}`} onClick={() => setActiveTab("proteins")}>
-              Proteins ({dnaData?.totalProteins ?? "..."})
+              Proteins ({mints?.length ?? "..."})
             </button>
             <button className={`net-tab ${activeTab === "dna" ? "active" : ""}`} onClick={() => setActiveTab("dna")}>
               Raw DNA
             </button>
           </div>
 
-          {/* Tab Content */}
-          {activeTab === "overview" && (
-            <OverviewTab stats={stats} dnaData={dnaData} dnaLoading={dnaLoading} />
-          )}
+          {activeTab === "overview" && <OverviewTab stats={stats} mints={mints} />}
           {activeTab === "coins" && (
-            <CoinsTab dnaData={dnaData} dnaLoading={dnaLoading} expandedCoin={expandedCoin} setExpandedCoin={setExpandedCoin} />
+            <CoinsTab mints={mints} mintsLoading={mintsLoading} expandedCoin={expandedCoin} setExpandedCoin={setExpandedCoin} />
           )}
-          {activeTab === "proteins" && (
-            <ProteinsTab dnaData={dnaData} dnaLoading={dnaLoading} />
-          )}
-          {activeTab === "dna" && (
-            <DnaTab dnaData={dnaData} dnaLoading={dnaLoading} />
-          )}
+          {activeTab === "proteins" && <ProteinsTab mints={mints} mintsLoading={mintsLoading} />}
+          {activeTab === "dna" && <DnaTab mints={mints} mintsLoading={mintsLoading} />}
         </>
       )}
 
@@ -154,41 +148,39 @@ function HeroStat({ value, label, icon }: { value: string | number; label: strin
   );
 }
 
-function OverviewTab({ stats, dnaData, dnaLoading }: { stats: NetworkStats; dnaData: NetworkDnaAnalysis | null; dnaLoading: boolean }) {
+function OverviewTab({ stats, mints }: { stats: NetworkStats; mints: DecodedMint[] | null }) {
+  const latestMint = mints && mints.length > 0 ? mints[0] : null;
+
   return (
     <div className="net-content">
-      {/* Explainer cards */}
       <div className="explainer-row">
         <div className="explainer-card">
           <div className="explainer-icon">{"\u{1F9EC}"}</div>
-          <h3>What is Network DNA?</h3>
+          <h3>Each coin is a gene</h3>
           <p>
-            The network has its own DNA strand, just like a living organism. Every coin mined on the
-            network gets <strong>mutated into this DNA</strong> as a new protein. The DNA grows as the
-            network grows.
-          </p>
-        </div>
-        <div className="explainer-card">
-          <div className="explainer-icon">{"\u{1FA99}"}</div>
-          <h3>What are Coins?</h3>
-          <p>
-            Each coin is a <strong>protein</strong> encoded in DNA. Miners use proof-of-work to create
-            coin genes, and the network signs them by mutating its DNA. A coin's identity is its amino
-            acid sequence &mdash; impossible to forge.
+            There is no single network DNA. Every coin carries its own ~200-base DNA strand (<code>coinGene</code>)
+            produced by DNA256 proof-of-work. The gene is the coin&apos;s identity.
           </p>
         </div>
         <div className="explainer-card">
           <div className="explainer-icon">{"\u{1F52C}"}</div>
-          <h3>Protein Synthesis</h3>
+          <h3>Ribosome translation</h3>
           <p>
-            DNA is read like a biological ribosome &mdash; scanning for <code>ATG</code> (start) codons,
-            translating 3-letter codes into amino acids, and stopping at stop codons. The result is a set
-            of proteins that hold the network's value.
+            Anyone can translate the <code>coinGene</code> with the same ribosome you&apos;d use on real mRNA &mdash;
+            finding <code>ATG</code>, reading codons, stopping at <code>TAA</code>/<code>TAG</code>/<code>TGA</code>.
+            The resulting amino-acid sequence is the coin&apos;s public serial.
+          </p>
+        </div>
+        <div className="explainer-card">
+          <div className="explainer-icon">{"\u{1F58A}\uFE0F"}</div>
+          <h3>Miner-signed, genesis-locked</h3>
+          <p>
+            Every coin carries an Ed25519 signature from the miner wallet that minted it, plus the frozen v1
+            genesis fingerprint. Offline verifiers can prove authenticity with <em>no</em> network access.
           </p>
         </div>
       </div>
 
-      {/* Network Identity */}
       <div className="card-grid" style={{ marginTop: "1.5rem" }}>
         <div className="card">
           <h2>Network Identity</h2>
@@ -197,7 +189,7 @@ function OverviewTab({ stats, dnaData, dnaLoading }: { stats: NetworkStats; dnaD
             <div className="mono text-sm">{stats.networkId}</div>
           </div>
           <div className="field">
-            <label className="label">Genome Fingerprint</label>
+            <label className="label">Genesis Genome Fingerprint</label>
             <div className="mono text-xs truncate">{stats.genomeFingerprint}</div>
           </div>
           <div className="field">
@@ -205,197 +197,121 @@ function OverviewTab({ stats, dnaData, dnaLoading }: { stats: NetworkStats; dnaD
             <div className="mono text-sm">v{stats.protocolVersion}</div>
           </div>
           <div className="field">
-            <label className="label">Tracker</label>
+            <label className="label">Tracker ID</label>
             <div className="mono text-xs truncate">{stats.trackerId}</div>
           </div>
-          {dnaData && (
-            <>
-              <div className="field">
-                <label className="label">Public Key Hash</label>
-                <div className="mono text-xs truncate">{dnaData.publicKeyHash}</div>
-              </div>
-              <div className="field">
-                <label className="label">Intergenic Regions</label>
-                <div className="mono text-sm">{dnaData.intergenicRegions}</div>
-              </div>
-            </>
-          )}
         </div>
 
         <div className="card">
-          <h2>Mining & Difficulty</h2>
+          <h2>Mining &amp; Economics</h2>
           <div className="field">
-            <label className="label">DNA256 Difficulty</label>
+            <label className="label">DNA256 PoW Target</label>
             <div className="mono text-sm">{stats.dnaLeadingTs} leading <code>T</code> bases (≈ {stats.difficulty.length} hex zeros)</div>
           </div>
           <div className="field">
-            <label className="label">Block Reward</label>
-            <div className="mono text-sm">{stats.currentReward} ZBIO per mint</div>
+            <label className="label">Current Reward</label>
+            <div className="mono text-sm">{stats.currentReward} ZBIO per coin</div>
           </div>
           <div className="field">
-            <label className="label">Coins Until Halving</label>
+            <label className="label">Coins Until Next Halving</label>
             <div className="mono text-sm">{stats.coinsUntilHalving.toLocaleString()}</div>
           </div>
           <div className="field">
-            <label className="label">Connected Peers</label>
+            <label className="label">Circulating / Max</label>
+            <div className="mono text-sm">{stats.circulatingSupply.toLocaleString()} / {stats.maxSupply.toLocaleString()}</div>
+          </div>
+          <div className="field">
+            <label className="label">Peer Trackers</label>
             <div className="mono text-sm">{stats.peers}</div>
           </div>
         </div>
       </div>
 
-      {/* Quick DNA Preview */}
-      {dnaData && (
+      {latestMint && (
         <div className="card" style={{ marginTop: "1.5rem" }}>
-          <h2>DNA Preview</h2>
+          <h2>Latest Coin</h2>
           <p className="text-muted text-sm mb-1">
-            First 800 bases of the network's {dnaData.dnaLength.toLocaleString()}-base DNA strand.
-            Each color represents a nucleotide: <span className="base-A">A</span> <span className="base-T">T</span> <span className="base-G">G</span> <span className="base-C">C</span>
+            Coin <strong>#{latestMint.mintSeq}</strong> &mdash; {latestMint.geneLength} bases,
+            {" "}{latestMint.coin.miningProof.leadingTs} leading Ts,
+            {" "}received {formatRelative(latestMint.receivedAt)}.
           </p>
-          <DNAVisualization dna={dnaData.dna} maxLength={800} />
+          <DNAVisualization dna={latestMint.coin.coinGene} maxLength={240} />
+          {latestMint.aminoAcids.length > 0 && (
+            <div style={{ marginTop: "1rem" }}>
+              <label className="label">Translated protein</label>
+              <ProteinBar aminoAcids={latestMint.aminoAcids} height={12} />
+            </div>
+          )}
         </div>
       )}
 
-      {/* Network Health */}
       <div className="card" style={{ marginTop: "1.5rem" }}>
         <h2>Network Health</h2>
         <div className="health-grid">
           <HealthIndicator
-            label="Network Status"
-            status={stats.peers >= 0 ? "healthy" : "degraded"}
-            detail={stats.peers >= 0 ? "Online" : "Offline"}
+            label="Tracker Reachable"
+            status={stats ? "healthy" : "degraded"}
+            detail={stats ? "Online" : "Offline"}
           />
           <HealthIndicator
             label="Double-Spend Protection"
-            status={stats.nullifiers >= 0 ? "healthy" : "warning"}
+            status="healthy"
             detail={`${stats.nullifiers} nullifiers tracked`}
           />
           <HealthIndicator
-            label="Difficulty"
-            status={stats.difficulty.length >= 3 ? "healthy" : "warning"}
-            detail={`${stats.difficulty.length} leading zeros`}
+            label="PoW Floor"
+            status={stats.dnaLeadingTs >= 18 ? "healthy" : "warning"}
+            detail={`${stats.dnaLeadingTs} leading Ts`}
           />
           <HealthIndicator
             label="Coins Minted"
             status={stats.totalCoins > 0 ? "healthy" : "neutral"}
-            detail={`${stats.totalCoins} total`}
+            detail={`${stats.totalCoins.toLocaleString()} total`}
           />
         </div>
       </div>
-
-      {dnaLoading && !dnaData && (
-        <div className="card" style={{ textAlign: "center", padding: "2rem", marginTop: "1.5rem" }}>
-          <div className="spinner" style={{ margin: "0 auto 0.75rem" }} />
-          <p className="text-muted text-sm">Synthesizing proteins from network DNA...</p>
-        </div>
-      )}
-
-      {/* Synthesis Summary */}
-      {dnaData && <SynthesisSummary dnaData={dnaData} />}
     </div>
   );
 }
 
-function SynthesisSummary({ dnaData }: { dnaData: NetworkDnaAnalysis }) {
-  const roleDistribution = useMemo(() => {
-    const roles: Record<string, number> = {};
-    for (const p of dnaData.structuralProteins) {
-      roles[p.role] = (roles[p.role] || 0) + 1;
-    }
-    return Object.entries(roles).sort((a, b) => b[1] - a[1]);
-  }, [dnaData]);
-
-  return (
-    <div className="card" style={{ marginTop: "1.5rem" }}>
-      <h2>Protein Synthesis Summary</h2>
-      <p className="text-muted text-sm mb-2">
-        The ribosome scanned the network DNA and produced {dnaData.totalProteins} proteins:
-        {" "}<strong>{dnaData.totalCoins} coins</strong> and <strong>{dnaData.totalStructural} structural proteins</strong>.
-      </p>
-      <div className="synthesis-grid">
-        <div className="synth-card synth-coins">
-          <div className="synth-number">{dnaData.totalCoins}</div>
-          <div className="synth-label">Coin Proteins</div>
-          <div className="synth-desc">
-            Proteins with the <code>Met-Gly-Trp-Cys</code> header.
-            Each one is a mined and signed BioCrypt coin.
-          </div>
-        </div>
-        <div className="synth-card synth-structural">
-          <div className="synth-number">{dnaData.totalStructural}</div>
-          <div className="synth-label">Structural Proteins</div>
-          <div className="synth-desc">
-            Non-coin proteins that form the network's backbone and identity.
-          </div>
-        </div>
-        <div className="synth-card synth-regions">
-          <div className="synth-number">{dnaData.intergenicRegions}</div>
-          <div className="synth-label">Intergenic Regions</div>
-          <div className="synth-desc">
-            DNA between proteins that determines how they fold and connect.
-          </div>
-        </div>
-      </div>
-
-      {roleDistribution.length > 0 && (
-        <div style={{ marginTop: "1.5rem" }}>
-          <h3 className="text-sm" style={{ marginBottom: "0.75rem" }}>Structural Protein Roles</h3>
-          <div className="role-bars">
-            {roleDistribution.map(([role, count]) => {
-              const pct = Math.round((count / dnaData.totalStructural) * 100);
-              return (
-                <div key={role} className="role-row">
-                  <span className="role-name">{role}</span>
-                  <div className="role-bar-track">
-                    <div className="role-bar-fill" style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className="role-count">{count} ({pct}%)</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CoinsTab({ dnaData, dnaLoading, expandedCoin, setExpandedCoin }: {
-  dnaData: NetworkDnaAnalysis | null;
-  dnaLoading: boolean;
+function CoinsTab({ mints, mintsLoading, expandedCoin, setExpandedCoin }: {
+  mints: DecodedMint[] | null;
+  mintsLoading: boolean;
   expandedCoin: number | null;
   setExpandedCoin: (i: number | null) => void;
 }) {
   const [search, setSearch] = useState("");
 
-  const filteredCoins = useMemo(() => {
-    if (!dnaData) return [];
-    if (!search.trim()) return dnaData.coins;
+  const filteredMints = useMemo(() => {
+    if (!mints) return [];
+    if (!search.trim()) return mints;
     const q = search.toLowerCase();
-    return dnaData.coins.filter((c) =>
-      c.serialHash.toLowerCase().includes(q) ||
-      c.serial.toLowerCase().includes(q) ||
-      `#${dnaData.coins.indexOf(c) + 1}`.includes(q)
+    return mints.filter((m) =>
+      m.coin.serialHash.toLowerCase().includes(q) ||
+      m.coin.serial.toLowerCase().includes(q) ||
+      m.coin.minerPubKeyDNA.toLowerCase().includes(q) ||
+      `#${m.mintSeq}`.includes(q)
     );
-  }, [dnaData, search]);
+  }, [mints, search]);
 
-  if (dnaLoading && !dnaData) {
+  if (mintsLoading && !mints) {
     return (
       <div className="net-content">
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
           <div className="spinner" style={{ margin: "0 auto 1rem" }} />
-          <p className="text-muted">Scanning DNA for coins...</p>
+          <p className="text-muted">Fetching latest mints from tracker...</p>
         </div>
       </div>
     );
   }
 
-  if (!dnaData || dnaData.coins.length === 0) {
+  if (!mints || mints.length === 0) {
     return (
       <div className="net-content">
         <div className="empty-state">
           <div className="empty-icon">{"\u{1FA99}"}</div>
-          <div className="empty-title">No coins in network DNA</div>
-          <div className="empty-desc">No coins have been mined yet. Be the first miner to create a coin!</div>
+          <div className="empty-title">No coins minted yet</div>
+          <div className="empty-desc">The network is at genesis. Be the first miner to mint a v1 coin.</div>
           <Link to="/mine" className="btn btn-primary">Start Mining</Link>
         </div>
       </div>
@@ -406,32 +322,32 @@ function CoinsTab({ dnaData, dnaLoading, expandedCoin, setExpandedCoin }: {
     <div className="net-content">
       <div className="flex justify-between items-center flex-wrap gap-1 mb-2">
         <p className="text-muted text-sm" style={{ margin: 0 }}>
-          {dnaData.coins.length} coins encoded in network DNA.
-          Each coin is a protein with the <code>Met-Gly-Trp-Cys</code> header.
+          Showing the <strong>{mints.length} most recent mints</strong> from the tracker&apos;s rolling window.
+          Click any row to inspect the full coin.
         </p>
         <input
           className="input input-mono"
           style={{ maxWidth: 280, padding: "0.45rem 0.75rem", fontSize: "0.8rem" }}
-          placeholder="Search by hash or #number..."
+          placeholder="Search by serial, hash, miner..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
       {search && (
-        <p className="text-xs text-muted mb-1">{filteredCoins.length} of {dnaData.coins.length} coins match</p>
+        <p className="text-xs text-muted mb-1">{filteredMints.length} of {mints.length} mints match</p>
       )}
       <div className="coin-list">
-        {filteredCoins.map((coin, i) => {
-          const realIndex = dnaData.coins.indexOf(coin);
-          const isExpanded = expandedCoin === realIndex;
+        {filteredMints.map((m) => {
+          const isExpanded = expandedCoin === m.mintSeq;
           return (
-            <div key={coin.serialHash} className={`coin-card ${isExpanded ? "expanded" : ""}`}>
-              <div className="coin-header" onClick={() => setExpandedCoin(isExpanded ? null : realIndex)}>
-                <div className="coin-index">#{i + 1}</div>
+            <div key={m.coin.serialHash} className={`coin-card ${isExpanded ? "expanded" : ""}`}>
+              <div className="coin-header" onClick={() => setExpandedCoin(isExpanded ? null : m.mintSeq)}>
+                <div className="coin-index">#{m.mintSeq}</div>
                 <div className="coin-info">
-                  <ProteinBar aminoAcids={coin.aminoAcids} height={10} maxWidth={160} />
+                  <div className="mono text-xs truncate" style={{ maxWidth: 320 }}>{m.coin.serialHash}</div>
                   <div className="coin-meta text-xs text-muted mt-05">
-                    {coin.length} acids &middot; #{coin.index}
+                    {m.aminoAcids.length} acids &middot; {m.coin.miningProof.leadingTs} leading Ts &middot;
+                    {" "}source: {m.source || "miner"} &middot; {formatRelative(m.receivedAt)}
                   </div>
                 </div>
                 <div className="coin-badge">ZBIO</div>
@@ -440,12 +356,30 @@ function CoinsTab({ dnaData, dnaLoading, expandedCoin, setExpandedCoin }: {
               {isExpanded && (
                 <div className="coin-details">
                   <div className="field">
-                    <label className="label">Full Serial Hash</label>
-                    <div className="mono text-xs" style={{ wordBreak: "break-all" }}>{coin.serialHash}</div>
+                    <label className="label">Serial Hash</label>
+                    <div className="mono text-xs" style={{ wordBreak: "break-all" }}>{m.coin.serialHash}</div>
                   </div>
                   <div className="field">
-                    <label className="label">Protein Signature</label>
-                    <ProteinBar aminoAcids={coin.aminoAcids} height={12} />
+                    <label className="label">Miner Public Key (DNA)</label>
+                    <div className="mono text-xs" style={{ wordBreak: "break-all" }}>{m.coin.minerPubKeyDNA}</div>
+                  </div>
+                  <div className="field">
+                    <label className="label">Coin Gene ({m.geneLength} bases)</label>
+                    <DNAVisualization dna={m.coin.coinGene} maxLength={240} />
+                  </div>
+                  {m.aminoAcids.length > 0 && (
+                    <div className="field">
+                      <label className="label">Translated Protein ({m.aminoAcids.length} acids)</label>
+                      <ProteinBar aminoAcids={m.aminoAcids} height={12} />
+                    </div>
+                  )}
+                  <div className="field">
+                    <label className="label">Mining Proof</label>
+                    <div className="mono text-xs">
+                      nonce: {m.coin.miningProof.nonce.toLocaleString()} &middot;
+                      {" "}leadingTs: {m.coin.miningProof.leadingTs} &middot;
+                      {" "}minedAt: {new Date(m.coin.minedAt).toISOString()}
+                    </div>
                   </div>
                 </div>
               )}
@@ -457,8 +391,8 @@ function CoinsTab({ dnaData, dnaLoading, expandedCoin, setExpandedCoin }: {
   );
 }
 
-function ProteinsTab({ dnaData, dnaLoading }: { dnaData: NetworkDnaAnalysis | null; dnaLoading: boolean }) {
-  if (dnaLoading && !dnaData) {
+function ProteinsTab({ mints, mintsLoading }: { mints: DecodedMint[] | null; mintsLoading: boolean }) {
+  if (mintsLoading && !mints) {
     return (
       <div className="net-content">
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
@@ -469,45 +403,46 @@ function ProteinsTab({ dnaData, dnaLoading }: { dnaData: NetworkDnaAnalysis | nu
     );
   }
 
-  if (!dnaData) return null;
-
-  const allProteins = [
-    ...dnaData.coins.map((c) => ({ ...c, type: "coin" as const, role: "coin", charge: 0, polarity: 0, hydrophobicity: 0 })),
-    ...dnaData.structuralProteins.map((p) => ({ ...p, type: "structural" as const, serial: "", serialHash: "" })),
-  ].sort((a, b) => a.index - b.index);
+  if (!mints || mints.length === 0) {
+    return (
+      <div className="net-content">
+        <div className="empty-state">
+          <div className="empty-icon">{"\u{1F52C}"}</div>
+          <div className="empty-title">No proteins yet</div>
+          <div className="empty-desc">Once coins are minted, the ribosome can translate each coin gene into its protein serial.</div>
+          <Link to="/mine" className="btn btn-primary">Start Mining</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="net-content">
       <p className="text-muted text-sm mb-2">
-        All {dnaData.totalProteins} proteins translated from the network DNA by the ribosome.
-        Coin proteins are marked in green, structural proteins in blue.
+        Every coin is its own protein. The ribosome reads each <code>coinGene</code> left-to-right, finds
+        <code>ATG</code>, translates 3-base codons into amino acids, and stops at the first stop codon.
+        The result &mdash; shown below &mdash; is the coin&apos;s public serial.
       </p>
       <div className="protein-table-wrap">
         <table className="protein-table">
           <thead>
             <tr>
               <th>#</th>
-              <th>Type</th>
-              <th>Length</th>
-              <th>Role</th>
-              <th>Charge</th>
-              <th>Polarity</th>
-              <th>Sequence Preview</th>
+              <th>Acids</th>
+              <th>Leading Ts</th>
+              <th>Gene Len</th>
+              <th>Sequence</th>
             </tr>
           </thead>
           <tbody>
-            {allProteins.map((p) => (
-              <tr key={p.index} className={p.type === "coin" ? "row-coin" : "row-structural"}>
-                <td className="mono">{p.index}</td>
-                <td>
-                  <span className={`type-badge ${p.type}`}>{p.type === "coin" ? "Coin" : "Structural"}</span>
-                </td>
-                <td className="mono">{p.length}</td>
-                <td className="text-muted">{p.role}</td>
-                <td className="mono">{p.charge > 0 ? `+${p.charge}` : p.charge}</td>
-                <td className="mono">{typeof p.polarity === "number" ? `${Math.round(p.polarity * 100)}%` : "-"}</td>
-                <td style={{ maxWidth: 220 }}>
-                  <ProteinBar aminoAcids={p.aminoAcids} height={10} maxWidth={220} />
+            {mints.map((m) => (
+              <tr key={m.coin.serialHash} className="row-coin">
+                <td className="mono">{m.mintSeq}</td>
+                <td className="mono">{m.aminoAcids.length}</td>
+                <td className="mono">{m.coin.miningProof.leadingTs}</td>
+                <td className="mono">{m.geneLength}</td>
+                <td style={{ maxWidth: 360 }}>
+                  <ProteinBar aminoAcids={m.aminoAcids} height={10} maxWidth={360} />
                 </td>
               </tr>
             ))}
@@ -518,47 +453,70 @@ function ProteinsTab({ dnaData, dnaLoading }: { dnaData: NetworkDnaAnalysis | nu
   );
 }
 
-function DnaTab({ dnaData, dnaLoading }: { dnaData: NetworkDnaAnalysis | null; dnaLoading: boolean }) {
-  const [showLength, setShowLength] = useState(2000);
+function DnaTab({ mints, mintsLoading }: { mints: DecodedMint[] | null; mintsLoading: boolean }) {
+  const [selectedSeq, setSelectedSeq] = useState<number | null>(null);
 
-  if (dnaLoading && !dnaData) {
+  if (mintsLoading && !mints) {
     return (
       <div className="net-content">
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
           <div className="spinner" style={{ margin: "0 auto 1rem" }} />
-          <p className="text-muted">Loading DNA strand...</p>
+          <p className="text-muted">Loading coin genes...</p>
         </div>
       </div>
     );
   }
 
-  if (!dnaData) return null;
+  if (!mints || mints.length === 0) {
+    return (
+      <div className="net-content">
+        <div className="empty-state">
+          <div className="empty-icon">{"\u{1F9EC}"}</div>
+          <div className="empty-title">No coin genes to show</div>
+          <div className="empty-desc">Each minted coin contributes its own DNA strand. None have been mined yet.</div>
+          <Link to="/mine" className="btn btn-primary">Start Mining</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const current = selectedSeq !== null ? mints.find((m) => m.mintSeq === selectedSeq) : mints[0];
 
   return (
     <div className="net-content">
       <div className="card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
           <div>
-            <h2>Network DNA Strand</h2>
+            <h2>Coin Gene Inspector</h2>
             <p className="text-muted text-sm">
-              {dnaData.dnaLength.toLocaleString()} bases total &middot; Showing first {Math.min(showLength, dnaData.dnaLength).toLocaleString()}
+              In v1 there is no global network DNA. Each coin is its own mini-strand, typically {" "}
+              {mints[0]?.geneLength ?? "~200"} bases. Select a mint to inspect its raw gene.
             </p>
           </div>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            {[2000, 5000, 10000].map((n) => (
-              <button
-                key={n}
-                className={`btn btn-sm ${showLength === n ? "btn-primary" : "btn-secondary"}`}
-                onClick={() => setShowLength(n)}
-              >
-                {(n / 1000).toFixed(0)}k
-              </button>
+          <select
+            className="input input-mono"
+            style={{ padding: "0.45rem 0.75rem", fontSize: "0.8rem", maxWidth: 220 }}
+            value={current?.mintSeq ?? ""}
+            onChange={(e) => setSelectedSeq(Number(e.target.value))}
+          >
+            {mints.map((m) => (
+              <option key={m.coin.serialHash} value={m.mintSeq}>
+                #{m.mintSeq} &mdash; {m.coin.miningProof.leadingTs} Ts
+              </option>
             ))}
+          </select>
+        </div>
+        {current && (
+          <div style={{ marginTop: "1rem" }}>
+            <DNAVisualization dna={current.coin.coinGene} maxLength={current.geneLength} />
+            <div className="field" style={{ marginTop: "1rem" }}>
+              <label className="label">Raw gene</label>
+              <div className="mono text-xs" style={{ wordBreak: "break-all", background: "var(--bg-surface)", padding: "0.75rem", borderRadius: "var(--radius)" }}>
+                {current.coin.coinGene}
+              </div>
+            </div>
           </div>
-        </div>
-        <div style={{ marginTop: "1rem" }}>
-          <DNAVisualization dna={dnaData.dna} maxLength={showLength} />
-        </div>
+        )}
       </div>
 
       <div className="card" style={{ marginTop: "1.5rem" }}>
@@ -575,7 +533,7 @@ function DnaTab({ dnaData, dnaLoading }: { dnaData: NetworkDnaAnalysis | null; d
             <span className="base-T" style={{ fontSize: "1.5rem", fontWeight: 700 }}>T</span>
             <div>
               <strong>Thymine</strong>
-              <p className="text-muted text-xs">Pairs with Adenine. Provides structural stability.</p>
+              <p className="text-muted text-xs">Pairs with Adenine. The leading-T run is what proof-of-work targets.</p>
             </div>
           </div>
           <div className="guide-item">
@@ -595,15 +553,17 @@ function DnaTab({ dnaData, dnaLoading }: { dnaData: NetworkDnaAnalysis | null; d
         </div>
 
         <div style={{ marginTop: "1.5rem" }}>
-          <h3 className="text-sm mb-1">How Protein Synthesis Works</h3>
+          <h3 className="text-sm mb-1">How a coin gene is verified</h3>
           <ol className="text-sm text-muted" style={{ paddingLeft: "1.2rem", lineHeight: 2 }}>
-            <li>The ribosome scans the DNA from left to right, reading 3 bases (a codon) at a time</li>
-            <li>When it finds <code>ATG</code> (start codon), it begins building a protein</li>
-            <li>Each codon maps to an amino acid using the <strong>human codon table</strong></li>
-            <li>A stop codon (<code>TAA</code>, <code>TAG</code>, or <code>TGA</code>) ends the protein</li>
-            <li>Coins have a special header: <code className="text-success">Met-Gly-Trp-Cys</code></li>
-            <li>The DNA between proteins (intergenic regions) determines how they fold together</li>
+            <li>Recompute <code>DNA256(coinGene, nonce)</code> &mdash; the result must begin with at least {mints[0]?.coin.miningProof.leadingTs ?? 18} leading <code>T</code> bases.</li>
+            <li>Run the ribosome on <code>coinGene</code>. The amino-acid sequence after the header must equal the coin&apos;s declared <code>serial</code>.</li>
+            <li>Check that <code>sha256(serial) === serialHash</code>.</li>
+            <li>Verify the miner&apos;s Ed25519 signature against the canonical message <code>serialHash | genomeFingerprint | minerPubKeyDNA</code>.</li>
+            <li>Check the genome fingerprint equals the frozen v1 constant.</li>
           </ol>
+          <p className="text-xs text-muted" style={{ marginTop: "0.5rem" }}>
+            All five steps run <strong>without any network access</strong> &mdash; verification is fully offline.
+          </p>
         </div>
       </div>
     </div>
@@ -626,22 +586,26 @@ function HealthIndicator({ label, status, detail }: { label: string; status: "he
 
 /* ─── Helpers ─── */
 
+function formatRelative(ts: number | undefined): string {
+  if (!ts) return "unknown";
+  const delta = Date.now() - ts;
+  if (delta < 0) return "just now";
+  if (delta < 60_000) return `${Math.floor(delta / 1000)}s ago`;
+  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`;
+  if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)}h ago`;
+  return `${Math.floor(delta / 86_400_000)}d ago`;
+}
 
 /* ─── Styles ─── */
 
 const networkStyles = `
-/* Hero Stats */
-.net-hero {
-  display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;
-}
+.net-hero { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
 .hero-stat {
   flex: 1; min-width: 140px; background: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 1.25rem 1rem; text-align: center;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.hero-stat:hover {
-  border-color: var(--primary); box-shadow: 0 0 20px var(--primary-glow);
-}
+.hero-stat:hover { border-color: var(--primary); box-shadow: 0 0 20px var(--primary-glow); }
 .hero-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
 .hero-value {
   font-family: var(--mono); font-size: 1.5rem; font-weight: 700;
@@ -652,7 +616,6 @@ const networkStyles = `
   text-transform: uppercase; letter-spacing: 0.05em;
 }
 
-/* Tabs */
 .net-tabs {
   display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem;
 }
@@ -662,9 +625,7 @@ const networkStyles = `
   transition: color 0.2s;
 }
 .net-tab:hover { color: var(--text); }
-.net-tab.active {
-  color: var(--primary); font-weight: 600;
-}
+.net-tab.active { color: var(--primary); font-weight: 600; }
 .net-tab.active::after {
   content: ""; position: absolute; bottom: -1px; left: 0; right: 0;
   height: 2px; background: var(--primary); border-radius: 1px 1px 0 0;
@@ -673,10 +634,8 @@ const networkStyles = `
 .net-content { animation: fadeIn 0.2s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
-/* Explainer Cards */
 .explainer-row {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;
 }
 .explainer-card {
   background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
@@ -691,56 +650,6 @@ const networkStyles = `
   border-radius: 3px; font-size: 0.8rem;
 }
 
-/* Epoch bar */
-.epoch-bar {
-  position: relative; height: 28px; background: var(--bg-surface);
-  border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
-}
-.epoch-fill {
-  height: 100%; background: linear-gradient(90deg, var(--primary-dim), var(--primary));
-  border-radius: 14px; transition: width 0.6s ease;
-}
-.epoch-text {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  font-family: var(--mono); font-size: 0.75rem; color: var(--text);
-  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-}
-
-/* Synthesis Summary */
-.synthesis-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;
-}
-.synth-card {
-  border-radius: var(--radius); padding: 1.25rem; text-align: center;
-}
-.synth-coins { background: rgba(0,229,153,0.08); border: 1px solid rgba(0,229,153,0.2); }
-.synth-structural { background: rgba(14,165,233,0.08); border: 1px solid rgba(14,165,233,0.2); }
-.synth-regions { background: rgba(210,153,34,0.08); border: 1px solid rgba(210,153,34,0.2); }
-.synth-number { font-family: var(--mono); font-size: 2rem; font-weight: 700; }
-.synth-coins .synth-number { color: var(--primary); }
-.synth-structural .synth-number { color: var(--secondary); }
-.synth-regions .synth-number { color: var(--warning); }
-.synth-label { font-weight: 600; font-size: 0.85rem; margin: 0.25rem 0 0.5rem; }
-.synth-desc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; }
-.synth-desc code {
-  background: rgba(0,229,153,0.1); color: var(--primary); padding: 0.1em 0.3em;
-  border-radius: 3px; font-size: 0.7rem;
-}
-
-/* Role distribution bars */
-.role-bars { display: flex; flex-direction: column; gap: 0.5rem; }
-.role-row { display: flex; align-items: center; gap: 0.75rem; }
-.role-name { width: 100px; font-size: 0.8rem; color: var(--text); text-transform: capitalize; }
-.role-bar-track {
-  flex: 1; height: 8px; background: var(--bg-surface); border-radius: 4px; overflow: hidden;
-}
-.role-bar-fill {
-  height: 100%; background: linear-gradient(90deg, var(--secondary), var(--primary));
-  border-radius: 4px; transition: width 0.4s ease;
-}
-.role-count { font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); width: 80px; text-align: right; }
-
-/* Coins Tab */
 .coin-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .coin-card {
   background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
@@ -757,66 +666,35 @@ const networkStyles = `
   min-width: 36px;
 }
 .coin-info { flex: 1; min-width: 0; }
-.coin-serial { color: var(--text); }
 .coin-meta { margin-top: 0.15rem; }
 .coin-badge {
   background: rgba(0,229,153,0.12); color: var(--primary); font-family: var(--mono);
   font-size: 0.7rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 12px;
   letter-spacing: 0.05em;
 }
-.coin-chevron {
-  color: var(--text-muted); font-size: 0.7rem; transition: transform 0.2s;
-}
+.coin-chevron { color: var(--text-muted); font-size: 0.7rem; transition: transform 0.2s; }
 .coin-chevron.open { transform: rotate(90deg); }
 .coin-details {
   padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border);
   animation: fadeIn 0.15s ease;
 }
-.amino-chain {
-  display: flex; flex-wrap: wrap; gap: 3px; margin-top: 0.5rem;
-}
-.amino {
-  font-family: var(--mono); font-size: 0.65rem; padding: 0.2rem 0.4rem;
-  background: var(--bg-surface); border: 1px solid var(--border); border-radius: 4px;
-  color: var(--text-muted);
-}
-.amino-header {
-  background: rgba(0,229,153,0.15); border-color: rgba(0,229,153,0.3); color: var(--primary);
-  font-weight: 600;
-}
 
-/* Proteins Table */
 .protein-table-wrap { overflow-x: auto; }
-.protein-table {
-  width: 100%; border-collapse: collapse; font-size: 0.85rem;
-}
+.protein-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .protein-table th {
   text-align: left; padding: 0.75rem 1rem; border-bottom: 2px solid var(--border);
   color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
 }
-.protein-table td {
-  padding: 0.6rem 1rem; border-bottom: 1px solid var(--border);
-}
+.protein-table td { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); }
 .protein-table tbody tr:hover { background: var(--bg-card-hover); }
 .row-coin td:first-child { border-left: 3px solid var(--primary); }
-.row-structural td:first-child { border-left: 3px solid var(--secondary); }
-.type-badge {
-  font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 8px;
-  text-transform: uppercase; letter-spacing: 0.03em;
-}
-.type-badge.coin { background: rgba(0,229,153,0.12); color: var(--primary); }
-.type-badge.structural { background: rgba(14,165,233,0.12); color: var(--secondary); }
 
-/* DNA Tab Reading Guide */
 .reading-guide {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;
 }
-.guide-item {
-  display: flex; gap: 0.75rem; align-items: flex-start;
-}
+.guide-item { display: flex; gap: 0.75rem; align-items: flex-start; }
 .guide-item strong { font-size: 0.85rem; }
 
-/* Health indicators */
 .health-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;
 }
@@ -826,20 +704,6 @@ const networkStyles = `
   border: 1px solid var(--border);
 }
 
-/* Gel legend */
-.gel-legend { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem; }
-.gel-legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted); }
-.gel-legend-swatch { width: 24px; height: 4px; border-radius: 2px; flex-shrink: 0; }
-.gel-enzyme-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
-.gel-enzyme-tag {
-  font-size: 0.7rem; padding: 0.2rem 0.5rem; background: var(--bg-surface);
-  border: 1px solid var(--border); border-radius: 4px; color: var(--text-muted);
-}
-.gel-enzyme-tag code {
-  font-family: var(--mono); color: var(--primary); font-size: 0.65rem;
-}
-
-/* Responsive */
 @media (max-width: 640px) {
   .net-hero { gap: 0.5rem; }
   .hero-stat { min-width: 100px; padding: 0.75rem 0.5rem; }

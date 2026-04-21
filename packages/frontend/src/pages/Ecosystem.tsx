@@ -43,21 +43,6 @@ const APPS: App[] = [
     ],
   },
   {
-    id: "reel",
-    title: "Protocol Reel",
-    tagline: "9:16 explainer of the biological protocol, base by base.",
-    url: "https://reel.biocrypt.net",
-    color: "#8a82ff",
-    icon: "\u{1F3AC}",
-    status: "live",
-    features: [
-      "30-step visual walk-through of the entire BioCrypt protocol",
-      "Covers DNA encoding, codon translation, DNA256 hashing, and envelope construction",
-      "Designed for mobile — scroll vertically like a short-form video",
-      "Perfect for sharing the idea with someone who has never seen biology math",
-    ],
-  },
-  {
     id: "vault",
     title: "Encrypted Secret Vault",
     tagline: "Gemix-powered SDK demo: store secrets as DNA envelopes.",
