@@ -42,6 +42,10 @@ export interface DerivedNetworkStats {
   last24h: number;
   pendingEnvelopes: number;
   peers: number;
+  activeMiners: number;
+  activeWebClients: number;
+  peerTrackers: number;
+  totalConnected: number;
   nullifiers: number;
   totalSubmissions: number;
   currentReward: number;
@@ -89,6 +93,10 @@ export function deriveStats(
     last24h: summary.last24h ?? 0,
     pendingEnvelopes: summary.pendingEnvelopes ?? 0,
     peers: summary.peers ?? 0,
+    activeMiners: summary.miners ?? 0,
+    activeWebClients: summary.webClients ?? 0,
+    peerTrackers: summary.peerTrackers ?? 0,
+    totalConnected: summary.totalConnected ?? summary.peers ?? 0,
     nullifiers: totalSpent,
     totalSubmissions: totalCoins,
     currentReward: blockRewardFor(totalCoins),

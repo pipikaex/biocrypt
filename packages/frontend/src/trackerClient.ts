@@ -12,6 +12,11 @@ export interface TrackerSummary {
   last24h?: number;
   pendingEnvelopes?: number;
   peers?: number;
+  miners?: number;
+  webClients?: number;
+  peerTrackers?: number;
+  other?: number;
+  totalConnected?: number;
   latestMintAt?: number;
   latestSpendAt?: number;
 }

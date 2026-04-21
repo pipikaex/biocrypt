@@ -362,7 +362,7 @@ function LiveStatsSection({ stats }: { stats: NetworkStats }) {
         <LiveStat label="Until Halving" value={(stats.coinsUntilHalving ?? 0).toLocaleString()} sub="coins left" />
         <LiveStat label="Telomere" value={`${pct.toFixed(2)}%`} sub="remaining" />
         <LiveStat label="Difficulty" value={`${stats.dnaLeadingTs} Ts`} sub={`${stats.difficulty.length} hex zeros`} />
-        <LiveStat label="Peer Trackers" value={(stats.peers ?? 0).toLocaleString()} sub="connected now" />
+        <LiveStat label="Active Miners" value={(stats.activeMiners ?? 0).toLocaleString()} sub={`${stats.totalConnected ?? 0} total live`} />
       </div>
 
       <div className="live-telomere-bar">

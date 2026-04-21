@@ -1,6 +1,6 @@
 {
   "name": "@biocrypt/tracker",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Zero-dep WebSocket tracker for BioCrypt v1 — relays mints, spends and encrypted envelopes; run your own with `npx @biocrypt/tracker`.",
   "license": "MIT",
   "author": "BioCrypt Contributors",

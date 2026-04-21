@@ -92,11 +92,11 @@ export function Network() {
         <>
           <div className="net-hero">
             <HeroStat value={stats.totalCoins} label="Coins Minted" icon="coin" />
-            <HeroStat value={stats.totalSpent} label="Coins Spent" icon="mine" />
+            <HeroStat value={stats.activeMiners} label="Active Miners" icon="mine" />
             <HeroStat value={stats.last24h} label="Minted (24h)" icon="mine" />
             <HeroStat value={`${stats.dnaLeadingTs} Ts`} label="PoW Difficulty" icon="difficulty" />
             <HeroStat value={stats.currentReward} label="Reward / coin" icon="shield" />
-            <HeroStat value={stats.peers} label="Peer Trackers" icon="wallet" />
+            <HeroStat value={stats.totalConnected} label="Live Connections" icon="wallet" />
             <HeroStat value={`${stats.telomerePercent.toFixed(1)}%`} label="Supply Remaining" icon="shield" />
           </div>
 
@@ -221,8 +221,10 @@ function OverviewTab({ stats, mints }: { stats: NetworkStats; mints: DecodedMint
             <div className="mono text-sm">{stats.circulatingSupply.toLocaleString()} / {stats.maxSupply.toLocaleString()}</div>
           </div>
           <div className="field">
-            <label className="label">Peer Trackers</label>
-            <div className="mono text-sm">{stats.peers}</div>
+            <label className="label">Live Connections</label>
+            <div className="mono text-sm">
+              {stats.activeMiners} miners &middot; {stats.activeWebClients} web clients &middot; {stats.peerTrackers} peer trackers
+            </div>
           </div>
         </div>
       </div>

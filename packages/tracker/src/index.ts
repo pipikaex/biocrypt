@@ -70,6 +70,25 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
   let nextId = 1;
   const clients = new Map<number, ClientRecord>();
 
+  function clientStats() {
+    let miners = 0;
+    let webClients = 0;
+    let peerTrackers = 0;
+    let other = 0;
+    for (const c of clients.values()) {
+      if (!c.alive) continue;
+      if (c.isPeer) peerTrackers++;
+      else if (c.role === "miner" || c.role === "browser-miner") miners++;
+      else if (c.role === "biocrypt-web" || c.role === "tracker-viewer" || c.role === "wallet") webClients++;
+      else other++;
+    }
+    return { miners, webClients, peerTrackers, other, totalConnected: miners + webClients + peerTrackers + other };
+  }
+
+  function summaryWithClients() {
+    return { ...state.summary(), ...clientStats(), peers: clients.size };
+  }
+
   function sendTo(id: number, obj: unknown): void {
     const c = clients.get(id);
     if (!c || !c.alive) return;
@@ -123,7 +142,7 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
           trackerId: state.trackerId,
           genomeFingerprint,
           leadingTs,
-          summary: state.summary(),
+          summary: summaryWithClients(),
         });
         break;
       }
@@ -222,7 +241,7 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
         break;
       }
       case "summary": {
-        sendTo(id, { type: "summary", summary: state.summary() });
+        sendTo(id, { type: "summary", summary: summaryWithClients() });
         break;
       }
       case "latest": {
@@ -386,7 +405,7 @@ export async function startTracker(opts: TrackerOptions = {}): Promise<TrackerHa
     }
     if (req.url === "/summary") {
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify(state.summary()));
+      res.end(JSON.stringify(summaryWithClients()));
       return;
     }
     if (req.url === "/latest") {
