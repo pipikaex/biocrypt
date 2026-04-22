@@ -68,9 +68,19 @@ export class BiocryptPay {
         return;
       }
 
+      let settled = false;
+      let popupReady = false;
+      const openedAt = Date.now();
+
       const onMessage = (event: MessageEvent) => {
         if (event.origin !== expectedOrigin) return;
+        if (event.data?.type === "biocrypt-payment-ready") {
+          popupReady = true;
+          return;
+        }
         if (event.data?.type !== "biocrypt-payment") return;
+        if (settled) return;
+        settled = true;
         cleanup();
         resolve({
           success: !!event.data.success,
@@ -80,10 +90,23 @@ export class BiocryptPay {
         });
       };
 
+      // Cross-Origin-Opener-Policy can detach the opener's reference to the
+      // popup, making `popup.closed` read `true` even though the popup is
+      // alive. Only trust `popup.closed` once the popup has handshake'd
+      // (`biocrypt-payment-ready`) or after a 15s safety timeout.
       const pollTimer = setInterval(() => {
-        if (popup.closed) {
+        if (settled) return;
+        const grace = popupReady ? 300 : 15000;
+        if (Date.now() - openedAt < grace) return;
+        let closed = false;
+        try { closed = popup.closed; } catch { closed = false; }
+        if (closed) {
+          settled = true;
           cleanup();
-          resolve({ success: false, paymentId, txCount: 0, error: "Popup closed by user" });
+          resolve({
+            success: false, paymentId, txCount: 0,
+            error: popupReady ? "Payment popup was closed before completion" : "Popup unreachable",
+          });
         }
       }, 500);
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, Link, useOutletContext } from "react-router-dom";
 import { api, type Listing, formatFileSize } from "../api";
 import type { MarketUser } from "../store";
@@ -40,7 +40,7 @@ export function ItemDetail() {
 
       const paymentUrl = `${networkUrl}/pay/${paymentRes.paymentId}`;
 
-      const result = await new Promise<{ success: boolean; paymentId: string }>((resolve) => {
+      const result = await new Promise<{ success: boolean; paymentId: string; error?: string }>((resolve) => {
         const width = 480, height = 680;
         const left = Math.floor((screen.width - width) / 2);
         const top = Math.floor((screen.height - height) / 2);
@@ -50,24 +50,54 @@ export function ItemDetail() {
         );
 
         if (!popup) {
-          resolve({ success: false, paymentId: paymentRes.paymentId });
+          resolve({ success: false, paymentId: paymentRes.paymentId, error: "Popup blocked by browser" });
           return;
         }
 
         const expectedOrigin = new URL(networkUrl).origin;
+        let settled = false;
+        let popupReady = false;
+        const openedAt = Date.now();
+
+        // Cross-Origin-Opener-Policy can sever the opener's reference to
+        // the popup as soon as it navigates, making `popup.closed` read
+        // `true` from us even though the popup window is alive and well.
+        // We only treat `popup.closed` as a real cancellation AFTER the
+        // popup has explicitly told us it loaded (`biocrypt-payment-ready`)
+        // or at least 15 seconds have elapsed since open.
         const onMessage = (event: MessageEvent) => {
           if (event.origin !== expectedOrigin) return;
+          if (event.data?.type === "biocrypt-payment-ready") {
+            popupReady = true;
+            return;
+          }
           if (event.data?.type !== "biocrypt-payment") return;
+          if (settled) return;
+          settled = true;
           window.removeEventListener("message", onMessage);
           clearInterval(pollTimer);
-          resolve({ success: !!event.data.success, paymentId: event.data.paymentId });
+          resolve({
+            success: !!event.data.success,
+            paymentId: event.data.paymentId || paymentRes.paymentId,
+            error: event.data.error,
+          });
         };
 
         const pollTimer = setInterval(() => {
-          if (popup.closed) {
+          if (settled) return;
+          const grace = popupReady ? 300 : 15000;
+          if (Date.now() - openedAt < grace) return;
+          let closed = false;
+          try { closed = popup.closed; } catch { closed = false; }
+          if (closed) {
+            settled = true;
             window.removeEventListener("message", onMessage);
             clearInterval(pollTimer);
-            resolve({ success: false, paymentId: paymentRes.paymentId });
+            resolve({
+              success: false,
+              paymentId: paymentRes.paymentId,
+              error: popupReady ? "Payment popup was closed before completion" : undefined,
+            });
           }
         }, 500);
 
@@ -75,7 +105,7 @@ export function ItemDetail() {
       });
 
       if (!result.success) {
-        setError("Payment was cancelled or failed.");
+        setError(result.error || "Payment was cancelled.");
         setBuying(false);
         return;
       }
@@ -117,10 +147,31 @@ export function ItemDetail() {
     }
   }, [listing, user]);
 
-  const handleCopyMrnas = () => {
-    if (mrnas) {
-      navigator.clipboard.writeText(JSON.stringify(mrnas));
+  // Build the string the seller pastes into www.biocrypt.net/transfer.
+  // The Transfer page's `parseMRNAData` expects either a single mRNA
+  // payload or a `{type:"bundle", mrnas:[...]}` envelope, NOT a raw
+  // JSON array of serialized mRNAs (which is what we used to hand
+  // back). We parse each serialized mRNA and wrap them in a proper
+  // bundle so Receive accepts the paste in one click.
+  const claimPayload = useMemo(() => {
+    if (!mrnas || mrnas.length === 0) return "";
+    try {
+      const parsed = mrnas.map((m) => JSON.parse(m));
+      return JSON.stringify({
+        type: "bundle",
+        mrnas: parsed,
+        createdAt: Date.now(),
+      });
+    } catch {
+      // Fallback: the API unexpectedly returned objects instead of
+      // JSON strings — emit as-is so the user can at least recover
+      // the data.
+      return JSON.stringify(mrnas);
     }
+  }, [mrnas]);
+
+  const handleCopyMrnas = () => {
+    if (claimPayload) navigator.clipboard.writeText(claimPayload);
   };
 
   if (loading) return <div className="page"><p className="text-muted">Loading...</p></div>;
@@ -203,10 +254,15 @@ export function ItemDetail() {
               <p className="text-sm" style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
                 Your file has been sold! Claim your ZBIO:
               </p>
+              <p className="text-xs text-muted" style={{ marginTop: "-0.25rem", marginBottom: "0.75rem" }}>
+                Your payment is delivered automatically to your wallet via the tracker.{" "}
+                Check <a href="https://www.biocrypt.net/wallet" target="_blank" rel="noopener">www.biocrypt.net/wallet</a> — the coins should appear within a few seconds.
+                Use the manual claim below only if your wallet was offline during the sale.
+              </p>
               {mrnas ? (
                 <div>
                   <div className="mrna-box">
-                    <code className="text-xs">{JSON.stringify(mrnas).slice(0, 200)}...</code>
+                    <code className="text-xs">{claimPayload.slice(0, 200)}{claimPayload.length > 200 ? "..." : ""}</code>
                   </div>
                   <button className="btn btn-sm btn-secondary mt-1" onClick={handleCopyMrnas}>
                     Copy mRNA Data
@@ -214,12 +270,12 @@ export function ItemDetail() {
                   <p className="text-xs text-muted mt-1">
                     Paste this on{" "}
                     <a href="https://www.biocrypt.net/transfer" target="_blank" rel="noopener">www.biocrypt.net/transfer</a>{" "}
-                    to import the coins into your wallet.
+                    (Receive tab) to import the coins manually.
                   </p>
                 </div>
               ) : (
-                <button className="btn btn-primary" onClick={handleClaimMrnas} disabled={claimingMrnas}>
-                  {claimingMrnas ? "Loading..." : "Get Payment mRNAs"}
+                <button className="btn btn-sm btn-secondary" onClick={handleClaimMrnas} disabled={claimingMrnas}>
+                  {claimingMrnas ? "Loading..." : "Manual claim (if needed)"}
                 </button>
               )}
             </div>

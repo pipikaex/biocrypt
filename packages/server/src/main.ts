@@ -56,6 +56,19 @@ async function bootstrap() {
     helmet({
       contentSecurityPolicy: false,
       crossOriginEmbedderPolicy: false,
+      // The marketplace (file.biocrypt.net) opens the Pay popup on
+      // www.biocrypt.net. Those origins share a registered domain but are
+      // still cross-origin, so any non-`unsafe-none` COOP on either side
+      // puts the popup in a different browsing-context group — the opener
+      // then sees `popup.closed === true` immediately and loses
+      // `window.opener` inside the popup, breaking the ready-handshake and
+      // the success/failure postMessage. We don't need cross-origin
+      // isolation for anything here (no SharedArrayBuffer / high-res
+      // timers), so turn COOP off entirely and let the normal popup
+      // relationship stand.
+      crossOriginOpenerPolicy: false,
+      // Same reasoning for COOP-tied resource policy.
+      crossOriginResourcePolicy: false,
     }),
   );
 

@@ -297,16 +297,43 @@ export function serializeBundle(mrnas: mRNAPayload[]): string {
 }
 
 /**
- * Parse raw mRNA data that can be either a single mRNA or a bundle.
- * Always returns an array of mRNAPayload.
+ * Parse raw mRNA data. Accepts any of these shapes and always returns an
+ * array of `mRNAPayload`:
+ *   1. A single mRNA object           `{"type":"transfer", ...}`
+ *   2. A bundle                        `{"type":"bundle","mrnas":[...]}`
+ *   3. A JSON array of mRNA objects   `[{...}, {...}]`
+ *   4. A JSON array of mRNA JSON strings
+ *                                      `["{\"type\":\"transfer\",...}", ...]`
+ *      (this is the shape the marketplace used to emit when the seller
+ *      copied their claim payload — kept here for backwards compatibility
+ *      so existing claim copies still work.)
  */
 export function parseMRNAData(data: string): mRNAPayload[] {
   const parsed = JSON.parse(data);
-  if (parsed.type === "bundle" && Array.isArray(parsed.mrnas)) {
-    return (parsed as mRNABundle).mrnas;
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    if (parsed.type === "bundle" && Array.isArray(parsed.mrnas)) {
+      return (parsed as mRNABundle).mrnas;
+    }
+    if (parsed.type === "transfer") {
+      return [parsed as mRNAPayload];
+    }
   }
-  if (parsed.type === "transfer") {
-    return [parsed as mRNAPayload];
+  if (Array.isArray(parsed) && parsed.length > 0) {
+    const out: mRNAPayload[] = [];
+    for (const item of parsed) {
+      if (typeof item === "string") {
+        const inner = JSON.parse(item);
+        if (inner?.type !== "transfer") {
+          throw new Error("Invalid mRNA data: array contains non-transfer entry");
+        }
+        out.push(inner as mRNAPayload);
+      } else if (item && typeof item === "object" && item.type === "transfer") {
+        out.push(item as mRNAPayload);
+      } else {
+        throw new Error("Invalid mRNA data: array contains non-transfer entry");
+      }
+    }
+    return out;
   }
   throw new Error("Invalid mRNA data: expected transfer or bundle");
 }
